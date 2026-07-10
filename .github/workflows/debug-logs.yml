@@ -1,7 +1,7 @@
 name: Debug Logs
 
-# Manual utility: dump recent ECS stopped-task reasons and app logs
-# so container startup failures can be diagnosed from the Actions UI.
+# Manual utility: dump ECS service events, stopped-task reasons, and app
+# logs so container/deployment failures can be diagnosed from Actions.
 on: workflow_dispatch
 
 jobs:
@@ -16,18 +16,35 @@ jobs:
           aws-secret-access-key: ${{ secrets.SECRETACCESSKEY }}
           aws-region:            ${{ secrets.AWS_REGION || 'us-east-1' }}
 
-      - name: Stopped task reasons
+      - name: Service state + deployment events
+        run: |
+          aws ecs describe-services --cluster tenure-pilot --services tenure-pilot-app \
+            --query 'services[0].{taskDef:taskDefinition,desired:desiredCount,running:runningCount,pending:pendingCount}' \
+            --output table
+          echo "=== Deployments ==="
+          aws ecs describe-services --cluster tenure-pilot --services tenure-pilot-app \
+            --query 'services[0].deployments[].{status:status,taskDef:taskDefinition,desired:desiredCount,running:runningCount,failed:failedTasks,state:rolloutState,reason:rolloutStateReason}' \
+            --output table
+          echo "=== Events (newest first) ==="
+          aws ecs describe-services --cluster tenure-pilot --services tenure-pilot-app \
+            --query 'services[0].events[:25].[createdAt,message]' --output text
+
+      - name: All stopped tasks with task-def revisions
         run: |
           TASKS=$(aws ecs list-tasks --cluster tenure-pilot \
-            --desired-status STOPPED --query 'taskArns[:5]' --output text)
+            --desired-status STOPPED --query 'taskArns' --output text)
           if [ -n "$TASKS" ]; then
             aws ecs describe-tasks --cluster tenure-pilot --tasks $TASKS \
-              --query 'tasks[].{stopped:stoppedAt,reason:stoppedReason,exit:containers[0].exitCode,creason:containers[0].reason,image:containers[0].image}' \
-              --output table
+              --query 'sort_by(tasks,&stoppedAt)[].{stopped:stoppedAt,taskDef:taskDefinitionArn,reason:stoppedReason,exit:containers[0].exitCode,creason:containers[0].reason}' \
+              --output table | tail -60
           else
             echo "No stopped tasks"
           fi
 
-      - name: Recent app logs
+      - name: Bootstrap + error log events (2h)
         run: |
-          aws logs tail /ecs/tenure-pilot --since 60m --format short | tail -150 || echo "no logs"
+          START=$(( ($(date +%s) - 7200) * 1000 ))
+          aws logs filter-log-events --log-group-name /ecs/tenure-pilot \
+            --start-time $START \
+            --filter-pattern '?Syncing ?Seeding ?Error ?error ?failed ?prisma' \
+            --query 'events[].message' --output text | tail -60 || echo "no matching logs"
