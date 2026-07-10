@@ -1,0 +1,146 @@
+// Tenure — role-based institutional knowledge platform
+// Knowledge lives on Roles (seats), not Users (people).
+// When the person changes, the role's knowledge transfers automatically.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ─── NextAuth required models ────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Core domain models ───────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts        Account[]
+  sessions        Session[]
+  roleAssignments RoleAssignment[]
+}
+
+// A student club or organization (e.g., "Simon Business School Finance Club")
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roles Role[]
+}
+
+// A board seat — knowledge lives here, not on the person (e.g., "VP Finance & Operations")
+model Role {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  assignments    RoleAssignment[]
+  knowledgeCards KnowledgeCard[]
+
+  @@unique([organizationId, name])
+}
+
+// Who holds (or is shadowing / has previously held) a given role
+enum AssignmentStatus {
+  SHADOW // Incoming leader: read-only access before their term starts
+  ACTIVE // Current role holder with full read/write
+  ALUMNI // Past holder — record preserved, no active access
+}
+
+model RoleAssignment {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId    String
+  role      Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  status    AssignmentStatus @default(ACTIVE)
+  startDate DateTime         @default(now())
+  endDate   DateTime?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([userId, roleId])
+  @@index([roleId, status])
+}
+
+// A single unit of preserved knowledge attached to a role
+enum KnowledgeCardType {
+  CONTACT    // Sponsor, vendor, or university contact
+  PLAYBOOK   // Step-by-step guide for a recurring event or task
+  BUDGET     // Financial record or budget template
+  VENDOR     // Vendor deal, contract, or relationship detail
+  LESSON     // Hard-won insight written for the successor
+  THREAD     // Ongoing initiative or open question
+  CREDENTIAL // Login / password / access info (stored encrypted)
+  DEADLINE   // Compliance or recurring deadline
+}
+
+model KnowledgeCard {
+  id         String            @id @default(cuid())
+  title      String
+  type       KnowledgeCardType
+  content    Json
+  roleId     String
+  role       Role              @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  authorId   String?
+  isArchived Boolean           @default(false)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([roleId, type])
+  @@index([roleId, isArchived])
+}

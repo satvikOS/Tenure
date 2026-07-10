@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Lint · Type Check · Test · Build
+    runs-on: ubuntu-latest
+
+    env:
+      AUTH_SECRET: ci-build-secret-not-for-production
+      NEXTAUTH_URL: http://localhost:3000
+      # Okta vars are not set in CI — auth routes are dynamic and not called at build time
+      OKTA_CLIENT_ID: ci-placeholder
+      OKTA_CLIENT_SECRET: ci-placeholder
+      OKTA_ISSUER: https://ci.example.okta.com
+      # DATABASE_URL is not needed for prisma generate or next build (lazy connection)
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/tenure
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Test
+        run: npm test -- --ci --passWithNoTests
+
+      - name: Build
+        run: npm run build
