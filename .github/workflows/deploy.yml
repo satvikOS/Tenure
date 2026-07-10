@@ -137,6 +137,24 @@ jobs:
           provenance: false
 
       # ── 6. Terraform: full infrastructure apply ──────────────────────────
+      - name: Import orphaned resources into Terraform state
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          # Resources that were created in AWS but dropped from state by an
+          # earlier partial failure. Each import is skipped if already in
+          # state or if the resource doesn't exist in AWS yet.
+          import_if_orphaned() {
+            local addr="$1" id="$2"
+            if terraform state show "$addr" >/dev/null 2>&1; then
+              echo "✅ $addr already in state"
+            elif terraform import -var="image_tag=$IMAGE_TAG" -input=false "$addr" "$id" 2>/dev/null; then
+              echo "📥 Imported $addr ($id)"
+            else
+              echo "ℹ️ $addr not in AWS yet — apply will create it"
+            fi
+          }
+          import_if_orphaned aws_db_parameter_group.postgres tenure-pilot-pg16
+
       - name: Terraform apply — full infrastructure
         working-directory: ${{ env.TF_DIR }}
         run: |
