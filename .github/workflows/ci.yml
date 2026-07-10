@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  workflow_call: # Allow deploy.yml to call this as a dependency
 
 jobs:
   ci:

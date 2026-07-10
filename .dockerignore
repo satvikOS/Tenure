@@ -1,0 +1,11 @@
+.git
+.github
+.next
+node_modules
+.env
+.env.*
+*.md
+infrastructure
+coverage
+.DS_Store
+Tenure_Complete_System_Architecture_Blueprint.pdf

@@ -1,0 +1,227 @@
+# ── ECS cluster ───────────────────────────────────────────────────────────────
+resource "aws_ecs_cluster" "main" {
+  name = "${local.name_prefix}"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+}
+
+resource "aws_ecs_cluster_capacity_providers" "main" {
+  cluster_name       = aws_ecs_cluster.main.name
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+
+  default_capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    weight            = 1
+  }
+}
+
+# ── IAM: task execution role (pulls ECR image, writes logs, reads secrets) ────
+resource "aws_iam_role" "ecs_execution" {
+  name = "${local.name_prefix}-ecs-execution"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_managed" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_secrets" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = aws_iam_policy.ecs_secrets.arn
+}
+
+# ── IAM: task role (runtime AWS SDK calls: S3, SQS, SES) ────────────────────
+resource "aws_iam_role" "ecs_task" {
+  name = "${local.name_prefix}-ecs-task"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "ecs_task_inline" {
+  name = "${local.name_prefix}-ecs-task-inline"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:GetObjectAttributes"]
+        Resource = [
+          "${aws_s3_bucket.documents.arn}/*",
+          "${aws_s3_bucket.exports.arn}/*",
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = [aws_s3_bucket.documents.arn, aws_s3_bucket.exports.arn]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage", "sqs:ReceiveMessage",
+          "sqs:DeleteMessage", "sqs:GetQueueAttributes",
+        ]
+        Resource = [
+          aws_sqs_queue.default.arn,
+          aws_sqs_queue.email.arn,
+          aws_sqs_queue.notifications.arn,
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["ses:SendEmail", "ses:SendRawEmail"]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "ses:FromAddress" = var.ses_from_email
+          }
+        }
+      },
+    ]
+  })
+}
+
+# ── CloudWatch log group ──────────────────────────────────────────────────────
+resource "aws_cloudwatch_log_group" "app" {
+  name              = "/ecs/${local.name_prefix}"
+  retention_in_days = 30
+}
+
+# ── ECS task definition ───────────────────────────────────────────────────────
+resource "aws_ecs_task_definition" "app" {
+  family                   = "${local.name_prefix}-app"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = var.ecs_cpu
+  memory                   = var.ecs_memory
+  execution_role_arn       = aws_iam_role.ecs_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "app"
+      image     = "${aws_ecr_repository.app.repository_url}:${var.image_tag}"
+      essential = true
+
+      portMappings = [{ containerPort = 3000, protocol = "tcp" }]
+
+      environment = [
+        { name = "NODE_ENV",      value = "production" },
+        { name = "PORT",          value = "3000" },
+        { name = "NEXTAUTH_URL",  value = "https://${aws_cloudfront_distribution.main.domain_name}" },
+        { name = "REDIS_URL",     value = "redis://${aws_elasticache_cluster.redis.cache_nodes[0].address}:6379" },
+        { name = "SQS_DEFAULT_URL",       value = aws_sqs_queue.default.url },
+        { name = "SQS_EMAIL_URL",         value = aws_sqs_queue.email.url },
+        { name = "SQS_NOTIFICATIONS_URL", value = aws_sqs_queue.notifications.url },
+        { name = "S3_DOCUMENTS_BUCKET",   value = aws_s3_bucket.documents.bucket },
+        { name = "S3_EXPORTS_BUCKET",     value = aws_s3_bucket.exports.bucket },
+        { name = "AWS_REGION",            value = var.aws_region },
+        { name = "SES_FROM_EMAIL",        value = var.ses_from_email },
+      ]
+
+      secrets = [
+        {
+          name      = "AUTH_SECRET"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:AUTH_SECRET::"
+        },
+        {
+          name      = "OKTA_CLIENT_ID"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:OKTA_CLIENT_ID::"
+        },
+        {
+          name      = "OKTA_CLIENT_SECRET"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:OKTA_CLIENT_SECRET::"
+        },
+        {
+          name      = "OKTA_ISSUER"
+          valueFrom = "${aws_secretsmanager_secret.app.arn}:OKTA_ISSUER::"
+        },
+        {
+          name      = "DATABASE_URL"
+          valueFrom = "${aws_db_instance.postgres.master_user_secret[0].secret_arn}"
+        },
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.app.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "app"
+        }
+      }
+
+      healthCheck = {
+        command     = ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 60
+      }
+    }
+  ])
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# ── ECS service ───────────────────────────────────────────────────────────────
+resource "aws_ecs_service" "app" {
+  name            = "${local.name_prefix}-app"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.app.arn
+  desired_count   = var.ecs_desired_count
+  launch_type     = "FARGATE"
+
+  # Allow zero healthy tasks during initial image-push phase
+  deployment_minimum_healthy_percent = 0
+  deployment_maximum_percent         = 200
+
+  # Don't block Terraform while ECS stabilizes (handled by CI wait step)
+  wait_for_steady_state = false
+
+  network_configuration {
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.ecs.id]
+    assign_public_ip = true  # Required for ECR pull without NAT gateway
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.app.arn
+    container_name   = "app"
+    container_port   = 3000
+  }
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  depends_on = [aws_lb_listener.http]
+
+  lifecycle {
+    ignore_changes = [task_definition]  # CI manages task definition updates
+  }
+}
