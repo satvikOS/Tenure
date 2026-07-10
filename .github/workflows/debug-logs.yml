@@ -35,8 +35,8 @@ jobs:
             --desired-status STOPPED --query 'taskArns' --output text)
           if [ -n "$TASKS" ]; then
             aws ecs describe-tasks --cluster tenure-pilot --tasks $TASKS \
-              --query 'sort_by(tasks,&stoppedAt)[].{stopped:stoppedAt,taskDef:taskDefinitionArn,reason:stoppedReason,exit:containers[0].exitCode,creason:containers[0].reason}' \
-              --output table | tail -60
+              --query 'tasks[].{stopped:stoppedAt,taskDef:taskDefinitionArn,reason:stoppedReason,exit:containers[0].exitCode,creason:containers[0].reason}' \
+              --output json
           else
             echo "No stopped tasks"
           fi
