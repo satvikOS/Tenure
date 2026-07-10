@@ -1,3 +1,116 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ─── Tenure Design Tokens ─────────────────────────────────────────────────
+   Modernized SAP Fiori Horizon visual language.
+   Shell: dark navy. Primary: SAP blue. Surfaces: clean white on gray base.
+────────────────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    /* Shell */
+    --shell-bg: #1b2433;
+    --shell-text: #ffffff;
+    --shell-text-secondary: rgba(255, 255, 255, 0.65);
+    --shell-border: rgba(255, 255, 255, 0.1);
+    --shell-item-hover: rgba(255, 255, 255, 0.08);
+    --shell-item-active: rgba(255, 255, 255, 0.14);
+
+    /* Primary (SAP Horizon blue) */
+    --primary: #0064d9;
+    --primary-hover: #0054b5;
+    --primary-press: #004494;
+    --primary-light: #e8f1fc;
+    --primary-text: #ffffff;
+
+    /* Surfaces */
+    --bg-base: #f5f6f7;
+    --bg-surface: #ffffff;
+    --bg-overlay: rgba(0, 0, 0, 0.45);
+
+    /* Borders */
+    --border: #d4d9e0;
+    --border-strong: #adb5c0;
+    --border-focus: #0064d9;
+
+    /* Text */
+    --text-1: #1b2433;
+    --text-2: #5b6471;
+    --text-3: #8d96a0;
+    --text-disabled: #b3bac2;
+    --text-inverse: #ffffff;
+    --text-link: #0064d9;
+
+    /* Status */
+    --success: #188269;
+    --success-light: #e8f5f1;
+    --warning: #e76500;
+    --warning-light: #fff3e5;
+    --error: #aa0808;
+    --error-light: #fce8e8;
+    --info: #0064d9;
+    --info-light: #e8f1fc;
+
+    /* Status badge text */
+    --badge-approved-bg: #e8f5f1;
+    --badge-approved-text: #188269;
+    --badge-pending-bg: #fff3e5;
+    --badge-pending-text: #a84700;
+    --badge-rejected-bg: #fce8e8;
+    --badge-rejected-text: #aa0808;
+    --badge-draft-bg: #f0f2f5;
+    --badge-draft-text: #5b6471;
+
+    /* Spacing scale */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
+
+    /* Layout */
+    --shell-height: 48px;
+    --sidenav-width: 240px;
+    --sidenav-width-collapsed: 52px;
+
+    /* Radius */
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 10px;
+    --radius-full: 9999px;
+
+    /* Shadow */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.10), 0 2px 4px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.14);
+
+    /* Typography */
+    --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    color: var(--text-1);
+    background: var(--bg-base);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  /* React Aria focus visible ring */
+  [data-focus-visible] {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+}

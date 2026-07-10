@@ -7,7 +7,58 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        shell: {
+          DEFAULT: "var(--shell-bg)",
+          text: "var(--shell-text)",
+        },
+        primary: {
+          DEFAULT: "var(--primary)",
+          hover: "var(--primary-hover)",
+          light: "var(--primary-light)",
+        },
+        surface: "var(--bg-surface)",
+        base: "var(--bg-base)",
+        border: {
+          DEFAULT: "var(--border)",
+          strong: "var(--border-strong)",
+        },
+        text: {
+          1: "var(--text-1)",
+          2: "var(--text-2)",
+          3: "var(--text-3)",
+          disabled: "var(--text-disabled)",
+          link: "var(--text-link)",
+        },
+        status: {
+          success: "var(--success)",
+          warning: "var(--warning)",
+          error: "var(--error)",
+          info: "var(--info)",
+        },
+      },
+      height: {
+        shell: "var(--shell-height)",
+      },
+      width: {
+        sidenav: "var(--sidenav-width)",
+        "sidenav-collapsed": "var(--sidenav-width-collapsed)",
+      },
+      fontFamily: {
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+      },
+      borderRadius: {
+        sm: "var(--radius-sm)",
+        DEFAULT: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+      },
+      boxShadow: {
+        sm: "var(--shadow-sm)",
+        DEFAULT: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+      },
+    },
   },
   plugins: [],
 }

@@ -1,6 +1,9 @@
-// Tenure — role-based institutional knowledge platform
-// Knowledge lives on Roles (seats), not Users (people).
-// When the person changes, the role's knowledge transfers automatically.
+// Tenure — Institutional OS for student organizations
+// Architecture principles:
+//   1. Role SEATS are durable identities — people rotate, knowledge stays
+//   2. Every business record resolves to a tenant boundary (institutionId)
+//   3. Club-owned records also carry organizationId; cross-tenant queries denied by default
+//   4. State transitions are append-only and immutable
 
 datasource db {
   provider = "postgresql"
@@ -49,7 +52,43 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// ─── Core domain models ───────────────────────────────────────────────────────
+// ─── Identity & Tenancy ───────────────────────────────────────────────────────
+
+// The university or contracted school — top-level tenant boundary
+model Institution {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  domain    String?  // e.g., "simon.rochester.edu" — used for verified email matching
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizations Organization[]
+  memberships   InstitutionMembership[]
+  auditEvents   AuditEvent[]
+}
+
+enum InstitutionRole {
+  OSE_DIRECTOR  // Full institution access, policy, override
+  OSE_STAFF     // Review, comment, access club history
+  OSE_ADVISOR   // Assigned clubs or all clubs; no policy changes
+}
+
+// User's role at the institution level (OSE access)
+model InstitutionMembership {
+  id            String          @id @default(cuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institutionId String
+  institution   Institution     @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  role          InstitutionRole
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([userId, institutionId])
+  @@index([institutionId, role])
+}
 
 model User {
   id            String    @id @default(cuid())
@@ -60,45 +99,76 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts        Account[]
-  sessions        Session[]
-  roleAssignments RoleAssignment[]
+  accounts              Account[]
+  sessions              Session[]
+  institutionMembership InstitutionMembership[]
+  roleAssignments       RoleAssignment[]
+  messagesSent          Message[]
+  notificationPrefs     NotificationPreference[]
 }
 
-// A student club or organization (e.g., "Simon Business School Finance Club")
+// ─── Organizations & Role Seats ───────────────────────────────────────────────
+
+// A student club or association — identity persists across academic years
 model Organization {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  logoUrl     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String      @id @default(cuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  name          String
+  slug          String      @unique
+  description   String?
+  logoUrl       String?
+  status        OrgStatus   @default(ACTIVE)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  roles Role[]
+  roles          Role[]
+  approvals      ApprovalRequest[]
+  events         Event[]
+  conversations  Conversation[]
+  documents      Document[]
+  budgets        Budget[]
+  vendors        Vendor[]
+  memoryRecords  MemoryRecord[]
+
+  @@index([institutionId, status])
 }
 
-// A board seat — knowledge lives here, not on the person (e.g., "VP Finance & Operations")
+enum OrgStatus {
+  ACTIVE
+  ARCHIVED
+  PENDING
+}
+
+// A durable board seat — the role persists when the occupant changes
 model Role {
   id             String       @id @default(cuid())
-  name           String
-  description    String?
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String       // "President", "VP Finance & Operations", etc.
+  description    String?
+  scope          RoleScope    @default(FUNCTIONAL)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  assignments    RoleAssignment[]
-  knowledgeCards KnowledgeCard[]
+  assignments   RoleAssignment[]
+  memoryRecords MemoryRecord[]
 
   @@unique([organizationId, name])
+  @@index([organizationId, scope])
 }
 
-// Who holds (or is shadowing / has previously held) a given role
+enum RoleScope {
+  PRESIDENT   // Club admin — approves VP requests, escalates to OSE
+  FUNCTIONAL  // VP/Chair — scoped to their domain
+  MEMBER      // General member — limited visibility
+}
+
+// Time-bounded link between a person and a role seat
 enum AssignmentStatus {
-  SHADOW // Incoming leader: read-only access before their term starts
-  ACTIVE // Current role holder with full read/write
-  ALUMNI // Past holder — record preserved, no active access
+  SHADOW  // Incoming: read-only access before term begins
+  ACTIVE  // Current role holder
+  ALUMNI  // Past holder — record preserved, access revoked
 }
 
 model RoleAssignment {
@@ -117,30 +187,385 @@ model RoleAssignment {
   @@index([roleId, status])
 }
 
-// A single unit of preserved knowledge attached to a role
-enum KnowledgeCardType {
-  CONTACT    // Sponsor, vendor, or university contact
-  PLAYBOOK   // Step-by-step guide for a recurring event or task
-  BUDGET     // Financial record or budget template
-  VENDOR     // Vendor deal, contract, or relationship detail
-  LESSON     // Hard-won insight written for the successor
-  THREAD     // Ongoing initiative or open question
-  CREDENTIAL // Login / password / access info (stored encrypted)
-  DEADLINE   // Compliance or recurring deadline
+// ─── Approval Workflow ────────────────────────────────────────────────────────
+
+enum ApprovalType {
+  EVENT          // Event proposal
+  BUDGET         // Budget or spend request
+  VENDOR         // Vendor engagement or contract
+  COMMUNICATION  // External communication or press
+  DOCUMENT       // Policy or formal document
+  EXCEPTION      // Policy exception or override request
+  ROSTER         // Membership or role change
 }
 
-model KnowledgeCard {
-  id         String            @id @default(cuid())
-  title      String
-  type       KnowledgeCardType
-  content    Json
-  roleId     String
-  role       Role              @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  authorId   String?
-  isArchived Boolean           @default(false)
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
+enum ApprovalStatus {
+  DRAFT
+  PENDING_PRESIDENT
+  NEEDS_CHANGES
+  PENDING_OSE
+  APPROVED
+  REJECTED
+  CANCELLED
+}
 
-  @@index([roleId, type])
-  @@index([roleId, isArchived])
+// Every request is a durable record — not an email thread
+model ApprovalRequest {
+  id             String         @id @default(cuid())
+  institutionId  String
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           ApprovalType
+  title          String
+  description    String?
+  status         ApprovalStatus @default(DRAFT)
+  submittedById  String
+  metadata       Json           @default("{}") // type-specific fields
+  idempotencyKey String?        @unique
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  steps         ApprovalStep[]
+  conversation  Conversation?  @relation("ApprovalConversation")
+  event         Event?         @relation("ApprovalEvent")
+
+  @@index([organizationId, status])
+  @@index([institutionId, status])
+}
+
+// Each gate in the approval state machine — append-only
+model ApprovalStep {
+  id               String         @id @default(cuid())
+  approvalId       String
+  approval         ApprovalRequest @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  fromStatus       ApprovalStatus
+  toStatus         ApprovalStatus
+  actorId          String
+  actorRoleContext String?        // role seat name at time of decision
+  reason           String?
+  policySnapshot   Json           @default("{}") // permissions in effect at decision time
+  occurredAt       DateTime       @default(now())
+
+  @@index([approvalId])
+}
+
+// ─── Calendar & Events ────────────────────────────────────────────────────────
+
+enum EventStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  PUBLISHED
+  CANCELLED
+}
+
+enum EventAudience {
+  BOARD_ONLY
+  CLUB_MEMBERS
+  SCHOOL_WIDE
+  INVITE_ONLY
+  PUBLIC
+}
+
+model Event {
+  id               String        @id @default(cuid())
+  institutionId    String
+  organizationId   String
+  organization     Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ownerRoleId      String?
+  approvalId       String?       @unique
+  approval         ApprovalRequest? @relation("ApprovalEvent", fields: [approvalId], references: [id])
+  title            String
+  description      String?
+  startAt          DateTime
+  endAt            DateTime
+  timezone         String        @default("America/New_York")
+  venue            String?
+  capacity         Int?
+  audience         EventAudience @default(CLUB_MEMBERS)
+  status           EventStatus   @default(DRAFT)
+  recurrenceRule   String?       // RFC 5545 RRULE
+  conflictSummary  Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  conflicts ConflictRecord[]
+
+  @@index([institutionId, startAt])
+  @@index([organizationId, status])
+}
+
+enum ConflictSeverity {
+  HARD        // Same room/time — block
+  SOFT        // Audience collision — warn
+  INFORMATIONAL
+}
+
+model ConflictRecord {
+  id         String           @id @default(cuid())
+  eventId    String
+  event      Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  conflictWithEventId String?
+  severity   ConflictSeverity
+  reason     String
+  resolved   Boolean          @default(false)
+  resolvedAt DateTime?
+  createdAt  DateTime         @default(now())
+
+  @@index([eventId])
+}
+
+// ─── Messaging & InMail ───────────────────────────────────────────────────────
+
+enum ConversationType {
+  DIRECT_MESSAGE   // VP <-> President, President <-> OSE, authorized peers
+  BOARD_CHANNEL    // President and board inside one club
+  APPROVAL_THREAD  // Immutable conversation attached to a request
+  PRESIDENT_NETWORK // Cross-club coordination, governed by OSE
+  OSE_BROADCAST    // Administration to everyone or selected audience
+  SYSTEM           // Automated status, deadline, security messages
+}
+
+model Conversation {
+  id              String           @id @default(cuid())
+  institutionId   String
+  organizationId  String?
+  organization    Organization?    @relation(fields: [organizationId], references: [id])
+  type            ConversationType
+  approvalId      String?          @unique
+  approval        ApprovalRequest? @relation("ApprovalConversation", fields: [approvalId], references: [id])
+  subject         String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  participants Participant[]
+  messages     Message[]
+
+  @@index([institutionId])
+  @@index([organizationId, type])
+}
+
+model Participant {
+  id               String       @id @default(cuid())
+  conversationId   String
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId           String
+  roleContext      String?      // role name at time of joining
+  joinedAt         DateTime     @default(now())
+  lastReadMessageId String?
+
+  deliveries Delivery[]
+
+  @@unique([conversationId, userId])
+}
+
+// Messages are immutable — corrections are new entries linked via replyToId
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id])
+  body           String       @db.Text
+  format         String       @default("markdown") // "markdown" | "plain"
+  replyToId      String?
+  editedAt       DateTime?
+  createdAt      DateTime     @default(now())
+
+  attachments Attachment[]
+  deliveries  Delivery[]
+
+  @@index([conversationId, createdAt])
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  messageId   String
+  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  fileName    String
+  mimeType    String
+  objectKey   String   // S3 key — never expose directly; use signed URLs
+  sizeBytes   Int?
+  checksum    String?
+  sensitivity String   @default("standard")
+  createdAt   DateTime @default(now())
+}
+
+model Delivery {
+  id            String      @id @default(cuid())
+  messageId     String
+  message       Message     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  channel       String      // "in_app" | "email" | "push"
+  deliveredAt   DateTime?
+  readAt        DateTime?
+  failureReason String?
+
+  @@unique([messageId, participantId, channel])
+}
+
+// ─── Documents & Institutional Memory ────────────────────────────────────────
+
+model Document {
+  id             String       @id @default(cuid())
+  institutionId  String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  description    String?
+  objectKey      String       // S3 key
+  mimeType       String
+  sizeBytes      Int?
+  version        Int          @default(1)
+  sensitivity    String       @default("standard")
+  createdById    String?
+  isArchived     Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, isArchived])
+}
+
+// A typed unit of preserved knowledge attached to a role seat
+enum MemoryRecordType {
+  CONTACT     // Sponsor, vendor, university contact
+  PLAYBOOK    // Step-by-step guide for recurring events or tasks
+  BUDGET      // Financial record or budget template
+  VENDOR      // Vendor deal, contract, or relationship
+  LESSON      // Hard-won insight for the successor
+  THREAD      // Ongoing initiative or open question
+  CREDENTIAL  // Login / access info — stored encrypted
+  DEADLINE    // Compliance or recurring deadline
+}
+
+model MemoryRecord {
+  id             String           @id @default(cuid())
+  institutionId  String
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  roleId         String?
+  role           Role?            @relation(fields: [roleId], references: [id])
+  title          String
+  type           MemoryRecordType
+  content        Json
+  authorId       String?
+  isArchived     Boolean          @default(false)
+  sensitivity    String           @default("standard")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([organizationId, type, isArchived])
+  @@index([roleId])
+}
+
+// ─── Budget & Vendors ─────────────────────────────────────────────────────────
+
+enum BudgetPeriod {
+  FALL
+  SPRING
+  FULL_YEAR
+}
+
+model Budget {
+  id             String       @id @default(cuid())
+  institutionId  String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  period         BudgetPeriod
+  academicYear   String       // e.g., "2025-26"
+  totalCents     Int          @default(0)
+  allocatedCents Int          @default(0)
+  currency       String       @default("USD")
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  transactions Transaction[]
+
+  @@unique([organizationId, period, academicYear])
+}
+
+enum TransactionType {
+  ALLOCATION   // Funds allocated to this budget
+  SPEND        // Approved expense
+  REIMBURSEMENT
+  ADJUSTMENT
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  budgetId    String
+  budget      Budget          @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  type        TransactionType
+  amountCents Int
+  description String
+  approvalId  String?
+  recordedById String?
+  occurredAt  DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+
+  @@index([budgetId, occurredAt])
+}
+
+model Vendor {
+  id             String       @id @default(cuid())
+  institutionId  String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  contactName    String?
+  contactEmail   String?
+  contactPhone   String?
+  website        String?
+  notes          String?
+  isArchived     Boolean      @default(false)
+  createdById    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, isArchived])
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  EMAIL_DIGEST
+}
+
+model NotificationPreference {
+  id      String              @id @default(cuid())
+  userId  String
+  user    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channel NotificationChannel
+  enabled Boolean             @default(true)
+  updatedAt DateTime          @updatedAt
+
+  @@unique([userId, channel])
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+// Append-only, tamper-evident — never update or delete
+model AuditEvent {
+  id            String      @id @default(cuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id])
+  actorId       String?
+  actorRole     String?
+  action        String      // e.g., "ApprovalRequest.StatusChanged"
+  resourceType  String      // e.g., "ApprovalRequest"
+  resourceId    String?
+  organizationId String?
+  outcome       String      // "ALLOW" | "DENY"
+  reason        String?
+  metadata      Json        @default("{}")
+  traceId       String?
+  occurredAt    DateTime    @default(now())
+
+  @@index([institutionId, occurredAt])
+  @@index([actorId, occurredAt])
+  @@index([resourceType, resourceId])
 }
