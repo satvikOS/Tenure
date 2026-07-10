@@ -43,7 +43,9 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids = [aws_security_group.rds.id]
   parameter_group_name   = aws_db_parameter_group.postgres.name
 
-  backup_retention_period = 7
+  # Free-tier accounts cap automated backup retention at 1 day.
+  # Raise to 7 after upgrading the account plan.
+  backup_retention_period = 1
   backup_window           = "03:00-04:00"
   maintenance_window      = "sun:04:30-sun:05:30"
 
@@ -51,7 +53,8 @@ resource "aws_db_instance" "postgres" {
   skip_final_snapshot      = true   # Set to false for production
   delete_automated_backups = true
 
-  performance_insights_enabled = true
+  # Not supported on db.t3.micro — enable when moving to a larger class
+  performance_insights_enabled = false
 
   tags = { Name = "${local.name_prefix}-db" }
 }
