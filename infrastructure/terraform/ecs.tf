@@ -238,7 +238,7 @@ resource "aws_ecs_service" "app" {
 
   depends_on = [aws_lb_listener.http]
 
-  lifecycle {
-    ignore_changes = [task_definition]  # CI manages task definition updates
-  }
+  # NOTE: no ignore_changes on task_definition — Terraform must roll the
+  # service to each new revision (CI's force-new-deployment does not pass
+  # a task definition, so ignoring it pinned the service to revision 1).
 }
