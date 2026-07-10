@@ -27,7 +27,6 @@ resource "aws_ses_configuration_set" "main" {
 }
 
 # ── Suppress bounces and complaints automatically ─────────────────────────────
-resource "aws_ses_account_setting" "suppression" {
-  name  = "SUPPRESSION_LIST"
-  value = "ENABLED"
+resource "aws_sesv2_account_suppression_attributes" "suppression" {
+  suppressed_reasons = ["BOUNCE", "COMPLAINT"]
 }
