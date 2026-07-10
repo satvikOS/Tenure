@@ -13,6 +13,8 @@ resource "aws_db_parameter_group" "postgres" {
   parameter {
     name  = "shared_preload_libraries"
     value = "pg_stat_statements"
+    # Static parameter — RDS only accepts it with pending-reboot
+    apply_method = "pending-reboot"
   }
 
   parameter {
