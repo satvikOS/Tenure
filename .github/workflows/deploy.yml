@@ -155,6 +155,11 @@ jobs:
           }
           import_if_orphaned aws_db_parameter_group.postgres tenure-pilot-pg16
 
+          # Untaint resources whose creation partially failed: a tainted
+          # named resource plans a create-before-destroy replacement, which
+          # collides with its own existing name in AWS.
+          terraform untaint aws_db_parameter_group.postgres 2>/dev/null || true
+
       - name: Terraform apply — full infrastructure
         working-directory: ${{ env.TF_DIR }}
         run: |
