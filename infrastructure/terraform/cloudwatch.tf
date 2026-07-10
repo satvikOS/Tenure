@@ -80,6 +80,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         type = "metric"
         properties = {
           title  = "ECS Running Tasks"
+          region = var.aws_region
           period = 60
           metrics = [["ECS/ContainerInsights", "RunningTaskCount",
             "ClusterName", aws_ecs_cluster.main.name,
@@ -90,6 +91,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         type = "metric"
         properties = {
           title  = "ALB Request Count + 5xx"
+          region = var.aws_region
           period = 60
           metrics = [
             ["AWS/ApplicationELB", "RequestCount",     "LoadBalancer", aws_lb.main.arn_suffix],
@@ -101,6 +103,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         type = "metric"
         properties = {
           title  = "RDS CPU"
+          region = var.aws_region
           period = 60
           metrics = [["AWS/RDS", "CPUUtilization",
             "DBInstanceIdentifier", aws_db_instance.postgres.identifier]]
