@@ -144,6 +144,8 @@ resource "aws_ecs_task_definition" "app" {
         { name = "DB_NAME", value = var.rds_db_name },
         # Pilot sign-in without Okta (seeded users, email-based)
         { name = "AUTH_DEV_LOGIN", value = "true" },
+        # Surfaced by /api/health so CI can verify which build is serving
+        { name = "IMAGE_TAG", value = var.image_tag },
       ]
 
       secrets = [
@@ -181,11 +183,13 @@ resource "aws_ecs_task_definition" "app" {
       }
 
       healthCheck = {
-        command     = ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+        # 127.0.0.1, not localhost: busybox wget resolves localhost to ::1
+        # but the server binds IPv4 only — this check failed on every task
+        command     = ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
         interval    = 30
         timeout     = 5
         retries     = 3
-        startPeriod = 60
+        startPeriod = 120 # entrypoint runs prisma db push + seed before serving
       }
     }
   ])

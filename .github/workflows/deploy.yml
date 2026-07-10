@@ -206,6 +206,22 @@ jobs:
           echo "url=$CF_URL" >> $GITHUB_OUTPUT
           echo "CF_URL=$CF_URL" >> $GITHUB_ENV
 
+      # ── 9b. Verify the new build is actually serving (catch silent rollbacks) ─
+      - name: Verify deployed version
+        run: |
+          echo "Expecting version: $IMAGE_TAG"
+          for i in $(seq 1 20); do
+            DEPLOYED=$(curl -sf "$CF_URL/api/health" | grep -o '"version":"[^"]*"' | cut -d'"' -f4 || true)
+            echo "Attempt $i: serving version=$DEPLOYED"
+            if [ "$DEPLOYED" = "$IMAGE_TAG" ]; then
+              echo "✅ New build is live"
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "❌ Deployed version never matched $IMAGE_TAG — ECS likely rolled back. Check container logs."
+          exit 1
+
       - name: Output deployment summary
         run: |
           echo "## ✅ Deployment Complete" >> $GITHUB_STEP_SUMMARY
