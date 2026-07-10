@@ -138,6 +138,12 @@ resource "aws_ecs_task_definition" "app" {
         { name = "S3_EXPORTS_BUCKET",     value = aws_s3_bucket.exports.bucket },
         { name = "AWS_REGION",            value = var.aws_region },
         { name = "SES_FROM_EMAIL",        value = var.ses_from_email },
+        # DATABASE_URL is composed in the entrypoint from DB_CREDS + these:
+        { name = "DB_HOST", value = aws_db_instance.postgres.address },
+        { name = "DB_PORT", value = "5432" },
+        { name = "DB_NAME", value = var.rds_db_name },
+        # Pilot sign-in without Okta (seeded users, email-based)
+        { name = "AUTH_DEV_LOGIN", value = "true" },
       ]
 
       secrets = [
@@ -158,7 +164,9 @@ resource "aws_ecs_task_definition" "app" {
           valueFrom = "${aws_secretsmanager_secret.app.arn}:OKTA_ISSUER::"
         },
         {
-          name      = "DATABASE_URL"
+          # RDS-managed secret value is JSON {"username","password"} — the
+          # entrypoint parses it and exports a proper DATABASE_URL.
+          name      = "DB_CREDS"
           valueFrom = "${aws_db_instance.postgres.master_user_secret[0].secret_arn}"
         },
       ]

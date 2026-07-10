@@ -1,5 +1,6 @@
 FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat
+# openssl is required by Prisma's engines on alpine
+RUN apk add --no-cache libc6-compat openssl
 
 # ── deps: install production + dev deps (needed for build) ──────────────────
 FROM base AS deps
@@ -37,6 +38,13 @@ COPY --from=builder /app/public                          ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static     ./.next/static
 
+# Prisma CLI + schema + bootstrap scripts: the entrypoint runs `db push`
+# and the seed against RDS (only reachable from inside the VPC)
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma          ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
+COPY --from=builder --chown=nextjs:nodejs /app/prisma  ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+
 USER nextjs
 
 EXPOSE 3000
@@ -44,4 +52,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
-CMD ["node", "server.js"]
+ENTRYPOINT ["sh", "scripts/entrypoint.sh"]

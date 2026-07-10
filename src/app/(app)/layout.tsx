@@ -1,14 +1,19 @@
+import { redirect } from "next/navigation"
+import { auth } from "@/lib/auth"
 import { ShellHeader } from "@/components/shell/ShellHeader"
 import { SideNav } from "@/components/shell/SideNav"
 
-export default function AppLayout({
+export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const session = await auth()
+  if (!session?.user) redirect("/signin")
+
   return (
     <>
-      <ShellHeader userName="Satvik A." />
+      <ShellHeader userName={session.user.name ?? session.user.email ?? "User"} />
       <SideNav />
       <main
         className="min-h-screen bg-base"
