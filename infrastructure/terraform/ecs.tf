@@ -214,6 +214,11 @@ resource "aws_ecs_service" "app" {
   # Don't block Terraform while ECS stabilizes (handled by CI wait step)
   wait_for_steady_state = false
 
+  # The entrypoint runs prisma db push + seed before the server listens —
+  # without this grace period the ALB marks new tasks unhealthy during
+  # bootstrap and ECS kills them before they ever serve.
+  health_check_grace_period_seconds = 300
+
   network_configuration {
     subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.ecs.id]
