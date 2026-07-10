@@ -8,17 +8,27 @@ import { db } from "@/lib/db"
 // Enabled via AUTH_DEV_LOGIN=true — remove once Okta is configured.
 const devLoginEnabled = process.env.AUTH_DEV_LOGIN === "true"
 
+// Only register Okta once real credentials are configured in Secrets Manager
+const oktaConfigured =
+  !!process.env.OKTA_ISSUER && process.env.OKTA_ISSUER.startsWith("https://")
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
+  // Behind CloudFront + ALB the Host header is proxied — required for v5
+  trustHost: true,
   // JWT sessions: required for the Credentials provider, and works for Okta too
   session: { strategy: "jwt" },
   pages: { signIn: "/signin" },
   providers: [
-    Okta({
-      clientId: process.env.OKTA_CLIENT_ID!,
-      clientSecret: process.env.OKTA_CLIENT_SECRET!,
-      issuer: process.env.OKTA_ISSUER!,
-    }),
+    ...(oktaConfigured
+      ? [
+          Okta({
+            clientId: process.env.OKTA_CLIENT_ID!,
+            clientSecret: process.env.OKTA_CLIENT_SECRET!,
+            issuer: process.env.OKTA_ISSUER!,
+          }),
+        ]
+      : []),
     ...(devLoginEnabled
       ? [
           Credentials({
