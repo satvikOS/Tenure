@@ -5,6 +5,8 @@ RUN apk add --no-cache libc6-compat
 FROM base AS deps
 WORKDIR /app
 COPY package*.json ./
+# prisma/ must be present: the postinstall hook runs `prisma generate`
+COPY prisma ./prisma
 RUN npm ci --legacy-peer-deps
 
 # ── builder: generate Prisma client and build Next.js ───────────────────────
