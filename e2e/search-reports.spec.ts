@@ -74,7 +74,7 @@ test.describe("reports", () => {
     await expect(page.getByText("Filled seats")).toBeVisible()
     await expect(page.getByText("Approval pipeline")).toBeVisible()
     await expect(page.getByText("Institutional memory")).toBeVisible()
-    await expect(page.getByText("Denied actions")).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Denied actions" })).toBeVisible()
   })
 
   test("reports are hidden from club members", async ({ page }) => {
@@ -83,6 +83,8 @@ test.describe("reports", () => {
     await expect(page.getByRole("link", { name: "Reports" })).not.toBeVisible()
     // …and direct access 404s
     await page.goto("/reports")
-    await expect(page.getByText(/could not be found|404/)).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: "This page could not be found." })
+    ).toBeVisible()
   })
 })
