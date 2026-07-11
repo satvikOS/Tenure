@@ -13,6 +13,7 @@ import {
   Brain,
   Settings,
   Building2,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react"
 
@@ -28,7 +29,7 @@ interface NavSection {
   items: NavItem[]
 }
 
-function buildNav(orgSlug?: string): NavSection[] {
+function buildNav(orgSlug?: string, showReports?: boolean): NavSection[] {
   const base = orgSlug ? `/orgs/${orgSlug}` : "/dashboard"
 
   return [
@@ -39,6 +40,9 @@ function buildNav(orgSlug?: string): NavSection[] {
         { label: "Approvals",  href: "/approvals",  icon: CheckCircle },
         { label: "Calendar",   href: "/calendar",   icon: Calendar },
         { label: "Messages",   href: "/messages",   icon: MessageSquare },
+        ...(showReports
+          ? [{ label: "Reports", href: "/reports", icon: BarChart3 }]
+          : []),
       ],
     },
     {
@@ -65,11 +69,12 @@ function buildNav(orgSlug?: string): NavSection[] {
 
 interface SideNavProps {
   orgSlug?: string
+  showReports?: boolean
 }
 
-export function SideNav({ orgSlug }: SideNavProps) {
+export function SideNav({ orgSlug, showReports }: SideNavProps) {
   const pathname = usePathname()
-  const sections = buildNav(orgSlug)
+  const sections = buildNav(orgSlug, showReports)
 
   return (
     <nav

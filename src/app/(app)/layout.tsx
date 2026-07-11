@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
+import { getUserContext } from "@/lib/rbac"
 import { ShellHeader } from "@/components/shell/ShellHeader"
 import { SideNav } from "@/components/shell/SideNav"
 import { signOutAction } from "./actions"
@@ -12,6 +13,8 @@ export default async function AppLayout({
   const session = await auth()
   if (!session?.user) redirect("/signin")
 
+  const ctx = await getUserContext(session.user.id)
+
   return (
     <>
       <ShellHeader
@@ -19,7 +22,7 @@ export default async function AppLayout({
         userEmail={session.user.email ?? undefined}
         onSignOut={signOutAction}
       />
-      <SideNav />
+      <SideNav showReports={ctx.institutionRoles.length > 0} />
       <main
         className="min-h-screen bg-base"
         style={{

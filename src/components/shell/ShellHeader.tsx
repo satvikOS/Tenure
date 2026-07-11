@@ -66,32 +66,24 @@ export function ShellHeader({
       )}
 
       {/* Global search */}
-      <div className="flex-1 max-w-md mx-auto">
+      <form action="/search" method="get" className="flex-1 max-w-md mx-auto">
         <div
-          className="flex items-center gap-2 h-8 px-3 rounded text-xs w-full transition-colors cursor-text"
+          className="flex items-center gap-2 h-8 px-3 rounded text-xs w-full transition-colors focus-within:ring-1 focus-within:ring-[--primary]"
           style={{
             background: "var(--shell-item-hover)",
             border: "1px solid var(--shell-border)",
             color: "var(--shell-text-secondary)",
           }}
-          role="button"
-          tabIndex={0}
-          aria-label="Search Tenure"
         >
-          <Search size={13} />
-          <span>Search members, docs, approvals…</span>
-          <kbd
-            className="ml-auto text-xs px-1 rounded"
-            style={{
-              background: "var(--shell-border)",
-              color: "var(--shell-text-secondary)",
-              fontFamily: "inherit",
-            }}
-          >
-            ⌘K
-          </kbd>
+          <Search size={13} className="shrink-0" />
+          <input
+            name="q"
+            placeholder="Search memory, docs, approvals…"
+            aria-label="Search Tenure"
+            className="flex-1 bg-transparent outline-none text-xs text-white placeholder:text-[--shell-text-secondary]"
+          />
         </div>
-      </div>
+      </form>
 
       {/* Right actions */}
       <div className="flex items-center gap-1 ml-auto">

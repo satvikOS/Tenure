@@ -117,3 +117,10 @@ variable "ses_from_email" {
   type        = string
   default     = "hello@tenurework.com"
 }
+
+variable "anthropic_api_key" {
+  description = "Optional — enables AI answer synthesis on /search when set"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

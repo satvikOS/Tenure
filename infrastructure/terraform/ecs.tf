@@ -146,6 +146,8 @@ resource "aws_ecs_task_definition" "app" {
         { name = "AUTH_DEV_LOGIN", value = "true" },
         # Surfaced by /api/health so CI can verify which build is serving
         { name = "IMAGE_TAG", value = var.image_tag },
+        # Optional: enables AI answer synthesis on /search when non-empty
+        { name = "ANTHROPIC_API_KEY", value = var.anthropic_api_key },
       ]
 
       secrets = [
