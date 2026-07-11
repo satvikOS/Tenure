@@ -40,8 +40,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static     ./.next/static
 
 # Prisma CLI + schema + bootstrap scripts: the entrypoint runs `db push`
 # and the seed against RDS (only reachable from inside the VPC)
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma          ./node_modules/prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
+# Whole @prisma scope: the CLI needs @prisma/debug, fetch-engine, etc.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma  ./node_modules/prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma  ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
