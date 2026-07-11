@@ -124,3 +124,15 @@ variable "anthropic_api_key" {
   default     = ""
   sensitive   = true
 }
+
+variable "custom_domain" {
+  description = "Custom domain for the app (empty disables)"
+  type        = string
+  default     = "app.tenurework.com"
+}
+
+variable "attach_custom_domain" {
+  description = "Bind the custom domain to CloudFront — only after the ACM cert is ISSUED"
+  type        = bool
+  default     = false
+}

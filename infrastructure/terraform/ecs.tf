@@ -129,7 +129,7 @@ resource "aws_ecs_task_definition" "app" {
       environment = [
         { name = "NODE_ENV",      value = "production" },
         { name = "PORT",          value = "3000" },
-        { name = "NEXTAUTH_URL",  value = "https://${aws_cloudfront_distribution.main.domain_name}" },
+        { name = "NEXTAUTH_URL", value = var.attach_custom_domain ? "https://${var.custom_domain}" : "https://${aws_cloudfront_distribution.main.domain_name}" },
         { name = "REDIS_URL",     value = "redis://${aws_elasticache_cluster.redis.cache_nodes[0].address}:6379" },
         { name = "SQS_DEFAULT_URL",       value = aws_sqs_queue.default.url },
         { name = "SQS_EMAIL_URL",         value = aws_sqs_queue.email.url },

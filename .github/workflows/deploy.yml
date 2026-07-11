@@ -211,6 +211,11 @@ jobs:
           CF_URL=$(terraform output -raw cloudfront_url)
           echo "url=$CF_URL" >> $GITHUB_OUTPUT
           echo "CF_URL=$CF_URL" >> $GITHUB_ENV
+          {
+            echo "ACM_RECORDS<<EOF"
+            terraform output -json acm_validation_records 2>/dev/null || echo "[]"
+            echo "EOF"
+          } >> $GITHUB_ENV
 
       # ── 9b. Verify the new build is actually serving (catch silent rollbacks) ─
       - name: Verify deployed version
@@ -241,3 +246,10 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Infrastructure endpoints" >> $GITHUB_STEP_SUMMARY
           echo "Sensitive endpoints (RDS, Redis) are in AWS Secrets Manager. Check CloudWatch dashboard for metrics." >> $GITHUB_STEP_SUMMARY
+          if [ "$ACM_RECORDS" != "[]" ] && [ -n "$ACM_RECORDS" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Custom domain DNS records (add at your registrar)" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            echo "$ACM_RECORDS" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi

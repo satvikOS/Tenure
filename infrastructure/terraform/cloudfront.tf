@@ -4,6 +4,9 @@ resource "aws_cloudfront_distribution" "main" {
   comment         = "Tenure ${var.environment} — Next.js via ECS Fargate"
   price_class     = "PriceClass_100" # US, Canada, Europe
 
+  # Custom domain — attached only once the ACM cert is validated
+  aliases = var.attach_custom_domain ? [var.custom_domain] : []
+
   # ── Origin: Application Load Balancer ────────────────────────────────────
   origin {
     origin_id   = "alb"
@@ -84,9 +87,11 @@ resource "aws_cloudfront_distribution" "main" {
     max_ttl                = 0
   }
 
-  # ── TLS: use CloudFront default cert (*.cloudfront.net) ──────────────────
+  # ── TLS: custom ACM cert once attached, CloudFront default until then ────
   viewer_certificate {
-    cloudfront_default_certificate = true
+    cloudfront_default_certificate = var.attach_custom_domain ? null : true
+    acm_certificate_arn            = var.attach_custom_domain ? aws_acm_certificate.custom[0].arn : null
+    ssl_support_method             = var.attach_custom_domain ? "sni-only" : null
     minimum_protocol_version       = "TLSv1.2_2021"
   }
 
