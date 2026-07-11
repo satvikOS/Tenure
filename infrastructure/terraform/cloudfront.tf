@@ -71,13 +71,10 @@ resource "aws_cloudfront_distribution" "main" {
 
     forwarded_values {
       query_string = true
-      headers = [
-        "Authorization",
-        "CloudFront-Forwarded-Proto",
-        "Host",
-        "Origin",
-        "Referer",
-      ]
+      # Forward ALL headers: Next.js App Router client navigation and server
+      # actions depend on RSC / Next-Action / Next-Router-State-Tree headers —
+      # stripping them breaks every link click and form submit (blank pages).
+      headers = ["*"]
       cookies { forward = "all" }
     }
 
