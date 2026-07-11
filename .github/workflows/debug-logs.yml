@@ -54,8 +54,8 @@ jobs:
             --order-by LastEventTime --descending --limit 4 \
             --query 'logStreams[].logStreamName' --output text)
           for s in $STREAMS; do
-            echo "===== STREAM: $s ====="
+            echo "===== STREAM HEAD: $s ====="
             aws logs get-log-events --log-group-name /ecs/tenure-pilot \
-              --log-stream-name "$s" --limit 40 \
+              --log-stream-name "$s" --limit 30 --start-from-head \
               --query 'events[].message' --output text || true
           done
