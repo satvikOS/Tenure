@@ -1,11 +1,11 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Hash, Megaphone, MessageSquare, FileCheck } from "lucide-react"
+import { Hash, Megaphone, MessageSquare, FileCheck, PenSquare } from "lucide-react"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
 import { Card, CardHeader } from "@/components/ui/Card"
-import { openBoardChannel, sendBroadcast, startDm } from "./actions"
+import { openBoardChannel, sendBroadcast } from "./actions"
 
 export const dynamic = "force-dynamic"
 
@@ -54,34 +54,6 @@ export default async function MessagesPage() {
   })
   const unreadByParticipant = new Map(unread.map((u) => [u.participantId, u._count]))
 
-  // People this user can DM: co-members of their clubs + OSE staff
-  const coMembers = await db.roleAssignment.findMany({
-    where: {
-      status: { in: ["ACTIVE", "SHADOW"] },
-      role: currentOrgIds.length
-        ? { organizationId: { in: currentOrgIds } }
-        : { organization: { institutionId: { in: oseInstitutionIds } } },
-    },
-    include: { user: { select: { id: true, name: true, email: true } } },
-  })
-  const staff = await db.institutionMembership.findMany({
-    where: {
-      institutionId: {
-        in: oseInstitutionIds.length
-          ? oseInstitutionIds
-          : [...new Set((await db.organization.findMany({ where: { id: { in: currentOrgIds } }, select: { institutionId: true } })).map((o) => o.institutionId))],
-      },
-    },
-    include: { user: { select: { id: true, name: true, email: true } } },
-  })
-  const dmTargets = [
-    ...new Map(
-      [...coMembers.map((m) => m.user), ...staff.map((s) => s.user)]
-        .filter((u) => u.id !== userId)
-        .map((u) => [u.id, u])
-    ).values(),
-  ]
-
   const myOrgs = currentOrgIds.length
     ? await db.organization.findMany({ where: { id: { in: currentOrgIds } } })
     : await db.organization.findMany({ where: { institutionId: { in: oseInstitutionIds } } })
@@ -91,11 +63,19 @@ export default async function MessagesPage() {
   return (
     <div className="max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2">
-        <div className="mb-6">
-          <h1 className="text-xl font-bold text-text-1">Messages</h1>
-          <p className="text-sm text-text-2 mt-1">
-            Conversations that survive leadership transitions.
-          </p>
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-text-1">Messages</h1>
+            <p className="text-sm text-text-2 mt-1">
+              Conversations that survive leadership transitions.
+            </p>
+          </div>
+          <Link
+            href="/messages/compose"
+            className="inline-flex items-center gap-1.5 h-9 rounded bg-[--primary] px-4 text-sm font-medium text-white hover:opacity-90 no-underline shrink-0"
+          >
+            <PenSquare size={15} /> Compose
+          </Link>
         </div>
 
         {conversations.length === 0 ? (
@@ -151,26 +131,6 @@ export default async function MessagesPage() {
       </div>
 
       <div className="space-y-4 lg:pt-14">
-        <Card>
-          <CardHeader title="New direct message" />
-          <form action={startDm} className="flex gap-2">
-            <select
-              name="userId"
-              required
-              className="h-9 flex-1 rounded border border-border px-2 text-sm text-text-1 bg-surface"
-            >
-              {dmTargets.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name ?? u.email}
-                </option>
-              ))}
-            </select>
-            <button className="h-9 rounded bg-[--primary] px-3 text-sm font-medium text-white hover:opacity-90">
-              Start
-            </button>
-          </form>
-        </Card>
-
         {myOrgs.length > 0 && (
           <Card>
             <CardHeader title="Board channels" />

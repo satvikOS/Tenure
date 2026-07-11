@@ -45,6 +45,25 @@ export function canReadConversation(ctx: UserContext, convo: ConversationLike): 
   }
 }
 
+/**
+ * Messaging hierarchy tier (BP: "strictest hierarchy" for who may message whom):
+ *  OSE        → anyone at the institution
+ *  PRESIDENT  → own clubs' members + other active presidents + OSE
+ *  FUNCTIONAL → own clubs' members + OSE
+ *  MEMBER     → own clubs' ACTIVE board (president + VPs) only
+ *  NONE       → cannot compose (shadow/alumni/outsiders)
+ */
+export type MessagingTier = "OSE" | "PRESIDENT" | "FUNCTIONAL" | "MEMBER" | "NONE"
+
+export function messagingTier(ctx: UserContext): MessagingTier {
+  if (ctx.institutionRoles.length > 0) return "OSE"
+  const active = ctx.orgRoles.filter((r) => r.status === "ACTIVE")
+  if (active.some((r) => r.scope === "PRESIDENT")) return "PRESIDENT"
+  if (active.some((r) => r.scope === "FUNCTIONAL")) return "FUNCTIONAL"
+  if (active.some((r) => r.scope === "MEMBER")) return "MEMBER"
+  return "NONE"
+}
+
 export function canPostToConversation(ctx: UserContext, convo: ConversationLike): boolean {
   switch (convo.type) {
     case "DIRECT_MESSAGE":

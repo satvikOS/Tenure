@@ -1,4 +1,9 @@
-import { canPostToConversation, canReadConversation, type ConversationLike } from "./messaging"
+import {
+  canPostToConversation,
+  canReadConversation,
+  messagingTier,
+  type ConversationLike,
+} from "./messaging"
 import type { UserContext } from "./rbac"
 
 const INST = "inst_1"
@@ -71,5 +76,19 @@ describe("OSE_BROADCAST", () => {
     expect(canReadConversation(member, broadcast)).toBe(true)
     expect(canPostToConversation(member, broadcast)).toBe(false)
     expect(canReadConversation(outsider, broadcast)).toBe(false)
+  })
+})
+
+describe("messagingTier", () => {
+  it("ranks OSE above club seats and gates non-active users", () => {
+    const president = ctx("p", {
+      orgRoles: [{ organizationId: ORG, roleId: "r", roleName: "President", scope: "PRESIDENT", status: "ACTIVE" }],
+    })
+    expect(messagingTier(ose)).toBe("OSE")
+    expect(messagingTier(president)).toBe("PRESIDENT")
+    expect(messagingTier(member)).toBe("MEMBER")
+    expect(messagingTier(shadow)).toBe("NONE")
+    expect(messagingTier(alumni)).toBe("NONE")
+    expect(messagingTier(outsider)).toBe("NONE")
   })
 })

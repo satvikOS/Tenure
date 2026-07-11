@@ -69,6 +69,13 @@ export default async function ConversationPage({
       ? others.map((p) => p.user.name ?? "Unknown").join(", ") || "Direct message"
       : convo.organization?.name ?? "Conversation")
 
+  // Email-style recipient lines. Bcc participants are visible only to
+  // themselves — everyone else never learns they were included.
+  const nameOf = (p: (typeof convo.participants)[number]) => p.user.name ?? "Unknown"
+  const toLine = convo.participants.filter((p) => p.kind === "to").map(nameOf)
+  const ccLine = convo.participants.filter((p) => p.kind === "cc").map(nameOf)
+  const selfBcc = convo.participants.find((p) => p.kind === "bcc" && p.userId === userId)
+
   const sendWithId = sendMessage.bind(null, convo.id)
 
   return (
@@ -85,6 +92,13 @@ export default async function ConversationPage({
           >
             View the approval request →
           </Link>
+        )}
+        {convo.type === "DIRECT_MESSAGE" && toLine.length > 0 && (
+          <div className="mt-1 text-xs text-text-3">
+            <p>To: {toLine.join(", ")}</p>
+            {ccLine.length > 0 && <p>Cc: {ccLine.join(", ")}</p>}
+            {selfBcc && <p>Bcc: you</p>}
+          </div>
         )}
       </div>
 

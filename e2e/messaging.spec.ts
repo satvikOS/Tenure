@@ -12,27 +12,63 @@ async function signIn(page: Page, userName: string) {
 const stamp = Date.now()
 
 test.describe("messaging", () => {
-  test("VP starts a DM with the president and she can reply", async ({ page }) => {
+  const subject = `Budget question ${stamp}`
+
+  test("VP composes an email-style message; president replies; cc'd member sees it", async ({ page }) => {
     await signIn(page, "Victor Chen")
-    await page.goto("/messages")
-    await page.getByRole("combobox").first().selectOption({ label: "Priya Raman" })
-    await page.getByRole("button", { name: "Start", exact: true }).click()
-    await page.waitForURL(/\/messages\/[a-z0-9]+/)
-
-    const dmMessage = `Budget question ${stamp}`
-    await page.getByPlaceholder("Write a message…").fill(dmMessage)
+    await page.goto("/messages/compose")
+    const toSel = page.getByLabel("To", { exact: true })
+    await toSel.selectOption(
+      (await toSel.getByRole("option", { name: /Priya Raman/ }).getAttribute("value"))!
+    )
+    const ccSel = page.getByLabel(/^Cc/)
+    await ccSel.selectOption(
+      (await ccSel.getByRole("option", { name: /Maya Johnson/ }).getAttribute("value"))!
+    )
+    await page.getByLabel("Subject").fill(subject)
+    await page.getByLabel("Message").fill("Can we bump the catering budget by $200?")
     await page.getByRole("button", { name: "Send", exact: true }).click()
-    await expect(page.getByText(dmMessage)).toBeVisible()
+    await page.waitForURL(/\/messages\/[a-z0-9]+/)
+    await expect(page.getByText("To: Priya Raman")).toBeVisible()
+    await expect(page.getByText("Cc: Maya Johnson")).toBeVisible()
 
-    // Priya sees the unread conversation and replies
+    // Priya replies in the thread
     await signIn(page, "Priya Raman")
     await page.goto("/messages")
-    await page.getByText("Victor Chen", { exact: true }).first().click()
-    await expect(page.getByText(dmMessage)).toBeVisible()
-    const reply = `Let's discuss tomorrow ${stamp}`
+    await page.getByText(subject).first().click()
+    const reply = `Approved informally — submit it ${stamp}`
     await page.getByPlaceholder("Write a message…").fill(reply)
     await page.getByRole("button", { name: "Send", exact: true }).click()
     await expect(page.getByText(reply)).toBeVisible()
+
+    // Cc'd Maya can read the whole thread
+    await signIn(page, "Maya Johnson")
+    await page.goto("/messages")
+    await page.getByText(subject).first().click()
+    await expect(page.getByText(reply)).toBeVisible()
+  })
+
+  test("recipient lists follow the strict hierarchy", async ({ page }) => {
+    // Member: own club's active board only — no OSE, no shadow members
+    await signIn(page, "Maya Johnson")
+    await page.goto("/messages/compose")
+    const to = page.getByLabel("To", { exact: true })
+    await expect(to.getByRole("option", { name: /Priya Raman/ })).toBeVisible()
+    await expect(to.getByRole("option", { name: /Victor Chen/ })).toBeVisible()
+    await expect(to.getByRole("option", { name: /Dana Whitfield/ })).not.toBeVisible()
+    await expect(to.getByRole("option", { name: /Isaiah Brooks/ })).not.toBeVisible()
+
+    // Shadow president cannot compose at all
+    await signIn(page, "Isaiah Brooks")
+    await page.goto("/messages/compose")
+    await expect(page.getByText("cannot start messages", { exact: false })).toBeVisible()
+
+    // OSE can reach everyone
+    await signIn(page, "Dana Whitfield")
+    await page.goto("/messages/compose")
+    await expect(
+      page.getByLabel("To", { exact: true }).getByRole("option", { name: /Maya Johnson/ })
+    ).toBeVisible()
   })
 
   test("board channel: active member posts, shadow reads only", async ({ page }) => {
@@ -104,7 +140,7 @@ test.describe("messaging", () => {
     // Victor has at least one unread (Priya's DM reply may be read; send fresh)
     await signIn(page, "Priya Raman")
     await page.goto("/messages")
-    await page.getByText("Victor Chen", { exact: true }).first().click()
+    await page.getByText(subject).first().click()
     const ping = `Ping ${stamp}`
     await page.getByPlaceholder("Write a message…").fill(ping)
     await page.getByRole("button", { name: "Send", exact: true }).click()

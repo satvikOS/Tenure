@@ -5,7 +5,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext, isOse } from "@/lib/rbac"
-import { canPostToConversation } from "@/lib/messaging"
+import { canPostToConversation, messagingTier } from "@/lib/messaging"
 
 async function requireUserId() {
   const session = await auth()
@@ -19,6 +19,151 @@ async function ensureParticipant(conversationId: string, userId: string, roleCon
     update: {},
     create: { conversationId, userId, roleContext },
   })
+}
+
+/**
+ * Who this user may address, per the strict hierarchy (BP):
+ * OSE → institution; President → own clubs + presidents + OSE;
+ * VP → own clubs + OSE; Member → own clubs' active board only.
+ */
+export async function getAllowedRecipients(userId: string) {
+  const ctx = await getUserContext(userId)
+  const tier = messagingTier(ctx)
+  if (tier === "NONE") return []
+
+  const myOrgIds = ctx.orgRoles
+    .filter((r) => r.status === "ACTIVE")
+    .map((r) => r.organizationId)
+
+  const institutionIds = ctx.institutionRoles.length
+    ? ctx.institutionRoles.map((m) => m.institutionId)
+    : (
+        await db.organization.findMany({
+          where: { id: { in: myOrgIds } },
+          select: { institutionId: true },
+        })
+      ).map((o) => o.institutionId)
+
+  const users = new Map<string, { id: string; name: string | null; email: string | null; label: string }>()
+  const add = (u: { id: string; name: string | null; email: string | null }, label: string) => {
+    if (u.id !== userId && !users.has(u.id)) users.set(u.id, { ...u, label })
+  }
+
+  // OSE staff are reachable by every tier except MEMBER
+  if (tier !== "MEMBER") {
+    const staff = await db.institutionMembership.findMany({
+      where: { institutionId: { in: institutionIds } },
+      include: { user: { select: { id: true, name: true, email: true } } },
+    })
+    for (const s of staff) add(s.user, s.role === "OSE_DIRECTOR" ? "OSE Director" : "OSE")
+  }
+
+  if (tier === "OSE") {
+    const seats = await db.roleAssignment.findMany({
+      where: {
+        status: { in: ["ACTIVE", "SHADOW"] },
+        role: { organization: { institutionId: { in: institutionIds } } },
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        role: { include: { organization: { select: { name: true } } } },
+      },
+    })
+    for (const s of seats) add(s.user, `${s.role.name} · ${s.role.organization.name}`)
+    return [...users.values()]
+  }
+
+  // Own clubs
+  const scopeFilter =
+    tier === "MEMBER" ? { in: ["PRESIDENT", "FUNCTIONAL"] as ("PRESIDENT" | "FUNCTIONAL")[] } : undefined
+  const clubmates = await db.roleAssignment.findMany({
+    where: {
+      status: "ACTIVE",
+      role: { organizationId: { in: myOrgIds }, ...(scopeFilter ? { scope: scopeFilter } : {}) },
+    },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+      role: { include: { organization: { select: { name: true } } } },
+    },
+  })
+  for (const c of clubmates) add(c.user, `${c.role.name} · ${c.role.organization.name}`)
+
+  if (tier === "PRESIDENT") {
+    const presidents = await db.roleAssignment.findMany({
+      where: {
+        status: "ACTIVE",
+        role: { scope: "PRESIDENT", organization: { institutionId: { in: institutionIds } } },
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        role: { include: { organization: { select: { name: true } } } },
+      },
+    })
+    for (const p of presidents) add(p.user, `President · ${p.role.organization.name}`)
+  }
+
+  return [...users.values()]
+}
+
+/** Email-style compose: To/Cc/Bcc + subject + body, hierarchy-enforced. */
+export async function composeMessage(formData: FormData) {
+  const userId = await requireUserId()
+
+  const to = formData.getAll("to").map(String).filter(Boolean)
+  const cc = formData.getAll("cc").map(String).filter(Boolean)
+  const bcc = formData.getAll("bcc").map(String).filter(Boolean)
+  const subject = String(formData.get("subject") ?? "").trim()
+  const body = String(formData.get("body") ?? "").trim()
+
+  if (to.length === 0) throw new Error("Add at least one recipient in To")
+  if (!subject) throw new Error("Subject is required")
+  if (!body) throw new Error("Message body is required")
+
+  const allowed = new Set((await getAllowedRecipients(userId)).map((u) => u.id))
+  const all = [...new Set([...to, ...cc, ...bcc])]
+  for (const r of all) {
+    if (!allowed.has(r))
+      throw new Error("One or more recipients are outside your messaging hierarchy")
+  }
+
+  const ctx = await getUserContext(userId)
+  const anyOrg = ctx.orgRoles.find((r) => r.status === "ACTIVE")
+  const institutionId =
+    ctx.institutionRoles[0]?.institutionId ??
+    (anyOrg
+      ? (await db.organization.findUnique({ where: { id: anyOrg.organizationId } }))!.institutionId
+      : null)
+  if (!institutionId) throw new Error("No institution affiliation")
+
+  const kindOf = (id: string) => (to.includes(id) ? "to" : cc.includes(id) ? "cc" : "bcc")
+
+  const convo = await db.$transaction(async (tx) => {
+    const c = await tx.conversation.create({
+      data: {
+        institutionId,
+        type: "DIRECT_MESSAGE",
+        subject,
+        participants: {
+          create: [
+            { userId, kind: "to" },
+            ...all.map((id) => ({ userId: id, kind: kindOf(id) })),
+          ],
+        },
+      },
+      include: { participants: true },
+    })
+    const m = await tx.message.create({
+      data: { conversationId: c.id, senderId: userId, body },
+    })
+    await tx.delivery.createMany({
+      data: c.participants
+        .filter((p) => p.userId !== userId)
+        .map((p) => ({ messageId: m.id, participantId: p.id, channel: "in_app" })),
+    })
+    return c
+  })
+
+  redirect(`/messages/${convo.id}`)
 }
 
 /** Start (or resume) a DM with another user. */

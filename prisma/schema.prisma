@@ -364,6 +364,7 @@ model Participant {
   userId           String
   user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   roleContext      String?      // role name at time of joining
+  kind             String       @default("to") // "to" | "cc" | "bcc"
   joinedAt         DateTime     @default(now())
   lastReadMessageId String?
 
