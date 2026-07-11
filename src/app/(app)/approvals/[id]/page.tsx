@@ -3,8 +3,9 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canViewOrg, getUserContext } from "@/lib/rbac"
 import { availableActions, ACTION_LABELS } from "@/lib/approvals"
+import Link from "next/link"
 import { Card, CardHeader, Attribute } from "@/components/ui/Card"
-import { ApprovalBadge } from "@/components/ui/Badge"
+import { ApprovalBadge, SeverityBadge } from "@/components/ui/Badge"
 import { actOnApproval } from "../actions"
 
 export const dynamic = "force-dynamic"
@@ -23,6 +24,7 @@ export default async function ApprovalDetailPage({
     include: {
       organization: { select: { name: true, slug: true, institutionId: true } },
       steps: { orderBy: { occurredAt: "asc" } },
+      event: { include: { conflicts: { orderBy: { createdAt: "asc" } } } },
     },
   })
   if (!approval) notFound()
@@ -82,6 +84,39 @@ export default async function ApprovalDetailPage({
             </p>
           )}
         </Card>
+
+        {approval.event && (
+          <Card padding="none">
+            <div className="p-5 border-b border-border">
+              <CardHeader
+                title="Schedule conflicts"
+                subtitle="What this event collides with on the shared calendar"
+                action={
+                  <Link
+                    href={`/calendar/${approval.event.id}`}
+                    className="text-xs text-[--primary] hover:underline"
+                  >
+                    View event
+                  </Link>
+                }
+              />
+            </div>
+            {approval.event.conflicts.length === 0 ? (
+              <p className="px-5 py-5 text-sm text-text-3 text-center">
+                No conflicts detected — clear to schedule.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {approval.event.conflicts.map((c) => (
+                  <li key={c.id} className="flex items-start gap-3 px-5 py-3">
+                    <SeverityBadge severity={c.severity} />
+                    <p className="text-sm text-text-1 flex-1">{c.reason}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        )}
 
         {actions.length > 0 && (
           <Card>

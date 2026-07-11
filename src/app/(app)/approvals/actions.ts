@@ -161,7 +161,19 @@ export async function actOnApproval(approvalId: string, formData: FormData) {
   )?.role
   const roleContext = actorSeat?.role.name ?? oseRole ?? "Requester"
 
+  // Approval-linked publishing: an EVENT approval drives its event's lifecycle
+  const linkedEvent = await db.event.findUnique({ where: { approvalId: approval.id } })
+  const eventUpdates =
+    linkedEvent == null
+      ? []
+      : target === "APPROVED"
+        ? [db.event.update({ where: { id: linkedEvent.id }, data: { status: "PUBLISHED" } })]
+        : target === "REJECTED" || target === "CANCELLED"
+          ? [db.event.update({ where: { id: linkedEvent.id }, data: { status: "CANCELLED" } })]
+          : []
+
   await db.$transaction([
+    ...eventUpdates,
     db.approvalRequest.update({
       where: { id: approval.id },
       data: { status: target },
@@ -194,4 +206,8 @@ export async function actOnApproval(approvalId: string, formData: FormData) {
   revalidatePath("/approvals")
   revalidatePath(`/approvals/${approval.id}`)
   revalidatePath("/dashboard")
+  if (linkedEvent) {
+    revalidatePath("/calendar")
+    revalidatePath(`/calendar/${linkedEvent.id}`)
+  }
 }

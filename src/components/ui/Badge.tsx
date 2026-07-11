@@ -1,4 +1,9 @@
-import { type ApprovalStatus, type AssignmentStatus } from "@prisma/client"
+import {
+  type ApprovalStatus,
+  type AssignmentStatus,
+  type ConflictSeverity,
+  type EventStatus,
+} from "@prisma/client"
 
 type BadgeVariant =
   | "default"
@@ -60,5 +65,27 @@ export function AssignmentBadge({ status }: { status: AssignmentStatus }) {
     ALUMNI: { label: "Alumni",  variant: "default" },
   }
   const { label, variant } = map[status]
+  return <Badge variant={variant}>{label}</Badge>
+}
+
+export function EventBadge({ status }: { status: EventStatus }) {
+  const map: Record<EventStatus, { label: string; variant: BadgeVariant }> = {
+    DRAFT:            { label: "Draft",            variant: "draft" },
+    PENDING_APPROVAL: { label: "Pending Approval", variant: "warning" },
+    APPROVED:         { label: "Approved",         variant: "info" },
+    PUBLISHED:        { label: "Published",        variant: "success" },
+    CANCELLED:        { label: "Cancelled",        variant: "default" },
+  }
+  const { label, variant } = map[status]
+  return <Badge variant={variant}>{label}</Badge>
+}
+
+export function SeverityBadge({ severity }: { severity: ConflictSeverity }) {
+  const map: Record<ConflictSeverity, { label: string; variant: BadgeVariant }> = {
+    HARD:          { label: "Hard conflict", variant: "error" },
+    SOFT:          { label: "Soft conflict", variant: "warning" },
+    INFORMATIONAL: { label: "FYI",           variant: "info" },
+  }
+  const { label, variant } = map[severity]
   return <Badge variant={variant}>{label}</Badge>
 }
