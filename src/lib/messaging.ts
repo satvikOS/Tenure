@@ -1,0 +1,63 @@
+import type { ConversationType } from "@prisma/client"
+import { isOse, type UserContext } from "@/lib/rbac"
+
+/**
+ * Messaging access rules (blueprint §Messaging):
+ *  - DIRECT_MESSAGE   explicit participants only
+ *  - BOARD_CHANNEL    the club's SHADOW/ACTIVE members read, ACTIVE post;
+ *                     OSE may read (advisory oversight)
+ *  - APPROVAL_THREAD  requester + club president + OSE — mirrors who can
+ *                     see the approval itself; participants are added as
+ *                     they engage
+ *  - OSE_BROADCAST    OSE posts, everyone at the institution reads
+ *  - PRESIDENT_NETWORK / SYSTEM — reserved for later phases
+ */
+
+export interface ConversationLike {
+  type: ConversationType
+  institutionId: string
+  organizationId: string | null
+  participantUserIds: string[]
+}
+
+function orgStatus(ctx: UserContext, organizationId: string | null) {
+  if (!organizationId) return null
+  const roles = ctx.orgRoles.filter((r) => r.organizationId === organizationId)
+  if (roles.some((r) => r.status === "ACTIVE")) return "ACTIVE"
+  if (roles.some((r) => r.status === "SHADOW")) return "SHADOW"
+  return null
+}
+
+export function canReadConversation(ctx: UserContext, convo: ConversationLike): boolean {
+  if (convo.participantUserIds.includes(ctx.userId)) return true
+  switch (convo.type) {
+    case "BOARD_CHANNEL":
+      return orgStatus(ctx, convo.organizationId) !== null || isOse(ctx, convo.institutionId)
+    case "OSE_BROADCAST":
+      return (
+        isOse(ctx, convo.institutionId) ||
+        ctx.orgRoles.some((r) => r.status === "ACTIVE" || r.status === "SHADOW")
+      )
+    case "APPROVAL_THREAD":
+      return isOse(ctx, convo.institutionId)
+    default:
+      return false
+  }
+}
+
+export function canPostToConversation(ctx: UserContext, convo: ConversationLike): boolean {
+  switch (convo.type) {
+    case "DIRECT_MESSAGE":
+      return convo.participantUserIds.includes(ctx.userId)
+    case "BOARD_CHANNEL":
+      return orgStatus(ctx, convo.organizationId) === "ACTIVE" || isOse(ctx, convo.institutionId)
+    case "APPROVAL_THREAD":
+      return (
+        convo.participantUserIds.includes(ctx.userId) || isOse(ctx, convo.institutionId)
+      )
+    case "OSE_BROADCAST":
+      return isOse(ctx, convo.institutionId)
+    default:
+      return false
+  }
+}

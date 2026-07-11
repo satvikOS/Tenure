@@ -7,6 +7,7 @@ import Link from "next/link"
 import { Card, CardHeader, Attribute } from "@/components/ui/Card"
 import { ApprovalBadge, SeverityBadge } from "@/components/ui/Badge"
 import { actOnApproval } from "../actions"
+import { openApprovalThread } from "../../messages/actions"
 
 export const dynamic = "force-dynamic"
 
@@ -59,7 +60,15 @@ export default async function ApprovalDetailPage({
           <h1 className="text-xl font-bold text-text-1">{approval.title}</h1>
           <p className="text-sm text-text-2 mt-1">{approval.organization.name}</p>
         </div>
-        <ApprovalBadge status={approval.status} />
+        <div className="flex items-center gap-3 shrink-0">
+          <form action={openApprovalThread}>
+            <input type="hidden" name="approvalId" value={approval.id} />
+            <button className="h-8 rounded border border-border px-3 text-xs font-medium text-text-2 hover:bg-base">
+              Discussion
+            </button>
+          </form>
+          <ApprovalBadge status={approval.status} />
+        </div>
       </div>
 
       <div className="space-y-4">

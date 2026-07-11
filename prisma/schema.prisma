@@ -104,6 +104,7 @@ model User {
   institutionMembership InstitutionMembership[]
   roleAssignments       RoleAssignment[]
   messagesSent          Message[]
+  participants          Participant[]
   notificationPrefs     NotificationPreference[]
 }
 
@@ -350,6 +351,7 @@ model Participant {
   conversationId   String
   conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   roleContext      String?      // role name at time of joining
   joinedAt         DateTime     @default(now())
   lastReadMessageId String?
