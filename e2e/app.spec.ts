@@ -62,7 +62,7 @@ test.describe("dashboard + navigation", () => {
     await expect(page.getByText("Pending Approvals")).toBeVisible()
     await expect(page.getByText("Upcoming Events")).toBeVisible()
     await expect(page.getByText("Unread Messages")).toBeVisible()
-    await expect(page.getByText("Active Members")).toBeVisible()
+    await expect(page.getByText("Active Members", { exact: true })).toBeVisible()
     await expect(page.getByText("Enrolled Clubs")).toBeVisible()
   })
 
@@ -134,7 +134,7 @@ test.describe("approvals: full state machine", () => {
     await page.getByLabel(/Amount/).fill("1500.00")
     await page.getByRole("button", { name: "Submit for approval" }).click()
     await page.waitForURL(/\/approvals\/[a-z0-9]+/)
-    await expect(page.getByText("Pending President")).toBeVisible()
+    await expect(page.getByText("Pending President", { exact: true })).toBeVisible()
 
     // VP cannot approve their own request
     await expect(page.getByRole("button", { name: "Approve", exact: true })).not.toBeVisible()
@@ -142,15 +142,15 @@ test.describe("approvals: full state machine", () => {
     // 2. President approves → moves to OSE gate
     await signIn(page, "Priya Raman")
     await page.goto("/approvals")
-    await page.getByText(title).click()
+    await page.getByText(title).first().click()
     await page.getByPlaceholder(/Optional note/).fill("Looks reasonable.")
     await page.getByRole("button", { name: "Approve", exact: true }).click()
-    await expect(page.getByText("Pending OSE")).toBeVisible()
+    await expect(page.getByText("Pending OSE", { exact: true })).toBeVisible()
 
     // 3. OSE director approves → APPROVED
     await signIn(page, "Dana Whitfield")
     await page.goto("/approvals")
-    await page.getByText(title).click()
+    await page.getByText(title).first().click()
     await page.getByRole("button", { name: "Approve", exact: true }).click()
     await expect(page.getByText("Approved", { exact: true })).toBeVisible()
 
@@ -170,17 +170,17 @@ test.describe("approvals: full state machine", () => {
 
     await signIn(page, "Priya Raman")
     await page.goto("/approvals")
-    await page.getByText(t2).click()
+    await page.getByText(t2).first().click()
     await page.getByPlaceholder(/Optional note/).fill("Add a cost breakdown.")
     await page.getByRole("button", { name: "Request changes" }).click()
-    await expect(page.getByText("Needs Changes")).toBeVisible()
+    await expect(page.getByText("Needs Changes", { exact: true })).toBeVisible()
 
     await signIn(page, "Victor Chen")
     await page.goto("/approvals")
-    await page.getByText(t2).click()
+    await page.getByText(t2).first().click()
     await expect(page.getByText("Add a cost breakdown.")).toBeVisible()
     await page.getByRole("button", { name: "Resubmit" }).click()
-    await expect(page.getByText("Pending President")).toBeVisible()
+    await expect(page.getByText("Pending President", { exact: true })).toBeVisible()
   })
 
   test("president's own request skips straight to the OSE gate", async ({ page }) => {
@@ -190,13 +190,13 @@ test.describe("approvals: full state machine", () => {
     await page.getByLabel("Title").fill(t3)
     await page.getByRole("button", { name: "Submit for approval" }).click()
     await page.waitForURL(/\/approvals\/[a-z0-9]+/)
-    await expect(page.getByText("Pending OSE")).toBeVisible()
+    await expect(page.getByText("Pending OSE", { exact: true })).toBeVisible()
   })
 
   test("uninvolved member cannot act on someone else's request", async ({ page }) => {
     await signIn(page, "Maya Johnson")
     await page.goto("/approvals")
-    await page.getByText(title).click()
+    await page.getByText(title).first().click()
     await expect(page.getByText("Take action")).not.toBeVisible()
   })
 })
