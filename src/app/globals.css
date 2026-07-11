@@ -92,6 +92,58 @@
     --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
   }
 
+  /* ─── Dark theme ─────────────────────────────────────────────────────────
+     Applied via html.dark (explicit) — the pre-hydration script in the root
+     layout resolves "system" against prefers-color-scheme. */
+  html.dark {
+    --shell-bg: #10151d;
+    --shell-border: rgba(255, 255, 255, 0.08);
+
+    --primary: #3d8df5;
+    --primary-hover: #5ba0f7;
+    --primary-press: #2b7ae8;
+    --primary-light: rgba(61, 141, 245, 0.16);
+
+    --bg-base: #101418;
+    --bg-surface: #171d24;
+    --bg-overlay: rgba(0, 0, 0, 0.6);
+
+    --border: #2a323c;
+    --border-strong: #3d4753;
+    --border-focus: #3d8df5;
+
+    --text-1: #e5e9ee;
+    --text-2: #a8b3bf;
+    --text-3: #77828e;
+    --text-disabled: #4d5762;
+    --text-inverse: #10151d;
+    --text-link: #5ba0f7;
+
+    --success: #3fbf9a;
+    --success-light: rgba(63, 191, 154, 0.14);
+    --warning: #f08c33;
+    --warning-light: rgba(240, 140, 51, 0.14);
+    --error: #e5605f;
+    --error-light: rgba(229, 96, 95, 0.14);
+    --info: #3d8df5;
+    --info-light: rgba(61, 141, 245, 0.14);
+
+    --badge-approved-bg: rgba(63, 191, 154, 0.16);
+    --badge-approved-text: #4fd0aa;
+    --badge-pending-bg: rgba(240, 140, 51, 0.16);
+    --badge-pending-text: #f5a35c;
+    --badge-rejected-bg: rgba(229, 96, 95, 0.16);
+    --badge-rejected-text: #ef8281;
+    --badge-draft-bg: rgba(255, 255, 255, 0.08);
+    --badge-draft-text: #a8b3bf;
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+
+    color-scheme: dark;
+  }
+
   * {
     box-sizing: border-box;
   }

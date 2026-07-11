@@ -72,10 +72,9 @@ test.describe("calendar + conflicts + publishing", () => {
     await page.getByRole("button", { name: "Approve", exact: true }).click()
     await expect(page.getByText("Approved", { exact: true })).toBeVisible()
 
-    // The event is now visible as Published on the shared calendar
-    await page.goto("/calendar")
-    await expect(page.getByText(firstTitle).first()).toBeVisible()
-    await expect(page.getByText("Published", { exact: true }).first()).toBeVisible()
+    // The event is now visible on the month grid for its month
+    await page.goto(`/calendar?m=${day.slice(0, 7)}`)
+    await expect(page.getByRole("link", { name: new RegExp(firstTitle) })).toBeVisible()
   })
 
   test("rejecting an event proposal cancels the event", async ({ page }) => {
@@ -87,13 +86,29 @@ test.describe("calendar + conflicts + publishing", () => {
     await expect(page.getByText("Rejected", { exact: true })).toBeVisible()
 
     // Cancelled events drop off the shared calendar
-    await page.goto("/calendar")
-    await expect(page.getByText(clashTitle)).not.toBeVisible()
+    await page.goto(`/calendar?m=${day.slice(0, 7)}`)
+    await expect(page.getByRole("link", { name: new RegExp(clashTitle) })).not.toBeVisible()
   })
 
   test("published events appear for regular members too", async ({ page }) => {
     await signIn(page, "Maya Johnson")
+    await page.goto(`/calendar?m=${day.slice(0, 7)}`)
+    await expect(page.getByRole("link", { name: new RegExp(firstTitle) })).toBeVisible()
+  })
+
+  test("month grid navigates and settings offers themes", async ({ page }) => {
+    await signIn(page, "Maya Johnson")
     await page.goto("/calendar")
-    await expect(page.getByText(firstTitle).first()).toBeVisible()
+    await expect(page.getByRole("link", { name: "Next month" })).toBeVisible()
+    await page.getByRole("link", { name: "Next month" }).click()
+    await expect(page).toHaveURL(/calendar\?m=\d{4}-\d{2}/)
+
+    await page.goto("/settings")
+    await expect(page.getByRole("radio", { name: "Dark" })).toBeVisible()
+    await page.getByRole("radio", { name: "Dark" }).click()
+    await expect(page.locator("html")).toHaveClass(/dark/)
+    await page.getByRole("radio", { name: "Light" }).click()
+    await expect(page.locator("html")).not.toHaveClass(/dark/)
+    await expect(page.getByText("Your seats")).toBeVisible()
   })
 })
