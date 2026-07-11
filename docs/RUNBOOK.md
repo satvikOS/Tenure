@@ -51,6 +51,10 @@ Live URL: https://d1n6mdis7bs02g.cloudfront.net · AWS account `154932391697` (u
 
 ## Known pilot limitations
 
+- Schema sync uses `prisma db push --accept-data-loss` at container start —
+  fine while data is recreatable; move to versioned `prisma migrate deploy`
+  before real institutional data lands.
+
 - Single ECS task (no HA); scale `ecs_desired_count` for production.
 - Free-tier account caps RDS backups at 1 day — raise to 7 after upgrading.
 - Dev login enabled; Okta pending institution credentials.

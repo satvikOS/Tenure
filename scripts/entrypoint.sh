@@ -19,7 +19,10 @@ fi
 
 if [ "$SKIP_DB_BOOTSTRAP" != "true" ] && [ -n "$DATABASE_URL" ]; then
   echo "⏳ Syncing database schema..."
-  if node prisma-cli/node_modules/prisma/build/index.js db push --skip-generate --schema prisma/schema.prisma; then
+  # --accept-data-loss: pilot-phase schema sync (e.g. adding unique indexes
+  # on fresh columns trips Prisma's conservative guard). RDS has deletion
+  # protection + snapshots; switch to `prisma migrate deploy` before GA.
+  if node prisma-cli/node_modules/prisma/build/index.js db push --skip-generate --accept-data-loss --schema prisma/schema.prisma; then
     echo "⏳ Seeding pilot data..."
     node scripts/seed.mjs || echo "⚠️ Seed failed — continuing"
   else
