@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { canManageRoster, canViewOrg, getUserContext } from "@/lib/rbac"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { AssignmentBadge, Badge } from "@/components/ui/Badge"
+import { OrgTabs } from "@/components/OrgTabs"
 import { assignMember, transitionAssignment } from "./actions"
 
 export const dynamic = "force-dynamic"
@@ -52,12 +53,13 @@ export default async function MembersPage({
 
   return (
     <div className="max-w-4xl">
-      <div className="mb-6">
+      <div className="mb-4">
         <h1 className="text-xl font-bold text-text-1">{org.name}</h1>
         <p className="text-sm text-text-2 mt-1">
           Roster — role seats persist across leadership transitions.
         </p>
       </div>
+      <OrgTabs slug={slug} />
 
       <div className="space-y-4">
         {current.map((role) => (
