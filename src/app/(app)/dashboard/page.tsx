@@ -42,6 +42,14 @@ export default async function DashboardPage() {
   })
   const orgIds = orgs.map((o) => o.id)
 
+  const mySeats = await db.roleAssignment.findMany({
+    where: { userId: ctx.userId, status: { in: ["ACTIVE", "SHADOW"] } },
+    include: {
+      role: { include: { organization: { select: { name: true, slug: true } } } },
+    },
+    orderBy: { startDate: "desc" },
+  })
+
   const [pendingApprovals, upcomingEvents, unreadMessages, activeMembers, memberCounts, recentAudit] =
     await Promise.all([
       db.approvalRequest.count({
@@ -215,7 +223,63 @@ export default async function DashboardPage() {
         </div>
 
         {/* Club list — real orgs in scope */}
-        <div>
+        <div className="space-y-4">
+          {mySeats.length > 0 && (
+            <Card padding="none">
+              <div className="p-5 border-b border-border">
+                <CardHeader
+                  title="My seats"
+                  subtitle="Your positions — knowledge stays with the job"
+                />
+              </div>
+              <ul className="divide-y divide-border">
+                {mySeats.map((s) => {
+                  const isPres = s.role.scope === "PRESIDENT" && s.status === "ACTIVE"
+                  return (
+                    <li key={s.id} className="px-5 py-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-medium text-text-1 truncate">
+                          {s.role.name} · {s.role.organization.name}
+                        </p>
+                        {s.status === "SHADOW" && (
+                          <span className="text-xs shrink-0" style={{ color: "var(--info)" }}>
+                            incoming
+                          </span>
+                        )}
+                      </div>
+                      {s.role.positionCode && (
+                        <p className="text-xs text-text-3 mt-0.5">{s.role.positionCode}</p>
+                      )}
+                      <div className="flex gap-3 mt-1.5 text-xs">
+                        <Link
+                          href={`/orgs/${s.role.organization.slug}/memory`}
+                          className="text-[--primary] hover:underline no-underline"
+                        >
+                          Seat memory
+                        </Link>
+                        {isPres ? (
+                          <Link
+                            href="/approvals"
+                            className="text-[--primary] hover:underline no-underline"
+                          >
+                            Review requests
+                          </Link>
+                        ) : s.status === "ACTIVE" ? (
+                          <Link
+                            href="/approvals/new"
+                            className="text-[--primary] hover:underline no-underline"
+                          >
+                            New request
+                          </Link>
+                        ) : null}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </Card>
+          )}
+
           <Card padding="none">
             <div className="p-5 border-b border-border">
               <CardHeader

@@ -1,9 +1,11 @@
+import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
-import { FileText, Download, Eye } from "lucide-react"
+import { FileText, Download, Eye, Sparkles } from "lucide-react"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canContribute, canViewOrg, getUserContext } from "@/lib/rbac"
 import { storageConfigured } from "@/lib/s3"
+import { aiConfigured } from "@/lib/ai"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { OrgTabs } from "@/components/OrgTabs"
 import {
@@ -118,6 +120,15 @@ export default async function DocumentsPage({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
+                    {aiConfigured() && (
+                      <Link
+                        href={`/orgs/${slug}/documents/${d.id}/summary`}
+                        className="inline-flex items-center gap-1.5 h-8 rounded border border-border px-3 text-xs font-medium text-[--primary] hover:bg-base no-underline"
+                        aria-label={`Summarize ${d.title}`}
+                      >
+                        <Sparkles size={13} /> Summarize
+                      </Link>
+                    )}
                     <form action={viewWithSlug} target="_blank">
                       <input type="hidden" name="documentId" value={d.id} />
                       <button

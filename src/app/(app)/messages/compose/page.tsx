@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { Card, CardHeader } from "@/components/ui/Card"
+import { DraftAssist } from "@/components/DraftAssist"
+import { aiConfigured } from "@/lib/ai"
 import { composeMessage, getAllowedRecipients } from "../actions"
 
 export const dynamic = "force-dynamic"
@@ -85,6 +87,7 @@ export default async function ComposePage() {
                 className="mt-1 w-full rounded border border-border px-3 py-2 text-sm text-text-1"
               />
             </label>
+            {aiConfigured() && <DraftAssist kind="message" targetName="body" />}
             <button className="h-9 rounded bg-[--primary] px-5 text-sm font-medium text-white hover:opacity-90">
               Send
             </button>

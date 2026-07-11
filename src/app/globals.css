@@ -8,58 +8,58 @@
 ────────────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    /* Shell */
-    --shell-bg: #1b2433;
+    /* Shell — tenure-landing "ink" navy */
+    --shell-bg: #0c1e33;
     --shell-text: #ffffff;
     --shell-text-secondary: rgba(255, 255, 255, 0.65);
-    --shell-border: rgba(255, 255, 255, 0.1);
+    --shell-border: #21384f;
     --shell-item-hover: rgba(255, 255, 255, 0.08);
     --shell-item-active: rgba(255, 255, 255, 0.14);
 
-    /* Primary (SAP Horizon blue) */
-    --primary: #0064d9;
-    --primary-hover: #0054b5;
-    --primary-press: #004494;
-    --primary-light: #e8f1fc;
+    /* Primary — tenure-landing "grove" green */
+    --primary: #1c8c5a;
+    --primary-hover: #14633f;
+    --primary-press: #14633f;
+    --primary-light: #e4f1e9;
     --primary-text: #ffffff;
 
-    /* Surfaces */
-    --bg-base: #f5f6f7;
+    /* Surfaces — warm paper + pure white cards */
+    --bg-base: #fbf9f5;
     --bg-surface: #ffffff;
-    --bg-overlay: rgba(0, 0, 0, 0.45);
+    --bg-overlay: rgba(12, 30, 51, 0.45);
 
-    /* Borders */
-    --border: #d4d9e0;
-    --border-strong: #adb5c0;
-    --border-focus: #0064d9;
+    /* Borders — warm lines */
+    --border: #e7e0d4;
+    --border-strong: #cfc5b2;
+    --border-focus: #1c8c5a;
 
-    /* Text */
-    --text-1: #1b2433;
-    --text-2: #5b6471;
-    --text-3: #8d96a0;
-    --text-disabled: #b3bac2;
+    /* Text — ink scale */
+    --text-1: #0c1e33;
+    --text-2: #46586c;
+    --text-3: #8a97a4;
+    --text-disabled: #b6bfc8;
     --text-inverse: #ffffff;
-    --text-link: #0064d9;
+    --text-link: #14633f;
 
     /* Status */
-    --success: #188269;
-    --success-light: #e8f5f1;
-    --warning: #e76500;
-    --warning-light: #fff3e5;
-    --error: #aa0808;
-    --error-light: #fce8e8;
-    --info: #0064d9;
-    --info-light: #e8f1fc;
+    --success: #1c8c5a;
+    --success-light: #e4f1e9;
+    --warning: #a4711c;
+    --warning-light: #f9efdb;
+    --error: #c14a2e;
+    --error-light: #fbe7e1;
+    --info: #3e7cb1;
+    --info-light: #e7eff6;
 
     /* Status badge text */
-    --badge-approved-bg: #e8f5f1;
-    --badge-approved-text: #188269;
-    --badge-pending-bg: #fff3e5;
-    --badge-pending-text: #a84700;
-    --badge-rejected-bg: #fce8e8;
-    --badge-rejected-text: #aa0808;
-    --badge-draft-bg: #f0f2f5;
-    --badge-draft-text: #5b6471;
+    --badge-approved-bg: #e4f1e9;
+    --badge-approved-text: #14633f;
+    --badge-pending-bg: #f9efdb;
+    --badge-pending-text: #8a5c0f;
+    --badge-rejected-bg: #fbe7e1;
+    --badge-rejected-text: #a63c22;
+    --badge-draft-bg: #f1ece2;
+    --badge-draft-text: #46586c;
 
     /* Spacing scale */
     --space-1: 4px;
@@ -96,46 +96,47 @@
      Applied via html.dark (explicit) — the pre-hydration script in the root
      layout resolves "system" against prefers-color-scheme. */
   html.dark {
-    --shell-bg: #10151d;
-    --shell-border: rgba(255, 255, 255, 0.08);
+    /* Ink-navy world from the landing's dark sections */
+    --shell-bg: #081525;
+    --shell-border: #21384f;
 
-    --primary: #3d8df5;
-    --primary-hover: #5ba0f7;
-    --primary-press: #2b7ae8;
-    --primary-light: rgba(61, 141, 245, 0.16);
+    --primary: #25a96d;
+    --primary-hover: #2fbf7d;
+    --primary-press: #1c8c5a;
+    --primary-light: rgba(37, 169, 109, 0.16);
 
-    --bg-base: #101418;
-    --bg-surface: #171d24;
+    --bg-base: #0c1e33;
+    --bg-surface: #122a44;
     --bg-overlay: rgba(0, 0, 0, 0.6);
 
-    --border: #2a323c;
-    --border-strong: #3d4753;
-    --border-focus: #3d8df5;
+    --border: #21384f;
+    --border-strong: #33506d;
+    --border-focus: #25a96d;
 
-    --text-1: #e5e9ee;
-    --text-2: #a8b3bf;
-    --text-3: #77828e;
-    --text-disabled: #4d5762;
-    --text-inverse: #10151d;
-    --text-link: #5ba0f7;
+    --text-1: #eef2f6;
+    --text-2: #a9b8c6;
+    --text-3: #7c8ea0;
+    --text-disabled: #4d6076;
+    --text-inverse: #0c1e33;
+    --text-link: #2fbf7d;
 
-    --success: #3fbf9a;
-    --success-light: rgba(63, 191, 154, 0.14);
-    --warning: #f08c33;
-    --warning-light: rgba(240, 140, 51, 0.14);
-    --error: #e5605f;
-    --error-light: rgba(229, 96, 95, 0.14);
-    --info: #3d8df5;
-    --info-light: rgba(61, 141, 245, 0.14);
+    --success: #25a96d;
+    --success-light: rgba(37, 169, 109, 0.14);
+    --warning: #e8b04b;
+    --warning-light: rgba(232, 176, 75, 0.14);
+    --error: #ed6a4a;
+    --error-light: rgba(237, 106, 74, 0.14);
+    --info: #5e9bd0;
+    --info-light: rgba(94, 155, 208, 0.14);
 
-    --badge-approved-bg: rgba(63, 191, 154, 0.16);
-    --badge-approved-text: #4fd0aa;
-    --badge-pending-bg: rgba(240, 140, 51, 0.16);
-    --badge-pending-text: #f5a35c;
-    --badge-rejected-bg: rgba(229, 96, 95, 0.16);
-    --badge-rejected-text: #ef8281;
+    --badge-approved-bg: rgba(37, 169, 109, 0.18);
+    --badge-approved-text: #4fd695;
+    --badge-pending-bg: rgba(232, 176, 75, 0.18);
+    --badge-pending-text: #edc06e;
+    --badge-rejected-bg: rgba(237, 106, 74, 0.18);
+    --badge-rejected-text: #f2917a;
     --badge-draft-bg: rgba(255, 255, 255, 0.08);
-    --badge-draft-text: #a8b3bf;
+    --badge-draft-text: #a9b8c6;
 
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);

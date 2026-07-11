@@ -2,6 +2,8 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { Card, CardHeader } from "@/components/ui/Card"
+import { DraftAssist } from "@/components/DraftAssist"
+import { aiConfigured } from "@/lib/ai"
 import { createEvent } from "../actions"
 
 export const dynamic = "force-dynamic"
@@ -106,6 +108,8 @@ export default async function NewEventPage() {
               className="mt-1 w-full rounded border border-border px-3 py-2 text-sm text-text-1"
             />
           </label>
+
+          {aiConfigured() && <DraftAssist kind="event" targetName="description" />}
 
           <button
             type="submit"

@@ -16,6 +16,8 @@ import { canSeeMemoryCard } from "@/lib/memory"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { OrgTabs } from "@/components/OrgTabs"
+import { DraftAssist } from "@/components/DraftAssist"
+import { aiConfigured } from "@/lib/ai"
 import { createMemoryCard } from "./actions"
 
 export const dynamic = "force-dynamic"
@@ -132,6 +134,7 @@ export default async function MemoryPage({
                 placeholder="The details your successor will thank you for."
                 className="w-full rounded border border-border px-3 py-2 text-sm text-text-1"
               />
+              {aiConfigured() && <DraftAssist kind="memory" targetName="body" />}
               <button className="h-9 rounded bg-[--primary] px-4 text-sm font-medium text-white hover:opacity-90">
                 Save card
               </button>
