@@ -10,6 +10,13 @@ COPY package*.json ./
 COPY prisma ./prisma
 RUN npm ci --legacy-peer-deps
 
+# ── prisma-cli: self-contained CLI install for runtime `db push` ────────────
+# Cherry-picking CLI deps from the app tree breaks on transitive modules
+# (@prisma/debug, effect, ...) — a real npm install gets the complete tree.
+FROM base AS prisma-cli
+WORKDIR /cli
+RUN npm install --no-save --no-audit --no-fund prisma@6
+
 # ── builder: generate Prisma client and build Next.js ───────────────────────
 FROM base AS builder
 WORKDIR /app
@@ -38,11 +45,9 @@ COPY --from=builder /app/public                          ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static     ./.next/static
 
-# Prisma CLI + schema + bootstrap scripts: the entrypoint runs `db push`
-# and the seed against RDS (only reachable from inside the VPC)
-# Whole @prisma scope: the CLI needs @prisma/debug, fetch-engine, etc.
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma  ./node_modules/prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
+# Prisma CLI (own dependency tree) + schema + bootstrap scripts: the
+# entrypoint runs `db push` + seed against RDS (only reachable in-VPC)
+COPY --from=prisma-cli --chown=nextjs:nodejs /cli/node_modules ./prisma-cli/node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma  ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 

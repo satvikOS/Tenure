@@ -19,7 +19,7 @@ fi
 
 if [ "$SKIP_DB_BOOTSTRAP" != "true" ] && [ -n "$DATABASE_URL" ]; then
   echo "⏳ Syncing database schema..."
-  if node node_modules/prisma/build/index.js db push --skip-generate; then
+  if node prisma-cli/node_modules/prisma/build/index.js db push --skip-generate --schema prisma/schema.prisma; then
     echo "⏳ Seeding pilot data..."
     node scripts/seed.mjs || echo "⚠️ Seed failed — continuing"
   else
