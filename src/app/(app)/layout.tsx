@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { ShellHeader } from "@/components/shell/ShellHeader"
 import { SideNav } from "@/components/shell/SideNav"
+import { signOutAction } from "./actions"
 
 export default async function AppLayout({
   children,
@@ -13,7 +14,11 @@ export default async function AppLayout({
 
   return (
     <>
-      <ShellHeader userName={session.user.name ?? session.user.email ?? "User"} />
+      <ShellHeader
+        userName={session.user.name ?? session.user.email ?? "User"}
+        userEmail={session.user.email ?? undefined}
+        onSignOut={signOutAction}
+      />
       <SideNav />
       <main
         className="min-h-screen bg-base"

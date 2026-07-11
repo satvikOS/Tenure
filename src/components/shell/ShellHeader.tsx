@@ -2,18 +2,34 @@
 
 import Link from "next/link"
 import {
+  Button,
+  Menu,
+  MenuItem,
+  MenuTrigger,
+  Popover,
+} from "react-aria-components"
+import {
   Bell,
   Search,
   ChevronDown,
   GraduationCap,
+  LogOut,
+  UserRound,
 } from "lucide-react"
 
 interface ShellHeaderProps {
   userName?: string
+  userEmail?: string
   orgName?: string
+  onSignOut?: () => Promise<void>
 }
 
-export function ShellHeader({ userName = "User", orgName }: ShellHeaderProps) {
+export function ShellHeader({
+  userName = "User",
+  userEmail,
+  orgName,
+  onSignOut,
+}: ShellHeaderProps) {
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50 h-shell flex items-center px-4 gap-4"
@@ -96,22 +112,42 @@ export function ShellHeader({ userName = "User", orgName }: ShellHeaderProps) {
         </button>
 
         {/* User menu */}
-        <button
-          className="flex items-center gap-2 h-8 px-2 rounded transition-colors"
-          style={{ color: "var(--shell-text-secondary)" }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--shell-item-hover)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-          aria-label="User menu"
-        >
-          <div
-            className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white"
-            style={{ background: "var(--primary)" }}
+        <MenuTrigger>
+          <Button
+            className="flex items-center gap-2 h-8 px-2 rounded transition-colors outline-none data-[hovered]:bg-[--shell-item-hover] data-[focus-visible]:ring-2 data-[focus-visible]:ring-[--primary]"
+            style={{ color: "var(--shell-text-secondary)" }}
+            aria-label="User menu"
           >
-            {userName[0]?.toUpperCase()}
-          </div>
-          <span className="text-xs hidden sm:block text-white">{userName}</span>
-          <ChevronDown size={12} />
-        </button>
+            <div
+              className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold text-white"
+              style={{ background: "var(--primary)" }}
+            >
+              {userName[0]?.toUpperCase()}
+            </div>
+            <span className="text-xs hidden sm:block text-white">{userName}</span>
+            <ChevronDown size={12} />
+          </Button>
+          <Popover
+            placement="bottom end"
+            className="min-w-56 rounded-lg border border-border bg-surface shadow-lg outline-none entering:animate-in exiting:animate-out"
+          >
+            <div className="px-4 py-3 border-b border-border">
+              <p className="text-sm font-semibold text-text-1 flex items-center gap-2">
+                <UserRound size={14} className="text-text-3" /> {userName}
+              </p>
+              {userEmail && <p className="text-xs text-text-3 mt-0.5">{userEmail}</p>}
+            </div>
+            <Menu className="p-1 outline-none">
+              <MenuItem
+                onAction={() => onSignOut?.()}
+                className="flex items-center gap-2 rounded px-3 py-2 text-sm text-text-1 cursor-pointer outline-none data-[focused]:bg-base"
+              >
+                <LogOut size={14} className="text-text-3" />
+                Sign out / switch user
+              </MenuItem>
+            </Menu>
+          </Popover>
+        </MenuTrigger>
       </div>
     </header>
   )
