@@ -49,9 +49,11 @@ resource "aws_db_instance" "postgres" {
   backup_window           = "03:00-04:00"
   maintenance_window      = "sun:04:30-sun:05:30"
 
-  deletion_protection      = false  # Set to true for production
-  skip_final_snapshot      = true   # Set to false for production
-  delete_automated_backups = true
+  # Hardening (Week 8): protect the system of record
+  deletion_protection       = true
+  skip_final_snapshot       = false
+  final_snapshot_identifier = "${local.name_prefix}-db-final"
+  delete_automated_backups  = false
 
   # Not supported on db.t3.micro — enable when moving to a larger class
   performance_insights_enabled = false

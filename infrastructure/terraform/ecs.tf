@@ -209,8 +209,9 @@ resource "aws_ecs_service" "app" {
   desired_count   = var.ecs_desired_count
   launch_type     = "FARGATE"
 
-  # Allow zero healthy tasks during initial image-push phase
-  deployment_minimum_healthy_percent = 0
+  # Zero-downtime rollovers: keep the old task serving until the new one
+  # is healthy (the 0% bootstrap-era setting caused brief 503 windows)
+  deployment_minimum_healthy_percent = 100
   deployment_maximum_percent         = 200
 
   # Don't block Terraform while ECS stabilizes (handled by CI wait step)
