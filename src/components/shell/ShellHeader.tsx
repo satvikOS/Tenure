@@ -14,6 +14,7 @@ import {
   ChevronDown,
   GraduationCap,
   LogOut,
+  Sparkles,
   UserRound,
 } from "lucide-react"
 
@@ -78,10 +79,12 @@ export function ShellHeader({
           <Search size={13} className="shrink-0" />
           <input
             name="q"
-            placeholder="Search memory, docs, approvals…"
+            placeholder="Ask Tenure AI — search memory, docs, approvals…"
             aria-label="Search Tenure"
             className="flex-1 bg-transparent outline-none text-xs text-white placeholder:text-[--shell-text-secondary]"
           />
+          {/* Tenure AI mark — answers are synthesized with citations */}
+          <Sparkles size={13} className="shrink-0" style={{ color: "var(--primary)" }} aria-hidden />
         </div>
       </form>
 

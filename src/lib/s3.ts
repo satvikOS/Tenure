@@ -37,3 +37,17 @@ export async function documentDownloadUrl(key: string, filename: string) {
     { expiresIn: 600 }
   )
 }
+
+/** Short-lived inline link — opens in the browser instead of downloading. */
+export async function documentViewUrl(key: string) {
+  if (!documentsBucket) throw new Error("Document storage is not configured")
+  return getSignedUrl(
+    s3,
+    new GetObjectCommand({
+      Bucket: documentsBucket,
+      Key: key,
+      ResponseContentDisposition: "inline",
+    }),
+    { expiresIn: 600 }
+  )
+}

@@ -66,7 +66,11 @@ export default async function MembersPage({
           <Card key={role.id}>
             <CardHeader
               title={role.name}
-              subtitle={role.description ?? undefined}
+              subtitle={
+                role.positionCode
+                  ? `Position ID ${role.positionCode} — permanent seat, knowledge stays with the job`
+                  : role.description ?? undefined
+              }
               action={<Badge variant="info">{role.scope.toLowerCase()}</Badge>}
             />
             {role.assignments.length === 0 ? (

@@ -120,6 +120,7 @@ model Organization {
   description   String?
   logoUrl       String?
   status        OrgStatus   @default(ACTIVE)
+  category      OrgCategory @default(PROFESSIONAL)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -141,6 +142,13 @@ enum OrgStatus {
   PENDING
 }
 
+enum OrgCategory {
+  COMMUNITY
+  PROFESSIONAL
+  ORGANIZATION
+  SOCIAL
+}
+
 // A durable board seat — the role persists when the occupant changes
 model Role {
   id             String       @id @default(cuid())
@@ -149,6 +157,9 @@ model Role {
   name           String       // "President", "VP Finance & Operations", etc.
   description    String?
   scope          RoleScope    @default(FUNCTIONAL)
+  // Permanent position ID — the seat's identity outlives every holder.
+  // Knowledge, history, and accomplishments attach to this, not to people.
+  positionCode   String?      @unique
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 

@@ -82,15 +82,17 @@ test.describe("organizations + roster RBAC", () => {
     await signIn(page, "Dana Whitfield")
     await page.goto("/orgs")
     await expect(page.getByRole("heading", { name: "All Clubs" })).toBeVisible()
+    // Real Simon clubs across categories
     await expect(page.getByText("Simon Consulting Club")).toBeVisible()
-    await expect(page.getByText("Finance & Investment Society")).toBeVisible()
-    await expect(page.getByText("Public Speaking Guild")).toBeVisible()
+    await expect(page.getByText("Simon Women in Business")).toBeVisible()
+    await expect(page.getByText("Gaming Club")).toBeVisible()
+    await expect(page.getByText("Graduate Business Council")).toBeVisible()
 
     await signIn(page, "Maya Johnson")
     await page.goto("/orgs")
     await expect(page.getByRole("heading", { name: "My Clubs" })).toBeVisible()
     await expect(page.getByText("Simon Consulting Club")).toBeVisible()
-    await expect(page.getByText("Public Speaking Guild")).not.toBeVisible()
+    await expect(page.getByText("Gaming Club")).not.toBeVisible()
   })
 
   test("roster shows lifecycle badges and gates the manage form", async ({ page }) => {

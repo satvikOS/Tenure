@@ -5,7 +5,12 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canContribute, canViewOrg, getUserContext } from "@/lib/rbac"
-import { documentDownloadUrl, storageConfigured, uploadDocument } from "@/lib/s3"
+import {
+  documentDownloadUrl,
+  documentViewUrl,
+  storageConfigured,
+  uploadDocument,
+} from "@/lib/s3"
 
 const MAX_BYTES = 15 * 1024 * 1024 // 15 MB pilot cap
 
@@ -92,4 +97,34 @@ export async function downloadDocumentAction(slug: string, formData: FormData) {
 
   const url = await documentDownloadUrl(doc.objectKey, doc.title)
   redirect(url)
+}
+
+/** Permission-checked inline view (opens in the browser tab). */
+export async function viewDocumentAction(slug: string, formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Not signed in")
+
+  const documentId = String(formData.get("documentId") ?? "")
+  const doc = await db.document.findUnique({
+    where: { id: documentId },
+    include: { organization: true },
+  })
+  if (!doc || doc.organization.slug !== slug) throw new Error("Document not found")
+
+  const ctx = await getUserContext(session.user.id)
+  if (!canViewOrg(ctx, doc.organization)) throw new Error("No access")
+
+  await db.auditEvent.create({
+    data: {
+      institutionId: doc.institutionId,
+      organizationId: doc.organizationId,
+      actorId: session.user.id,
+      action: "Document.Viewed",
+      resourceType: "Document",
+      resourceId: doc.id,
+      outcome: "ALLOW",
+    },
+  })
+
+  redirect(await documentViewUrl(doc.objectKey))
 }

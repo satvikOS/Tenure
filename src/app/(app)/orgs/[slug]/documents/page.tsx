@@ -1,12 +1,16 @@
 import { notFound, redirect } from "next/navigation"
-import { FileText, Download } from "lucide-react"
+import { FileText, Download, Eye } from "lucide-react"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canContribute, canViewOrg, getUserContext } from "@/lib/rbac"
 import { storageConfigured } from "@/lib/s3"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { OrgTabs } from "@/components/OrgTabs"
-import { downloadDocumentAction, uploadDocumentAction } from "./actions"
+import {
+  downloadDocumentAction,
+  uploadDocumentAction,
+  viewDocumentAction,
+} from "./actions"
 
 export const dynamic = "force-dynamic"
 
@@ -47,6 +51,7 @@ export default async function DocumentsPage({
 
   const uploadWithSlug = uploadDocumentAction.bind(null, slug)
   const downloadWithSlug = downloadDocumentAction.bind(null, slug)
+  const viewWithSlug = viewDocumentAction.bind(null, slug)
 
   return (
     <div className="max-w-4xl">
@@ -112,15 +117,26 @@ export default async function DocumentsPage({
                       })}
                     </p>
                   </div>
-                  <form action={downloadWithSlug}>
-                    <input type="hidden" name="documentId" value={d.id} />
-                    <button
-                      className="inline-flex items-center gap-1.5 h-8 rounded border border-border px-3 text-xs font-medium text-text-2 hover:bg-base"
-                      aria-label={`Download ${d.title}`}
-                    >
-                      <Download size={13} /> Download
-                    </button>
-                  </form>
+                  <div className="flex items-center gap-2">
+                    <form action={viewWithSlug} target="_blank">
+                      <input type="hidden" name="documentId" value={d.id} />
+                      <button
+                        className="inline-flex items-center gap-1.5 h-8 rounded border border-border px-3 text-xs font-medium text-text-2 hover:bg-base"
+                        aria-label={`View ${d.title}`}
+                      >
+                        <Eye size={13} /> View
+                      </button>
+                    </form>
+                    <form action={downloadWithSlug}>
+                      <input type="hidden" name="documentId" value={d.id} />
+                      <button
+                        className="inline-flex items-center gap-1.5 h-8 rounded border border-border px-3 text-xs font-medium text-text-2 hover:bg-base"
+                        aria-label={`Download ${d.title}`}
+                      >
+                        <Download size={13} /> Download
+                      </button>
+                    </form>
+                  </div>
                 </li>
               ))}
             </ul>

@@ -4,6 +4,7 @@
  * pilot is explorable before real rosters are imported.
  */
 import { PrismaClient } from "@prisma/client"
+import { CLUBS, positionCode, slugify } from "./clubs-data.mjs"
 
 const db = new PrismaClient()
 
@@ -45,43 +46,62 @@ async function main() {
     })
   }
 
-  async function org(name, slug, description) {
-    return db.organization.upsert({
-      where: { slug },
-      update: {},
-      create: { institutionId: institution.id, name, slug, description },
+  // ── Real Simon clubs + board seats (Clubs and Board Position.xlsx) ─────────
+  // Each seat carries a permanent position code: knowledge attaches to the
+  // job ID, not the person — people come and go, the seat's memory stays.
+  for (const [clubName, { category, positions }] of Object.entries(CLUBS)) {
+    const club = await db.organization.upsert({
+      where: { slug: slugify(clubName) },
+      update: { category },
+      create: {
+        institutionId: institution.id,
+        name: clubName,
+        slug: slugify(clubName),
+        category,
+      },
+    })
+    for (const pos of positions) {
+      const scope = pos.toLowerCase().startsWith("president") ? "PRESIDENT" : "FUNCTIONAL"
+      const code = positionCode(clubName, pos)
+      await db.role.upsert({
+        where: { organizationId_name: { organizationId: club.id, name: pos } },
+        update: { positionCode: code },
+        create: { organizationId: club.id, name: pos, scope, positionCode: code },
+      })
+    }
+    await db.role.upsert({
+      where: { organizationId_name: { organizationId: club.id, name: "Member" } },
+      update: { positionCode: `${positionCode(clubName, "Member")}` },
+      create: {
+        organizationId: club.id,
+        name: "Member",
+        scope: "MEMBER",
+        positionCode: positionCode(clubName, "Member"),
+      },
     })
   }
 
-  const consulting = await org(
-    "Simon Consulting Club",
-    "consulting-club",
-    "Case prep, pro-bono consulting projects, and firm treks."
-  )
-  const finance = await org(
-    "Finance & Investment Society",
-    "finance-society",
-    "Stock pitches, treks to NYC, and alumni networking."
-  )
-  await org(
-    "Public Speaking Guild",
-    "public-speaking",
-    "Weekly practice sessions and semester speech competitions."
-  )
+  // Legacy demo-only clubs from the scaffold — archive if present
+  for (const legacySlug of ["finance-society", "public-speaking"]) {
+    await db.organization.updateMany({
+      where: { slug: legacySlug },
+      data: { status: "ARCHIVED" },
+    })
+  }
 
-  async function role(organizationId, name, scope, description) {
-    return db.role.upsert({
+  const consulting = await db.organization.findUniqueOrThrow({
+    where: { slug: "consulting-club" },
+  })
+
+  async function findRole(organizationId, name) {
+    return db.role.findUniqueOrThrow({
       where: { organizationId_name: { organizationId, name } },
-      update: {},
-      create: { organizationId, name, scope, description },
     })
   }
 
-  const cPresident = await role(consulting.id, "President", "PRESIDENT", "Club admin — final club-level approval")
-  const cVpFinance = await role(consulting.id, "VP Finance & Operations", "FUNCTIONAL", "Budget owner")
-  const cMember = await role(consulting.id, "Member", "MEMBER", "General member")
-  const fPresident = await role(finance.id, "President", "PRESIDENT", "Club admin")
-  await role(finance.id, "VP Events", "FUNCTIONAL", "Event planning lead")
+  const cPresident = await findRole(consulting.id, "President")
+  const cVpFinance = await findRole(consulting.id, "VP Finance & Operations")
+  const cMember = await findRole(consulting.id, "Member")
 
   async function assign(userId, roleId, status, extra = {}) {
     const existing = await db.roleAssignment.findFirst({ where: { userId, roleId } })
@@ -99,7 +119,12 @@ async function main() {
     startDate: new Date("2024-08-01"),
     endDate: new Date("2025-05-15"),
   })
-  await assign(president.id, fPresident.id, "ACTIVE")
+  // Priya also chairs Simon Women in Business (real multi-club leadership)
+  const swib = await db.organization.findUniqueOrThrow({
+    where: { slug: "simon-women-in-business" },
+  })
+  const swibPresident = await findRole(swib.id, "President")
+  await assign(president.id, swibPresident.id, "ACTIVE")
 
   console.log("✅ Seed complete")
 }
