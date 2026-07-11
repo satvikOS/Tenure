@@ -162,6 +162,9 @@ jobs:
 
       - name: Terraform apply — full infrastructure
         working-directory: ${{ env.TF_DIR }}
+        env:
+          # Optional — enables AI answers on /search when the secret exists
+          TF_VAR_anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           terraform apply \
             -var="image_tag=$IMAGE_TAG" \
