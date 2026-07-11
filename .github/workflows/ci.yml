@@ -46,3 +46,68 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # ── Headless e2e: real Postgres, seeded data, production build ─────────────
+  e2e:
+    name: E2E · Playwright
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: tenure
+          POSTGRES_PASSWORD: tenure
+          POSTGRES_DB: tenure
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U tenure"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://tenure:tenure@localhost:5432/tenure
+      AUTH_SECRET: e2e-test-secret
+      AUTH_TRUST_HOST: "true"
+      AUTH_DEV_LOGIN: "true"
+      NEXTAUTH_URL: http://localhost:3000
+      OKTA_CLIENT_ID: ""
+      OKTA_CLIENT_SECRET: ""
+      OKTA_ISSUER: ""
+      IMAGE_TAG: e2e-local
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Push schema + seed
+        run: |
+          npx prisma db push --skip-generate
+          node scripts/seed.mjs
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Run e2e suite
+        run: npm run e2e
+
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

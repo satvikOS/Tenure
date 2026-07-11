@@ -1,0 +1,162 @@
+import { notFound, redirect } from "next/navigation"
+import { auth } from "@/lib/auth"
+import { db } from "@/lib/db"
+import { canViewOrg, getUserContext } from "@/lib/rbac"
+import { availableActions, ACTION_LABELS } from "@/lib/approvals"
+import { Card, CardHeader, Attribute } from "@/components/ui/Card"
+import { ApprovalBadge } from "@/components/ui/Badge"
+import { actOnApproval } from "../actions"
+
+export const dynamic = "force-dynamic"
+
+export default async function ApprovalDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const session = await auth()
+  if (!session?.user?.id) redirect("/signin")
+
+  const approval = await db.approvalRequest.findUnique({
+    where: { id },
+    include: {
+      organization: { select: { name: true, slug: true, institutionId: true } },
+      steps: { orderBy: { occurredAt: "asc" } },
+    },
+  })
+  if (!approval) notFound()
+
+  const ctx = await getUserContext(session.user.id)
+  const canView =
+    ctx.userId === approval.submittedById ||
+    canViewOrg(ctx, { id: approval.organizationId, institutionId: approval.institutionId })
+  if (!canView) notFound()
+
+  const actions = availableActions(ctx, approval)
+  const actWithId = actOnApproval.bind(null, approval.id)
+
+  const actorIds = [
+    ...new Set([approval.submittedById, ...approval.steps.map((s) => s.actorId)]),
+  ]
+  const actors = new Map(
+    (
+      await db.user.findMany({
+        where: { id: { in: actorIds } },
+        select: { id: true, name: true, email: true },
+      })
+    ).map((u) => [u.id, u.name ?? u.email ?? "Unknown"])
+  )
+
+  const meta = approval.metadata as { amount?: string }
+
+  return (
+    <div className="max-w-3xl">
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-text-1">{approval.title}</h1>
+          <p className="text-sm text-text-2 mt-1">{approval.organization.name}</p>
+        </div>
+        <ApprovalBadge status={approval.status} />
+      </div>
+
+      <div className="space-y-4">
+        <Card>
+          <CardHeader title="Details" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Attribute label="Type" value={approval.type.toLowerCase()} />
+            <Attribute label="Requested by" value={actors.get(approval.submittedById)} />
+            <Attribute
+              label="Created"
+              value={approval.createdAt.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            />
+            <Attribute label="Amount" value={meta.amount ? `$${meta.amount}` : "—"} />
+          </div>
+          {approval.description && (
+            <p className="mt-4 text-sm text-text-1 whitespace-pre-wrap">
+              {approval.description}
+            </p>
+          )}
+        </Card>
+
+        {actions.length > 0 && (
+          <Card>
+            <CardHeader
+              title="Take action"
+              subtitle="Decisions are recorded permanently in the request history."
+            />
+            <form action={actWithId} className="space-y-3">
+              <textarea
+                name="reason"
+                rows={2}
+                placeholder="Optional note — required context for changes or rejection."
+                className="w-full rounded border border-border px-3 py-2 text-sm text-text-1"
+              />
+              <div className="flex flex-wrap gap-2">
+                {actions.map((a) => (
+                  <button
+                    key={a}
+                    type="submit"
+                    name="action"
+                    value={a}
+                    className={
+                      a === "approve" || a === "submit" || a === "resubmit"
+                        ? "h-9 rounded bg-[--primary] px-4 text-sm font-medium text-white hover:opacity-90"
+                        : a === "reject"
+                          ? "h-9 rounded bg-[--error] px-4 text-sm font-medium text-white hover:opacity-90"
+                          : "h-9 rounded border border-border px-4 text-sm font-medium text-text-2 hover:bg-base"
+                    }
+                  >
+                    {ACTION_LABELS[a]}
+                  </button>
+                ))}
+              </div>
+            </form>
+          </Card>
+        )}
+
+        <Card padding="none">
+          <div className="p-5 border-b border-border">
+            <CardHeader title="History" subtitle="Append-only decision trail" />
+          </div>
+          {approval.steps.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-text-3 text-center">
+              Draft — not yet submitted.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {approval.steps.map((s) => (
+                <li key={s.id} className="px-5 py-3.5">
+                  <p className="text-sm text-text-1">
+                    <span className="font-medium">{actors.get(s.actorId)}</span>
+                    {s.actorRoleContext ? (
+                      <span className="text-text-3"> ({s.actorRoleContext})</span>
+                    ) : null}{" "}
+                    moved this from{" "}
+                    <span className="font-medium">{s.fromStatus.replace(/_/g, " ")}</span> to{" "}
+                    <span className="font-medium">{s.toStatus.replace(/_/g, " ")}</span>
+                  </p>
+                  {s.reason && (
+                    <p className="text-sm text-text-2 mt-1 italic">“{s.reason}”</p>
+                  )}
+                  <p className="text-xs text-text-3 mt-1">
+                    {s.occurredAt.toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+    </div>
+  )
+}

@@ -23,6 +23,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Standalone server bundle (see next.config.ts)
+ENV NEXT_STANDALONE=1
+
 # Generate Prisma client (schema must be present, no DB connection needed)
 RUN npx prisma generate
 

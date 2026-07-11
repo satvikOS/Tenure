@@ -34,8 +34,11 @@ function buildNav(orgSlug?: string): NavSection[] {
   return [
     {
       items: [
-        { label: "Dashboard",  href: "/dashboard",                   icon: LayoutDashboard },
-        { label: "All Clubs",  href: "/orgs",                        icon: Building2 },
+        { label: "Dashboard",  href: "/dashboard",  icon: LayoutDashboard },
+        { label: "All Clubs",  href: "/orgs",       icon: Building2 },
+        { label: "Approvals",  href: "/approvals",  icon: CheckCircle },
+        { label: "Calendar",   href: "/calendar",   icon: Calendar },
+        { label: "Messages",   href: "/messages",   icon: MessageSquare },
       ],
     },
     {
