@@ -28,7 +28,9 @@ test.describe("messaging", () => {
     await page.getByLabel("Subject").fill(subject)
     await page.getByLabel("Message").fill("Can we bump the catering budget by $200?")
     await page.getByRole("button", { name: "Send", exact: true }).click()
-    await page.waitForURL(/\/messages\/[a-z0-9]+/)
+    // Must actually leave /messages/compose for a thread page
+    await page.waitForURL(/\/messages\/(?!compose)[a-z0-9]+$/)
+    await expect(page.getByText("From: Victor Chen")).toBeVisible()
     await expect(page.getByText("To: Priya Raman")).toBeVisible()
     await expect(page.getByText("Cc: Maya Johnson")).toBeVisible()
 
