@@ -193,6 +193,9 @@ jobs:
 
       # ── 8. Wait for tasks to be healthy (max 10 min) ─────────────────────
       - name: Wait for ECS service to stabilize
+        # Advisory only — slow zero-downtime rollovers can outlast the waiter.
+        # The "Verify deployed version" step below is the authoritative gate.
+        continue-on-error: true
         run: |
           echo "⏳ Waiting for ECS tasks to be healthy..."
           # Zero-downtime rollovers (100% min healthy + bootstrap grace) can
