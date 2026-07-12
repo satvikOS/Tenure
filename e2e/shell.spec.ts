@@ -31,9 +31,9 @@ test.describe("shell + brand", () => {
   test("side panel has sections and Settings pinned at the bottom", async ({ page }) => {
     await signIn(page, "Maya Johnson")
     const nav = page.getByRole("navigation", { name: "Primary navigation" })
-    await expect(nav.getByText("Community")).toBeVisible()
-    await expect(nav.getByText("Operations")).toBeVisible()
-    await expect(nav.getByText("Knowledge")).toBeVisible()
+    await expect(nav.getByText("Community", { exact: true })).toBeVisible()
+    await expect(nav.getByText("Operations", { exact: true })).toBeVisible()
+    await expect(nav.getByText("Knowledge", { exact: true })).toBeVisible()
     const settings = nav.getByRole("link", { name: "Settings" })
     await expect(settings).toBeVisible()
     // Settings sits below every section label (pinned bottom)

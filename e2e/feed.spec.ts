@@ -25,7 +25,9 @@ test.describe("community feed", () => {
       .fill("Planning a spring networking night — looking for a co-host club to split catering.")
     await page.getByRole("button", { name: "Post to feed" }).click()
     await expect(page.getByText(postTitle)).toBeVisible()
-    await expect(page.getByText("Simon Consulting Club").first()).toBeVisible()
+    await expect(
+      page.getByRole("link", { name: "Simon Consulting Club" }).first()
+    ).toBeVisible()
   })
 
   test("another member comments on the post", async ({ page }) => {
