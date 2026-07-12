@@ -7,6 +7,7 @@ import {
   CheckCircle,
   Calendar,
   MessageSquare,
+  Newspaper,
   Search,
   Settings,
   Building2,
@@ -41,6 +42,7 @@ function buildNav(showReports?: boolean): NavSection[] {
     {
       label: "Community",
       items: [
+        { label: "Community Feed", href: "/feed", icon: Newspaper },
         { label: "All Clubs", href: "/orgs", icon: Building2 },
         { label: "Messages", href: "/messages", icon: MessageSquare },
       ],

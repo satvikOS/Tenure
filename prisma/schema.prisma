@@ -133,6 +133,8 @@ model Organization {
   budgets        Budget[]
   vendors        Vendor[]
   memoryRecords  MemoryRecord[]
+  feedPosts      FeedPost[]
+  collabInterests CollabInterest[]
 
   @@index([institutionId, status])
 }
@@ -303,6 +305,7 @@ model Event {
   updatedAt        DateTime      @updatedAt
 
   conflicts ConflictRecord[]
+  feedPosts FeedPost[]
 
   @@index([institutionId, startAt])
   @@index([organizationId, status])
@@ -548,6 +551,65 @@ enum NotificationChannel {
   IN_APP
   EMAIL
   EMAIL_DIGEST
+}
+
+// ─── Community Feed ───────────────────────────────────────────────────────────
+// Clubs post collaboration calls; other clubs raise interest; the OSE
+// Director sits in the middle and approves each collaboration.
+
+model FeedPost {
+  id             String       @id @default(cuid())
+  institutionId  String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  authorId       String
+  title          String
+  body           String       @db.Text
+  eventId        String?
+  event          Event?       @relation(fields: [eventId], references: [id])
+  isArchived     Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  comments  FeedComment[]
+  interests CollabInterest[]
+
+  @@index([institutionId, createdAt])
+}
+
+model FeedComment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      FeedPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([postId, createdAt])
+}
+
+enum CollabStatus {
+  PENDING_OSE
+  APPROVED
+  DECLINED
+}
+
+model CollabInterest {
+  id             String       @id @default(cuid())
+  postId         String
+  post           FeedPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  organizationId String // the interested club
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  requestedById  String
+  note           String?
+  status         CollabStatus @default(PENDING_OSE)
+  decidedById    String?
+  decisionNote   String?
+  decidedAt      DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@unique([postId, organizationId]) // one request per club per post
+  @@index([status])
 }
 
 // In-app notification — RBAC-aware by construction (created per user)
