@@ -14,6 +14,7 @@ async function signIn(page: Page, userName: string) {
 
 // A far-future evening so seeded/e2e data can't collide with it
 const day = new Date(Date.now() + 45 * 864e5).toISOString().slice(0, 10)
+const dayNum = String(parseInt(day.slice(8, 10), 10))
 const stamp = Date.now()
 const firstTitle = `E2E Mixer ${stamp}`
 const clashTitle = `E2E Clash ${stamp}`
@@ -72,8 +73,9 @@ test.describe("calendar + conflicts + publishing", () => {
     await page.getByRole("button", { name: "Approve", exact: true }).click()
     await expect(page.getByText("Approved", { exact: true })).toBeVisible()
 
-    // The event is now visible on the month grid for its month
+    // The event is on the month grid — open its day in the inspector panel
     await page.goto(`/calendar?m=${day.slice(0, 7)}`)
+    await page.getByRole("button", { name: new RegExp(`^Day ${dayNum},`) }).click()
     await expect(page.getByRole("link", { name: new RegExp(firstTitle) })).toBeVisible()
   })
 
@@ -85,14 +87,16 @@ test.describe("calendar + conflicts + publishing", () => {
     await page.getByRole("button", { name: "Reject", exact: true }).click()
     await expect(page.getByText("Rejected", { exact: true })).toBeVisible()
 
-    // Cancelled events drop off the shared calendar
+    // Cancelled events drop off the shared calendar (day panel too)
     await page.goto(`/calendar?m=${day.slice(0, 7)}`)
+    await page.getByRole("button", { name: new RegExp(`^Day ${dayNum},`) }).click()
     await expect(page.getByRole("link", { name: new RegExp(clashTitle) })).not.toBeVisible()
   })
 
   test("published events appear for regular members too", async ({ page }) => {
     await signIn(page, "Maya Johnson")
     await page.goto(`/calendar?m=${day.slice(0, 7)}`)
+    await page.getByRole("button", { name: new RegExp(`^Day ${dayNum},`) }).click()
     await expect(page.getByRole("link", { name: new RegExp(firstTitle) })).toBeVisible()
   })
 
