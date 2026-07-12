@@ -23,14 +23,14 @@
     --primary-light: #e4f1e9;
     --primary-text: #ffffff;
 
-    /* Surfaces — warm paper + pure white cards */
-    --bg-base: #fbf9f5;
+    /* Surfaces — offwhite base + pure white cards */
+    --bg-base: #faf9fc;
     --bg-surface: #ffffff;
     --bg-overlay: rgba(12, 30, 51, 0.45);
 
-    /* Borders — warm lines */
-    --border: #e7e0d4;
-    --border-strong: #cfc5b2;
+    /* Borders */
+    --border: #e6e4ee;
+    --border-strong: #c9c5d8;
     --border-focus: #1c8c5a;
 
     /* Text — ink scale */
@@ -96,28 +96,28 @@
      Applied via html.dark (explicit) — the pre-hydration script in the root
      layout resolves "system" against prefers-color-scheme. */
   html.dark {
-    /* Ink-navy world from the landing's dark sections */
-    --shell-bg: #081525;
-    --shell-border: #21384f;
+    /* OLED black */
+    --shell-bg: #000000;
+    --shell-border: #1e1e24;
 
     --primary: #25a96d;
     --primary-hover: #2fbf7d;
     --primary-press: #1c8c5a;
     --primary-light: rgba(37, 169, 109, 0.16);
 
-    --bg-base: #0c1e33;
-    --bg-surface: #122a44;
-    --bg-overlay: rgba(0, 0, 0, 0.6);
+    --bg-base: #000000;
+    --bg-surface: #0c0c10;
+    --bg-overlay: rgba(0, 0, 0, 0.7);
 
-    --border: #21384f;
-    --border-strong: #33506d;
+    --border: #24242c;
+    --border-strong: #3c3c48;
     --border-focus: #25a96d;
 
-    --text-1: #eef2f6;
-    --text-2: #a9b8c6;
-    --text-3: #7c8ea0;
-    --text-disabled: #4d6076;
-    --text-inverse: #0c1e33;
+    --text-1: #f2f2f6;
+    --text-2: #b4b4c0;
+    --text-3: #83838f;
+    --text-disabled: #4c4c58;
+    --text-inverse: #000000;
     --text-link: #2fbf7d;
 
     --success: #25a96d;
@@ -165,5 +165,43 @@
   [data-focus-visible] {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
+  }
+
+  /* ─── Accessibility ──────────────────────────────────────────────────────
+     Higher-contrast palette for users who request it, and no motion for
+     users who prefer reduced motion. */
+  @media (prefers-contrast: more) {
+    :root {
+      --text-1: #000000;
+      --text-2: #1f2937;
+      --text-3: #374151;
+      --border: #6b7280;
+      --border-strong: #374151;
+      --primary: #0f6b42;
+      --text-link: #0f5132;
+    }
+    html.dark {
+      --text-1: #ffffff;
+      --text-2: #e5e7eb;
+      --text-3: #d1d5db;
+      --border: #9ca3af;
+      --border-strong: #d1d5db;
+      --primary: #34d399;
+      --text-link: #6ee7b7;
+    }
+    * {
+      outline-width: 3px !important;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

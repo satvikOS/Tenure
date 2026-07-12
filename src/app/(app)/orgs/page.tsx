@@ -59,7 +59,7 @@ export default async function OrgsPage() {
   }
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-screen-2xl">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-text-1">
           {isOseViewer ? "All Clubs" : "My Clubs"}
@@ -129,7 +129,7 @@ export default async function OrgsPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-text-3 mb-2">
                 {CATEGORY_LABELS[cat]} ({byCategory.get(cat)!.length})
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                 {byCategory.get(cat)!.map((org) => {
                   const president = org.roles
                     .find((r) => r.scope === "PRESIDENT")

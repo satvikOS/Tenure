@@ -90,7 +90,7 @@ export default async function CalendarPage({
   const canCreate = ctx.orgRoles.some((r) => r.status === "ACTIVE")
 
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-screen-2xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-text-1">Calendar</h1>

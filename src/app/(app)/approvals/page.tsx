@@ -55,7 +55,7 @@ export default async function ApprovalsPage() {
   const canCreate = ctx.orgRoles.some((r) => r.status === "ACTIVE")
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-screen-2xl">
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-text-1">Approvals</h1>

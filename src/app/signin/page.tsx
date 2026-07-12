@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation"
 import { auth, signIn } from "@/lib/auth"
+import { TenureLogo, TenureWordmark } from "@/components/brand/TenureLogo"
 
 const DEMO_USERS = [
   { email: "director@tenure.demo", name: "Dana Whitfield", role: "OSE Director" },
@@ -26,9 +27,15 @@ export default async function SignInPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-shell">
+    <main
+      className="min-h-screen flex flex-col items-center justify-center px-4"
+      style={{ background: "var(--shell-bg)" }}
+    >
       <div className="w-full max-w-md rounded-lg bg-white shadow-lg p-8">
-        <h1 className="text-2xl font-bold text-gray-900">Tenure</h1>
+        <div className="flex items-center gap-2.5">
+          <TenureLogo size={26} color="#1c8c5a" />
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Tenure</h1>
+        </div>
         <p className="mt-1 text-sm text-gray-500">
           Institutional knowledge that survives every leadership transition.
         </p>
@@ -60,6 +67,12 @@ export default async function SignInPage() {
             Sign in with your university account via your institution&apos;s SSO portal.
           </p>
         )}
+      </div>
+      <div className="mt-8 flex flex-col items-center gap-1.5">
+        <TenureWordmark size={14} textClassName="text-white/80" />
+        <p className="text-xs text-white/50">
+          © {new Date().getFullYear()} Tenure. All rights reserved.
+        </p>
       </div>
     </main>
   )

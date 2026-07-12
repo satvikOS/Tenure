@@ -105,6 +105,7 @@ model User {
   roleAssignments       RoleAssignment[]
   messagesSent          Message[]
   participants          Participant[]
+  notifications         Notification[]
   notificationPrefs     NotificationPreference[]
 }
 
@@ -547,6 +548,21 @@ enum NotificationChannel {
   IN_APP
   EMAIL
   EMAIL_DIGEST
+}
+
+// In-app notification — RBAC-aware by construction (created per user)
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String?
+  href      String? // in-app destination
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
 }
 
 model NotificationPreference {

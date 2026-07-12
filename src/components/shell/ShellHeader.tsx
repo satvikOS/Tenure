@@ -8,20 +8,14 @@ import {
   MenuTrigger,
   Popover,
 } from "react-aria-components"
-import {
-  Bell,
-  Search,
-  ChevronDown,
-  GraduationCap,
-  LogOut,
-  Sparkles,
-  UserRound,
-} from "lucide-react"
+import { Bell, Search, ChevronDown, LogOut, UserRound } from "lucide-react"
+import { TenureAIMark, TenureLogo } from "@/components/brand/TenureLogo"
 
 interface ShellHeaderProps {
   userName?: string
   userEmail?: string
   orgName?: string
+  unreadNotifications?: number
   onSignOut?: () => Promise<void>
 }
 
@@ -29,6 +23,7 @@ export function ShellHeader({
   userName = "User",
   userEmail,
   orgName,
+  unreadNotifications = 0,
   onSignOut,
 }: ShellHeaderProps) {
   return (
@@ -36,17 +31,12 @@ export function ShellHeader({
       className="fixed top-0 left-0 right-0 z-50 h-shell flex items-center px-4 gap-4"
       style={{ background: "var(--shell-bg)", borderBottom: "1px solid var(--shell-border)" }}
     >
-      {/* Brand */}
+      {/* Brand — rosette + wordmark from tenure-landing */}
       <Link
         href="/dashboard"
-        className="flex items-center gap-2.5 shrink-0 text-white no-underline"
+        className="flex items-center gap-2 shrink-0 text-white no-underline"
       >
-        <div
-          className="w-7 h-7 rounded flex items-center justify-center"
-          style={{ background: "var(--primary)" }}
-        >
-          <GraduationCap size={15} strokeWidth={2.5} />
-        </div>
+        <TenureLogo size={20} color="#25a96d" />
         <span className="text-sm font-semibold tracking-tight">Tenure</span>
       </Link>
 
@@ -56,7 +46,6 @@ export function ShellHeader({
         style={{ background: "var(--shell-border)" }}
       />
 
-      {/* Context label (current org) */}
       {orgName && (
         <span
           className="text-xs truncate max-w-[180px]"
@@ -79,32 +68,47 @@ export function ShellHeader({
           <Search size={13} className="shrink-0" />
           <input
             name="q"
-            placeholder="Ask Tenure AI — search memory, docs, approvals…"
+            placeholder="Search memory, docs, approvals…"
             aria-label="Search Tenure"
             className="flex-1 bg-transparent outline-none text-xs text-white placeholder:text-[--shell-text-secondary]"
           />
-          {/* Tenure AI mark — answers are synthesized with citations */}
-          <Sparkles size={13} className="shrink-0" style={{ color: "var(--primary)" }} aria-hidden />
         </div>
       </form>
+
+      {/* Tenure AI — its own entry point beside search */}
+      <Link
+        href="/search"
+        className="hidden sm:inline-flex items-center gap-1.5 h-8 px-3 rounded text-xs font-medium no-underline transition-colors shrink-0"
+        style={{
+          color: "#ffffff",
+          background: "rgba(37, 169, 109, 0.18)",
+          border: "1px solid rgba(37, 169, 109, 0.45)",
+        }}
+        aria-label="Ask Tenure AI"
+      >
+        <TenureAIMark size={15} color="#2fbf7d" />
+        Tenure AI
+      </Link>
 
       {/* Right actions */}
       <div className="flex items-center gap-1 ml-auto">
         {/* Notifications */}
-        <button
-          className="relative w-8 h-8 flex items-center justify-center rounded transition-colors"
+        <Link
+          href="/notifications"
+          className="relative w-8 h-8 flex items-center justify-center rounded transition-colors no-underline hover:bg-[--shell-item-hover]"
           style={{ color: "var(--shell-text-secondary)" }}
-          aria-label="Notifications"
-          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--shell-item-hover)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          aria-label={`Notifications${unreadNotifications ? ` (${unreadNotifications} unread)` : ""}`}
         >
           <Bell size={16} />
-          {/* Unread indicator */}
-          <span
-            className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full"
-            style={{ background: "var(--warning)" }}
-          />
-        </button>
+          {unreadNotifications > 0 && (
+            <span
+              className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-0.5 rounded-full text-[10px] font-bold flex items-center justify-center text-white"
+              style={{ background: "var(--error)" }}
+            >
+              {unreadNotifications > 9 ? "9+" : unreadNotifications}
+            </span>
+          )}
+        </Link>
 
         {/* User menu */}
         <MenuTrigger>

@@ -70,7 +70,7 @@ export default async function MemoryPage({
   const createWithSlug = createMemoryCard.bind(null, slug)
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-screen-2xl">
       <div className="mb-4">
         <h1 className="text-xl font-bold text-text-1">{org.name}</h1>
         <p className="text-sm text-text-2 mt-1">
@@ -149,7 +149,7 @@ export default async function MemoryPage({
             </p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {cards.map((card) => {
               const meta = TYPE_META[card.type]
               const body = (card.content as { body?: string }).body ?? ""

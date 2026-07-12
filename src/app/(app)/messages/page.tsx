@@ -61,7 +61,7 @@ export default async function MessagesPage() {
   const canBroadcast = oseInstitutionIds.length > 0
 
   return (
-    <div className="max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div className="max-w-screen-2xl grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>

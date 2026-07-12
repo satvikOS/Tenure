@@ -95,7 +95,7 @@ export default async function ReportsPage() {
   }
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-screen-2xl">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-text-1">Reports</h1>
         <p className="text-sm text-text-2 mt-1">

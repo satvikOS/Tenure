@@ -143,7 +143,7 @@ export default async function SearchPage({
   const answer = query ? await synthesizeAnswer(query, results.slice(0, 6)) : null
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-4xl">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-text-1">Search</h1>
         <p className="text-sm text-text-2 mt-1">

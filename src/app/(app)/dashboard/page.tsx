@@ -142,7 +142,7 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-screen-2xl">
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-text-1">
           {isOse ? "OSE Dashboard" : "Dashboard"}
