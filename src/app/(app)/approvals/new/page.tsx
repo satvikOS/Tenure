@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { Card, CardHeader } from "@/components/ui/Card"
+import { BackButton } from "@/components/BackButton"
 import { createApproval } from "../actions"
 
 export const dynamic = "force-dynamic"
@@ -41,6 +42,7 @@ export default async function NewApprovalPage() {
 
   return (
     <div className="max-w-2xl">
+      <BackButton />
       <div className="mb-6">
         <h1 className="text-xl font-bold text-text-1">New approval request</h1>
         <p className="text-sm text-text-2 mt-1">

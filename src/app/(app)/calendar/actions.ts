@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { detectConflicts } from "@/lib/calendar"
 import { nextStatus } from "@/lib/approvals"
+import { notifyUsers, orgPresidentIds, oseMemberIds } from "@/lib/notify"
 
 /**
  * Create an event proposal: the Event goes in as PENDING_APPROVAL with a
@@ -135,6 +136,21 @@ export async function createEvent(formData: FormData) {
       },
     })
     return e
+  })
+
+  // Alert the gate that owns this event proposal
+  const gateUsers =
+    submitTarget === "PENDING_PRESIDENT"
+      ? await orgPresidentIds(organizationId)
+      : await oseMemberIds(org.institutionId)
+  await notifyUsers(gateUsers, {
+    title: `Event proposal: ${title}`,
+    body:
+      conflicts.length > 0
+        ? `${conflicts.length} schedule conflict${conflicts.length === 1 ? "" : "s"} detected — review before deciding.`
+        : "No schedule conflicts detected.",
+    href: `/calendar/${event.id}`,
+    excludeUserId: userId,
   })
 
   revalidatePath("/calendar")

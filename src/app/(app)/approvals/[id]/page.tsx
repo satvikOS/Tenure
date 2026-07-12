@@ -5,6 +5,7 @@ import { canViewOrg, getUserContext } from "@/lib/rbac"
 import { availableActions, ACTION_LABELS } from "@/lib/approvals"
 import Link from "next/link"
 import { Card, CardHeader, Attribute } from "@/components/ui/Card"
+import { BackButton } from "@/components/BackButton"
 import { ApprovalBadge, SeverityBadge } from "@/components/ui/Badge"
 import { actOnApproval } from "../actions"
 import { openApprovalThread } from "../../messages/actions"
@@ -55,6 +56,7 @@ export default async function ApprovalDetailPage({
 
   return (
     <div className="max-w-3xl">
+      <BackButton />
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-text-1">{approval.title}</h1>

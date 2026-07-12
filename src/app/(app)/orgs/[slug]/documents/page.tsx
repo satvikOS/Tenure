@@ -1,17 +1,17 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
-import { FileText, Download, Eye, Sparkles } from "lucide-react"
+import { FileText, Download, Eye, Sparkles, Trash2 } from "lucide-react"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { canContribute, canViewOrg, getUserContext } from "@/lib/rbac"
+import { canContribute, canManageRoster, canViewOrg, getUserContext } from "@/lib/rbac"
 import { storageConfigured } from "@/lib/s3"
 import { aiConfigured } from "@/lib/ai"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { OrgTabs } from "@/components/OrgTabs"
 import {
+  deleteDocumentAction,
   downloadDocumentAction,
   uploadDocumentAction,
-  viewDocumentAction,
 } from "./actions"
 
 export const dynamic = "force-dynamic"
@@ -53,7 +53,9 @@ export default async function DocumentsPage({
 
   const uploadWithSlug = uploadDocumentAction.bind(null, slug)
   const downloadWithSlug = downloadDocumentAction.bind(null, slug)
-  const viewWithSlug = viewDocumentAction.bind(null, slug)
+  const deleteWithSlug = deleteDocumentAction.bind(null, slug)
+  const canManage = canManageRoster(ctx, org)
+  const userId = session.user.id
 
   return (
     <div className="max-w-screen-2xl">
@@ -129,15 +131,13 @@ export default async function DocumentsPage({
                         <Sparkles size={13} /> Summarize
                       </Link>
                     )}
-                    <form action={viewWithSlug} target="_blank">
-                      <input type="hidden" name="documentId" value={d.id} />
-                      <button
-                        className="inline-flex items-center gap-1.5 h-8 rounded border border-border px-3 text-xs font-medium text-text-2 hover:bg-base"
-                        aria-label={`View ${d.title}`}
-                      >
-                        <Eye size={13} /> View
-                      </button>
-                    </form>
+                    <Link
+                      href={`/orgs/${slug}/documents/${d.id}/view`}
+                      className="inline-flex items-center gap-1.5 h-8 rounded border border-border px-3 text-xs font-medium text-text-2 hover:bg-base no-underline"
+                      aria-label={`View ${d.title}`}
+                    >
+                      <Eye size={13} /> View
+                    </Link>
                     <form action={downloadWithSlug}>
                       <input type="hidden" name="documentId" value={d.id} />
                       <button
@@ -147,6 +147,18 @@ export default async function DocumentsPage({
                         <Download size={13} /> Download
                       </button>
                     </form>
+                    {(canManage || d.createdById === userId) && (
+                      <form action={deleteWithSlug}>
+                        <input type="hidden" name="documentId" value={d.id} />
+                        <button
+                          className="inline-flex items-center gap-1.5 h-8 rounded border border-border px-3 text-xs font-medium hover:bg-base"
+                          style={{ color: "var(--error)" }}
+                          aria-label={`Delete ${d.title}`}
+                        >
+                          <Trash2 size={13} /> Delete
+                        </button>
+                      </form>
+                    )}
                   </div>
                 </li>
               ))}

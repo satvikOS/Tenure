@@ -1,14 +1,12 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Plus, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react"
+import { Plus, ChevronLeft, ChevronRight } from "lucide-react"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
-import { Card } from "@/components/ui/Card"
+import { CalendarGrid, type GridEvent } from "@/components/CalendarGrid"
 
 export const dynamic = "force-dynamic"
-
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 function monthParam(d: Date) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`
@@ -68,24 +66,27 @@ export default async function CalendarPage({
     },
   })
 
-  // Bucket events by day-of-month
-  const byDay = new Map<number, typeof events>()
-  for (const e of events) {
-    const day = e.startAt.getUTCDate()
-    byDay.set(day, [...(byDay.get(day) ?? []), e])
-  }
+  const gridEvents: GridEvent[] = events.map((e) => ({
+    id: e.id,
+    title: e.title,
+    day: e.startAt.getUTCDate(),
+    time: e.startAt
+      .toLocaleTimeString("en-US", { hour: "numeric", timeZone: "UTC" })
+      .replace(" ", "")
+      .toLowerCase(),
+    org: e.organization.name,
+    venue: e.venue,
+    status: e.status,
+    hardConflicts: e.conflicts.length,
+  }))
 
   const firstWeekday = monthStart.getUTCDay()
   const daysInMonth = new Date(Date.UTC(y, mo, 0)).getUTCDate()
-  const cells: (number | null)[] = [
-    ...Array(firstWeekday).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ]
-  while (cells.length % 7 !== 0) cells.push(null)
-
   const today = new Date()
-  const isToday = (d: number) =>
-    today.getUTCFullYear() === y && today.getUTCMonth() + 1 === mo && today.getUTCDate() === d
+  const todayDay =
+    today.getUTCFullYear() === y && today.getUTCMonth() + 1 === mo
+      ? today.getUTCDate()
+      : null
 
   const canCreate = ctx.orgRoles.some((r) => r.status === "ACTIVE")
 
@@ -95,7 +96,7 @@ export default async function CalendarPage({
         <div>
           <h1 className="text-xl font-bold text-text-1">Calendar</h1>
           <p className="text-sm text-text-2 mt-1">
-            Shared schedule across clubs — proposals are conflict-checked.
+            Shared schedule across clubs — click any day to inspect it.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -133,70 +134,13 @@ export default async function CalendarPage({
         </div>
       </div>
 
-      <Card padding="none">
-        <div className="grid grid-cols-7 border-b border-border">
-          {WEEKDAYS.map((d) => (
-            <div
-              key={d}
-              className="px-2 py-2 text-xs font-semibold uppercase tracking-wide text-text-3 text-center"
-            >
-              {d}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7">
-          {cells.map((day, i) => (
-            <div
-              key={i}
-              className={`min-h-24 border-b border-r border-border p-1.5 ${
-                (i + 1) % 7 === 0 ? "border-r-0" : ""
-              } ${i >= cells.length - 7 ? "border-b-0" : ""} ${day === null ? "bg-base/50" : ""}`}
-            >
-              {day !== null && (
-                <>
-                  <span
-                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs ${
-                      isToday(day)
-                        ? "bg-[--primary] text-white font-semibold"
-                        : "text-text-2"
-                    }`}
-                  >
-                    {day}
-                  </span>
-                  <div className="mt-1 space-y-1">
-                    {(byDay.get(day) ?? []).slice(0, 3).map((e) => (
-                      <Link
-                        key={e.id}
-                        href={`/calendar/${e.id}`}
-                        title={`${e.title} — ${e.organization.name}`}
-                        className={`block truncate rounded px-1.5 py-0.5 text-xs no-underline ${
-                          e.status === "PUBLISHED"
-                            ? "bg-[--primary-light] text-[--primary]"
-                            : "bg-[--warning-light] text-[--warning]"
-                        }`}
-                      >
-                        {e.conflicts.length > 0 && (
-                          <AlertTriangle size={10} className="inline mr-0.5 -mt-0.5" />
-                        )}
-                        {e.startAt.toLocaleTimeString("en-US", {
-                          hour: "numeric",
-                          timeZone: "UTC",
-                        }).replace(" ", "").toLowerCase()}{" "}
-                        {e.title}
-                      </Link>
-                    ))}
-                    {(byDay.get(day)?.length ?? 0) > 3 && (
-                      <p className="px-1.5 text-xs text-text-3">
-                        +{byDay.get(day)!.length - 3} more
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      </Card>
+      <CalendarGrid
+        events={gridEvents}
+        firstWeekday={firstWeekday}
+        daysInMonth={daysInMonth}
+        todayDay={todayDay}
+        monthLabel={monthLabel}
+      />
 
       <p className="mt-3 text-xs text-text-3">
         <span className="inline-block h-2.5 w-2.5 rounded-sm bg-[--primary-light] align-middle mr-1" />

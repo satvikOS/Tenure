@@ -5,6 +5,7 @@ import type { AssignmentStatus } from "@prisma/client"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canManageRoster, getUserContext } from "@/lib/rbac"
+import { notifyUsers } from "@/lib/notify"
 
 async function requireRosterManager(slug: string) {
   const session = await auth()
@@ -59,6 +60,17 @@ export async function assignMember(slug: string, formData: FormData) {
   if (existing) throw new Error("This person already holds that role")
 
   await db.roleAssignment.create({ data: { userId: user.id, roleId, status } })
+  await notifyUsers([user.id], {
+    title:
+      status === "SHADOW"
+        ? `You're the incoming ${role.name} of ${org.name}`
+        : `You've been added to ${org.name} as ${role.name}`,
+    body:
+      status === "SHADOW"
+        ? "Shadow access is read-only until your term begins — your seat's memory is already available."
+        : undefined,
+    href: `/orgs/${slug}/members`,
+  })
   revalidatePath(`/orgs/${slug}/members`)
 }
 
@@ -85,6 +97,17 @@ export async function transitionAssignment(slug: string, formData: FormData) {
   await db.roleAssignment.update({
     where: { id: assignment.id },
     data: { status: to, ...(to === "ALUMNI" ? { endDate: new Date() } : {}) },
+  })
+  await notifyUsers([assignment.userId], {
+    title:
+      to === "ACTIVE"
+        ? `Your term at ${org.name} has begun`
+        : `Your term at ${org.name} has ended`,
+    body:
+      to === "ACTIVE"
+        ? "You now have full access to your seat."
+        : "Thank you for your service — your seat's knowledge stays for your successor.",
+    href: to === "ACTIVE" ? `/orgs/${slug}/members` : undefined,
   })
   revalidatePath(`/orgs/${slug}/members`)
 }

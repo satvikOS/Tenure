@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { canContribute, canViewOrg, getUserContext } from "@/lib/rbac"
+import { canContribute, canManageRoster, canViewOrg, getUserContext } from "@/lib/rbac"
 import {
   documentDownloadUrl,
   documentViewUrl,
@@ -97,6 +97,43 @@ export async function downloadDocumentAction(slug: string, formData: FormData) {
 
   const url = await documentDownloadUrl(doc.objectKey, doc.title)
   redirect(url)
+}
+
+/**
+ * Delete (archive) a document: the uploader, the club's roster managers
+ * (president / OSE Director), may remove it. Soft delete — the record and
+ * object survive for audit; the file disappears from the club.
+ */
+export async function deleteDocumentAction(slug: string, formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Not signed in")
+
+  const documentId = String(formData.get("documentId") ?? "")
+  const doc = await db.document.findUnique({
+    where: { id: documentId },
+    include: { organization: true },
+  })
+  if (!doc || doc.organization.slug !== slug) throw new Error("Document not found")
+
+  const ctx = await getUserContext(session.user.id)
+  const allowed =
+    doc.createdById === session.user.id || canManageRoster(ctx, doc.organization)
+
+  await db.auditEvent.create({
+    data: {
+      institutionId: doc.institutionId,
+      organizationId: doc.organizationId,
+      actorId: session.user.id,
+      action: "Document.Deleted",
+      resourceType: "Document",
+      resourceId: doc.id,
+      outcome: allowed ? "ALLOW" : "DENY",
+    },
+  })
+  if (!allowed) throw new Error("Only the uploader or club leadership can delete this")
+
+  await db.document.update({ where: { id: doc.id }, data: { isArchived: true } })
+  revalidatePath(`/orgs/${slug}/documents`)
 }
 
 /** Permission-checked inline view (opens in the browser tab). */

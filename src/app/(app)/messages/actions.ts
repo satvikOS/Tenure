@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext, isOse } from "@/lib/rbac"
 import { canPostToConversation, messagingTier } from "@/lib/messaging"
+import { notifyUsers } from "@/lib/notify"
 
 async function requireUserId() {
   const session = await auth()
@@ -161,6 +162,13 @@ export async function composeMessage(formData: FormData) {
         .map((p) => ({ messageId: m.id, participantId: p.id, channel: "in_app" })),
     })
     return c
+  })
+
+  const sender = await db.user.findUnique({ where: { id: userId }, select: { name: true } })
+  await notifyUsers(all, {
+    title: `New message from ${sender?.name ?? "a teammate"}: ${subject}`,
+    href: `/messages/${convo.id}`,
+    excludeUserId: userId,
   })
 
   redirect(`/messages/${convo.id}`)

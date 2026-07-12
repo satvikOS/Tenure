@@ -11,6 +11,30 @@ import {
   nextStatus,
   type ApprovalActionName,
 } from "@/lib/approvals"
+import {
+  notifyUsers,
+  orgCurrentMemberIds,
+  orgPresidentIds,
+  oseMemberIds,
+} from "@/lib/notify"
+
+/** Alert whoever owns the next gate of this request. */
+async function notifyGate(
+  approval: { id: string; title: string; organizationId: string; institutionId: string },
+  target: "PENDING_PRESIDENT" | "PENDING_OSE",
+  actorId: string
+) {
+  const gateUsers =
+    target === "PENDING_PRESIDENT"
+      ? await orgPresidentIds(approval.organizationId)
+      : await oseMemberIds(approval.institutionId)
+  await notifyUsers(gateUsers, {
+    title: `Approval needed: ${approval.title}`,
+    body: target === "PENDING_PRESIDENT" ? "Awaiting your club-level decision." : "Awaiting an OSE decision.",
+    href: `/approvals/${approval.id}`,
+    excludeUserId: actorId,
+  })
+}
 
 const APPROVAL_TYPES: ApprovalType[] = [
   "EVENT",
@@ -109,6 +133,10 @@ export async function createApproval(formData: FormData) {
     return a
   })
 
+  if (target === "PENDING_PRESIDENT" || target === "PENDING_OSE") {
+    await notifyGate(approval, target, userId)
+  }
+
   revalidatePath("/approvals")
   redirect(`/approvals/${approval.id}`)
 }
@@ -202,6 +230,36 @@ export async function actOnApproval(approvalId: string, formData: FormData) {
       },
     }),
   ])
+
+  // ── Notifications (BP: notification system across all RBAC flows) ────────
+  const label =
+    action === "approve" && target === "APPROVED"
+      ? "was approved"
+      : action === "approve"
+        ? "cleared the president gate"
+        : action === "reject"
+          ? "was rejected"
+          : action === "request_changes"
+            ? "needs changes"
+            : action === "cancel"
+              ? "was cancelled"
+              : "moved forward"
+  await notifyUsers([approval.submittedById], {
+    title: `“${approval.title}” ${label}`,
+    body: reason ?? undefined,
+    href: `/approvals/${approval.id}`,
+    excludeUserId: userId,
+  })
+  if (target === "PENDING_OSE" || target === "PENDING_PRESIDENT") {
+    await notifyGate(approval, target, userId)
+  }
+  if (linkedEvent && target === "APPROVED") {
+    await notifyUsers(await orgCurrentMemberIds(approval.organizationId), {
+      title: `Event published: ${linkedEvent.title}`,
+      href: `/calendar/${linkedEvent.id}`,
+      excludeUserId: userId,
+    })
+  }
 
   revalidatePath("/approvals")
   revalidatePath(`/approvals/${approval.id}`)

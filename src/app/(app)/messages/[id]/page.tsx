@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
 import { canPostToConversation, canReadConversation } from "@/lib/messaging"
 import { Card } from "@/components/ui/Card"
+import { BackButton } from "@/components/BackButton"
 import { sendMessage } from "../actions"
 
 export const dynamic = "force-dynamic"
@@ -84,6 +85,7 @@ export default async function ConversationPage({
 
   return (
     <div className="max-w-3xl">
+      <BackButton />
       <div className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-text-3">
           {TYPE_LABEL[convo.type]}

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { Card, CardHeader } from "@/components/ui/Card"
+import { BackButton } from "@/components/BackButton"
 import { DraftAssist } from "@/components/DraftAssist"
 import { aiConfigured } from "@/lib/ai"
 import { createEvent } from "../actions"
@@ -32,6 +33,7 @@ export default async function NewEventPage() {
 
   return (
     <div className="max-w-2xl">
+      <BackButton />
       <div className="mb-6">
         <h1 className="text-xl font-bold text-text-1">Propose an event</h1>
         <p className="text-sm text-text-2 mt-1">

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canViewOrg, getUserContext, isOse } from "@/lib/rbac"
 import { Card, CardHeader, Attribute } from "@/components/ui/Card"
+import { BackButton } from "@/components/BackButton"
 import { EventBadge, SeverityBadge } from "@/components/ui/Badge"
 
 export const dynamic = "force-dynamic"
@@ -49,6 +50,7 @@ export default async function EventDetailPage({
 
   return (
     <div className="max-w-3xl">
+      <BackButton />
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-text-1">{event.title}</h1>
