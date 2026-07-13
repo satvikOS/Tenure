@@ -64,6 +64,17 @@ resource "aws_iam_role_policy" "ecs_task_inline" {
     Version = "2012-10-17"
     Statement = [
       {
+        # ECS Exec (execute-command) channel
+        Effect = "Allow"
+        Action = [
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel",
+        ]
+        Resource = "*"
+      },
+      {
         Effect   = "Allow"
         Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:GetObjectAttributes"]
         Resource = [
@@ -184,15 +195,11 @@ resource "aws_ecs_task_definition" "app" {
         }
       }
 
-      healthCheck = {
-        # 127.0.0.1, not localhost: busybox wget resolves localhost to ::1
-        # but the server binds IPv4 only — this check failed on every task
-        command     = ["CMD-SHELL", "wget -qO- -T 8 http://127.0.0.1:3000/api/health || exit 1"]
-        interval    = 30
-        timeout     = 10 # probe spawns a process — give it room under load
-        retries     = 5
-        startPeriod = 120 # entrypoint runs prisma db push + seed before serving
-      }
+      # No container-level health probe: the ALB target-group check guards
+      # /api/health over the network (and demonstrably works), while the
+      # in-container wget probe failed persistently on Fargate despite the
+      # identical image passing it under plain Docker — it churned healthy
+      # tasks every ~7 minutes. One health authority: the load balancer.
     }
   ])
 
@@ -221,6 +228,9 @@ resource "aws_ecs_service" "app" {
   # without this grace period the ALB marks new tasks unhealthy during
   # bootstrap and ECS kills them before they ever serve.
   health_check_grace_period_seconds = 300
+
+  # Shell access into live containers (aws ecs execute-command) for forensics
+  enable_execute_command = true
 
   network_configuration {
     subnets          = aws_subnet.public[*].id
