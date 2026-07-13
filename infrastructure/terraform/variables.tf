@@ -74,12 +74,12 @@ variable "redis_node_type" {
 # ── ECS ──────────────────────────────────────────────────────────────────────
 variable "ecs_cpu" {
   type    = number
-  default = 256
+  default = 512 # 0.5 vCPU — the app outgrew 256 (health probes starved)
 }
 
 variable "ecs_memory" {
   type    = number
-  default = 512
+  default = 1024
 }
 
 variable "ecs_desired_count" {

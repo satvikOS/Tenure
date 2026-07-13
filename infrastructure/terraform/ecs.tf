@@ -187,10 +187,10 @@ resource "aws_ecs_task_definition" "app" {
       healthCheck = {
         # 127.0.0.1, not localhost: busybox wget resolves localhost to ::1
         # but the server binds IPv4 only — this check failed on every task
-        command     = ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
+        command     = ["CMD-SHELL", "wget -qO- -T 8 http://127.0.0.1:3000/api/health || exit 1"]
         interval    = 30
-        timeout     = 5
-        retries     = 3
+        timeout     = 10 # probe spawns a process — give it room under load
+        retries     = 5
         startPeriod = 120 # entrypoint runs prisma db push + seed before serving
       }
     }
