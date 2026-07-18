@@ -71,8 +71,17 @@ resource "aws_cloudwatch_event_connection" "job" {
 }
 
 resource "aws_cloudwatch_event_api_destination" "reminders" {
-  name                             = "${local.name_prefix}-reminders"
-  invocation_endpoint              = "http://${aws_lb.main.dns_name}/api/jobs/reminders"
+  name = "${local.name_prefix}-reminders"
+
+  # Must be HTTPS: EventBridge rejects plain HTTP endpoints outright. The ALB
+  # only listens on :80 (TLS terminates at CloudFront) and no public ACM cert
+  # can be issued for an *.elb.amazonaws.com name, so the call goes through
+  # CloudFront. The default cache behavior already allows POST and forwards
+  # all headers, so the bearer token reaches the origin intact.
+  invocation_endpoint = "https://${
+    var.attach_custom_domain ? var.custom_domain : aws_cloudfront_distribution.main.domain_name
+  }/api/jobs/reminders"
+
   http_method                      = "POST"
   invocation_rate_limit_per_second = 1
   connection_arn                   = aws_cloudwatch_event_connection.job.arn
