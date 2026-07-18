@@ -32,25 +32,13 @@ resource "aws_iam_role" "scheduler" {
     Version = "2012-10-17"
     Statement = [{
       Effect    = "Allow"
-      Principal = { Service = "scheduler.amazonaws.com" }
+      Principal = { Service = "events.amazonaws.com" }
       Action    = "sts:AssumeRole"
       Condition = {
         StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id }
       }
     }]
   })
-}
-
-locals {
-  # EventBridge returns the API destination ARN with a trailing UUID
-  # (.../name/3dbc6b38-...), but Scheduler rejects that form outright:
-  # "Provided Arn is not in correct format". It wants the bare
-  # arn:aws:events:<region>:<account>:api-destination/<name>.
-  reminders_destination_arn = replace(
-    aws_cloudwatch_event_api_destination.reminders.arn,
-    "//[0-9a-f-]{36}$/",
-    ""
-  )
 }
 
 resource "aws_iam_role_policy" "scheduler_invoke" {
@@ -61,15 +49,9 @@ resource "aws_iam_role_policy" "scheduler_invoke" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = ["events:InvokeApiDestination"]
-        # Both forms, since the destination is addressed with and without
-        # its UUID depending on which service is doing the addressing.
-        Resource = [
-          aws_cloudwatch_event_api_destination.reminders.arn,
-          local.reminders_destination_arn,
-          "${local.reminders_destination_arn}/*",
-        ]
+        Effect   = "Allow"
+        Action   = ["events:InvokeApiDestination"]
+        Resource = [aws_cloudwatch_event_api_destination.reminders.arn]
       },
     ]
   })
@@ -107,27 +89,32 @@ resource "aws_cloudwatch_event_api_destination" "reminders" {
 
 # ── Schedule ─────────────────────────────────────────────────────────────────
 #
+# An EventBridge *Rule*, not EventBridge Scheduler. Scheduler rejects an API
+# destination target outright — it returns "Provided Arn is not in correct
+# format" for the ARN both with and without its trailing UUID, so the format
+# is not the issue: it does not accept this target type. API destinations were
+# introduced as Rule targets, which is the supported pairing.
+#
 # 13:00 UTC ≈ 8–9am Eastern. Deliverables are stored at noon UTC on their due
 # date, so a run at 13:00 the day before sits inside the endpoint's 24-hour
 # look-ahead window and gives boards a full working day of notice.
-resource "aws_scheduler_schedule" "deliverable_reminders" {
-  name       = "${local.name_prefix}-deliverable-reminders"
-  group_name = "default"
+resource "aws_cloudwatch_event_rule" "deliverable_reminders" {
+  name                = "${local.name_prefix}-deliverable-reminders"
+  description         = "Daily 24-hour warning for club deliverables"
+  schedule_expression = "cron(0 13 * * ? *)"
+}
 
-  flexible_time_window {
-    mode = "OFF"
-  }
+resource "aws_cloudwatch_event_target" "deliverable_reminders" {
+  rule     = aws_cloudwatch_event_rule.deliverable_reminders.name
+  arn      = aws_cloudwatch_event_api_destination.reminders.arn
+  role_arn = aws_iam_role.scheduler.arn
 
-  schedule_expression          = "cron(0 13 * * ? *)"
-  schedule_expression_timezone = "UTC"
+  # The endpoint takes no input; an empty object keeps EventBridge from
+  # forwarding its own event envelope as the request body.
+  input = jsonencode({})
 
-  target {
-    arn      = local.reminders_destination_arn
-    role_arn = aws_iam_role.scheduler.arn
-
-    retry_policy {
-      maximum_retry_attempts       = 3
-      maximum_event_age_in_seconds = 3600
-    }
+  retry_policy {
+    maximum_retry_attempts       = 3
+    maximum_event_age_in_seconds = 3600
   }
 }
