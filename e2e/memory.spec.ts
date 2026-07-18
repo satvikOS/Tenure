@@ -20,7 +20,7 @@ const seatCardTitle = `President transition notes ${stamp}`
 test.describe("institutional memory", () => {
   test("an active member writes an org-wide card everyone in the club sees", async ({ page }) => {
     await signIn(page, "Victor Chen")
-    await page.goto("/orgs/consulting-club/memory")
+    await page.goto("/orgs/simon-consulting-club/memory")
     await page.getByLabel("Type").selectOption("CONTACT")
     await page.getByLabel("Title").fill(orgCardTitle)
     await page
@@ -31,13 +31,13 @@ test.describe("institutional memory", () => {
 
     // Another member sees it too
     await signIn(page, "Maya Johnson")
-    await page.goto("/orgs/consulting-club/memory")
+    await page.goto("/orgs/simon-consulting-club/memory")
     await expect(page.getByText(orgCardTitle)).toBeVisible()
   })
 
   test("a President-seat card reaches the incoming shadow president (the handoff)", async ({ page }) => {
     await signIn(page, "Priya Raman")
-    await page.goto("/orgs/consulting-club/memory")
+    await page.goto("/orgs/simon-consulting-club/memory")
     await page.getByLabel("Type").selectOption("LESSON")
     await page.getByLabel("Title").fill(seatCardTitle)
     await page.getByLabel("Visible to").selectOption({ label: "President seat only" })
@@ -49,25 +49,25 @@ test.describe("institutional memory", () => {
 
     // Isaiah holds the President seat as SHADOW — he inherits the memory
     await signIn(page, "Isaiah Brooks")
-    await page.goto("/orgs/consulting-club/memory")
+    await page.goto("/orgs/simon-consulting-club/memory")
     await expect(page.getByText(seatCardTitle)).toBeVisible()
 
     // Maya doesn't hold the seat — the card is hidden from her
     await signIn(page, "Maya Johnson")
-    await page.goto("/orgs/consulting-club/memory")
+    await page.goto("/orgs/simon-consulting-club/memory")
     await expect(page.getByText(orgCardTitle)).toBeVisible()
     await expect(page.getByText(seatCardTitle)).not.toBeVisible()
   })
 
   test("shadow members read memory but cannot add to it", async ({ page }) => {
     await signIn(page, "Isaiah Brooks")
-    await page.goto("/orgs/consulting-club/memory")
+    await page.goto("/orgs/simon-consulting-club/memory")
     await expect(page.getByText("Add to memory")).not.toBeVisible()
   })
 
   test("documents tab renders with upload gated by storage config", async ({ page }) => {
     await signIn(page, "Priya Raman")
-    await page.goto("/orgs/consulting-club/documents")
+    await page.goto("/orgs/simon-consulting-club/documents")
     await expect(page.getByText("Club documents", { exact: false })).toBeVisible()
     // No S3 in CI — the upload form must be hidden, not broken
     await expect(page.getByText("No documents yet")).toBeVisible()
@@ -75,7 +75,7 @@ test.describe("institutional memory", () => {
 
   test("org tabs navigate between members, documents, and memory", async ({ page }) => {
     await signIn(page, "Priya Raman")
-    await page.goto("/orgs/consulting-club/members")
+    await page.goto("/orgs/simon-consulting-club/members")
     await page.getByRole("link", { name: "Memory", exact: true }).click()
     await expect(page).toHaveURL(/\/memory$/)
     await page.getByRole("link", { name: "Documents", exact: true }).click()

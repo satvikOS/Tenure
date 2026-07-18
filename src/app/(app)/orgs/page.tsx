@@ -18,7 +18,14 @@ const CATEGORY_LABELS = {
 } as const
 const CATEGORY_ORDER = ["ORGANIZATION", "PROFESSIONAL", "COMMUNITY", "SOCIAL"] as const
 
-export default async function OrgsPage() {
+export default async function OrgsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>
+}) {
+  const { category: categoryParam } = await searchParams
+  const activeCategory = CATEGORY_ORDER.find((c) => c === categoryParam) ?? null
+
   const session = await auth()
   if (!session?.user?.id) redirect("/signin")
 
@@ -43,6 +50,10 @@ export default async function OrgsPage() {
             where: { status: "ACTIVE" },
             include: { user: { select: { name: true } } },
           },
+          holdings: {
+            where: { isCurrent: true },
+            include: { person: { select: { name: true } } },
+          },
         },
       },
     },
@@ -52,9 +63,18 @@ export default async function OrgsPage() {
   const isDirector = orgs.some((o) => isOseDirector(ctx, o.institutionId)) ||
     ctx.institutionRoles.some((m) => m.role === "OSE_DIRECTOR")
 
+  const visible = orgs.filter((o) => o.status !== "ARCHIVED" || isOseViewer)
+
+  // Counts come from everything visible, so the chips keep their totals when
+  // one category is selected.
+  const countByCategory = new Map<string, number>()
+  for (const o of visible) {
+    countByCategory.set(o.category, (countByCategory.get(o.category) ?? 0) + 1)
+  }
+
   const byCategory = new Map<string, typeof orgs>()
-  for (const o of orgs) {
-    if (o.status === "ARCHIVED" && !isOseViewer) continue
+  for (const o of visible) {
+    if (activeCategory && o.category !== activeCategory) continue
     byCategory.set(o.category, [...(byCategory.get(o.category) ?? []), o])
   }
 
@@ -70,6 +90,37 @@ export default async function OrgsPage() {
             : "Organizations where you hold a current or incoming role."}
         </p>
       </div>
+
+      {/* Category filter — URL-driven so a filtered view is shareable */}
+      <nav aria-label="Filter clubs by category" className="mb-6 flex flex-wrap gap-2">
+        {[
+          { key: null, label: "All", count: visible.length },
+          ...CATEGORY_ORDER.map((c) => ({
+            key: c as string | null,
+            label: CATEGORY_LABELS[c],
+            count: countByCategory.get(c) ?? 0,
+          })),
+        ]
+          .filter((chip) => chip.key === null || chip.count > 0)
+          .map((chip) => {
+            const selected = activeCategory === chip.key
+            return (
+              <Link
+                key={chip.label}
+                href={chip.key ? `/orgs?category=${chip.key}` : "/orgs"}
+                aria-current={selected ? "page" : undefined}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium no-underline transition-colors ${
+                  selected
+                    ? "border-[--primary] bg-[--primary] text-white"
+                    : "border-border text-text-2 hover:border-[--border-strong] hover:text-text-1"
+                }`}
+              >
+                {chip.label}
+                <span className={selected ? "opacity-80" : "text-text-3"}>{chip.count}</span>
+              </Link>
+            )
+          })}
+      </nav>
 
       {isDirector && (
         <Card className="mb-6">
@@ -131,13 +182,16 @@ export default async function OrgsPage() {
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                 {byCategory.get(cat)!.map((org) => {
-                  const president = org.roles
-                    .find((r) => r.scope === "PRESIDENT")
-                    ?.assignments[0]?.user?.name
-                  const activeMembers = org.roles.reduce(
-                    (n, r) => n + r.assignments.length,
-                    0
-                  )
+                  const presidentSeat = org.roles.find((r) => r.scope === "PRESIDENT")
+                  // Prefer the published roster holder over a demo account
+                  const president =
+                    presidentSeat?.holdings[0]?.person.name ??
+                    presidentSeat?.assignments[0]?.user?.name
+                  const boardSeats = org.roles.filter((r) => r.name !== "Member")
+                  const filledSeats = boardSeats.filter(
+                    (r) => r.holdings.length > 0 || r.assignments.length > 0
+                  ).length
+                  const vacancies = boardSeats.length - filledSeats
                   return (
                     <div key={org.id} className="relative">
                       <Link href={`/orgs/${org.slug}/members`} className="no-underline">
@@ -155,10 +209,15 @@ export default async function OrgsPage() {
                               {org.status.toLowerCase()}
                             </Badge>
                           </div>
-                          <div className="flex items-center gap-4 mt-4 text-xs text-text-3">
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-4 text-xs text-text-3">
                             <span className="inline-flex items-center gap-1">
-                              <Users size={13} /> {activeMembers} active
+                              <Users size={13} /> {filledSeats}/{boardSeats.length} seats filled
                             </span>
+                            {vacancies > 0 && (
+                              <span className="text-[--warning]">
+                                {vacancies} vacant
+                              </span>
+                            )}
                             {president && <span>President: {president}</span>}
                           </div>
                         </Card>

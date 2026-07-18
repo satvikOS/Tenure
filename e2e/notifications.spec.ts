@@ -47,7 +47,7 @@ test.describe("notification system", () => {
   test("roster changes notify the person involved", async ({ page }) => {
     const email = `notifyme-${stamp}@tenure.demo`
     await signIn(page, "Priya Raman")
-    await page.goto("/orgs/consulting-club/members")
+    await page.goto("/orgs/simon-consulting-club/members")
     await page.getByPlaceholder("student@rochester.edu").fill(email)
     await page.getByRole("button", { name: "Add", exact: true }).click()
     await expect(page.getByText(email)).toBeVisible()

@@ -16,7 +16,7 @@ test.describe("search", () => {
   test("finds a memory card via the header search with a citation", async ({ page }) => {
     // Seed a distinctive card
     await signIn(page, "Victor Chen")
-    await page.goto("/orgs/consulting-club/memory")
+    await page.goto("/orgs/simon-consulting-club/memory")
     await page.getByLabel("Type").selectOption("VENDOR")
     await page.getByLabel("Title").fill(cardTitle)
     await page
@@ -38,7 +38,7 @@ test.describe("search", () => {
     // Priya writes a President-seat-only card with a unique token
     const secret = `SEATSECRET${stamp}`
     await signIn(page, "Priya Raman")
-    await page.goto("/orgs/consulting-club/memory")
+    await page.goto("/orgs/simon-consulting-club/memory")
     await page.getByLabel("Type").selectOption("CREDENTIAL")
     await page.getByLabel("Title").fill(`Bank portal ${stamp}`)
     await page.getByLabel("Visible to").selectOption({ label: "President seat only" })

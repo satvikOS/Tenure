@@ -1,12 +1,27 @@
 /**
  * Idempotent pilot seed — safe to run on every container start.
- * Creates the demo institution, clubs, role seats, and users so the
- * pilot is explorable before real rosters are imported.
+ *
+ * Seeds the demo institution, the real Simon club roster (from
+ * scripts/roster-data.mjs, generated from the OSE spreadsheets), and the
+ * seven demo login accounts.
+ *
+ * Real board members are seeded as DirectoryPerson records, NOT Users: while
+ * dev sign-in is enabled anyone with the URL could otherwise impersonate a
+ * real student. They are visible, searchable and emailable; they just are not
+ * accounts you can sign in as.
  */
 import { PrismaClient } from "@prisma/client"
-import { CLUBS, positionCode, slugify } from "./clubs-data.mjs"
+
+import { ROSTER, ADVISORS, CURRENT_TERM, PRIOR_TERM } from "./roster-data.mjs"
 
 const db = new PrismaClient()
+
+function scopeFor(position) {
+  const p = position.toLowerCase()
+  if (p.startsWith("president")) return "PRESIDENT"
+  if (p.startsWith("managing director")) return "PRESIDENT" // SVC's top seat
+  return "FUNCTIONAL"
+}
 
 async function main() {
   const institution = await db.institution.upsert({
@@ -46,51 +61,160 @@ async function main() {
     })
   }
 
-  // ── Real Simon clubs + board seats (Clubs and Board Position.xlsx) ─────────
-  // Each seat carries a permanent position code: knowledge attaches to the
-  // job ID, not the person — people come and go, the seat's memory stays.
-  for (const [clubName, { category, positions }] of Object.entries(CLUBS)) {
-    const club = await db.organization.upsert({
-      where: { slug: slugify(clubName) },
-      update: { category },
-      create: {
-        institutionId: institution.id,
-        name: clubName,
-        slug: slugify(clubName),
-        category,
-      },
+  // ── Directory people (board members + advisors) ────────────────────────────
+  const personIdByEmail = new Map()
+
+  async function directoryPerson({ name, email, kind, affiliation }) {
+    const key = email.toLowerCase()
+    if (personIdByEmail.has(key)) return personIdByEmail.get(key)
+    const person = await db.directoryPerson.upsert({
+      where: { email: key },
+      update: { name, kind, affiliation },
+      create: { email: key, name, kind, affiliation },
     })
-    for (const pos of positions) {
-      const scope = pos.toLowerCase().startsWith("president") ? "PRESIDENT" : "FUNCTIONAL"
-      const code = positionCode(clubName, pos)
-      await db.role.upsert({
-        where: { organizationId_name: { organizationId: club.id, name: pos } },
-        update: { positionCode: code },
-        create: { organizationId: club.id, name: pos, scope, positionCode: code },
+    personIdByEmail.set(key, person.id)
+    return person.id
+  }
+
+  for (const advisor of ADVISORS) {
+    await directoryPerson({ ...advisor, kind: "ADVISOR" })
+  }
+
+  // ── Clubs, seats, holders (2026-2027 roster) ───────────────────────────────
+  for (const club of ROSTER) {
+    // A club that already exists under its previous slug is renamed in place,
+    // so its documents, memory and history follow it to the new name.
+    // Prefer a row already on the new slug (this seed runs on every boot);
+    // otherwise adopt the row on the legacy slug and rename it.
+    const existing =
+      (await db.organization.findUnique({ where: { slug: club.slug } })) ??
+      (club.legacySlug
+        ? await db.organization.findUnique({ where: { slug: club.legacySlug } })
+        : null)
+
+    const data = {
+      name: club.name,
+      shortName: club.shortName,
+      acronym: club.acronym,
+      category: club.category,
+      rosterNote: club.note,
+      status: "ACTIVE",
+    }
+
+    const org = existing
+      ? await db.organization.update({
+          where: { id: existing.id },
+          data: { ...data, slug: club.slug },
+        })
+      : await db.organization.create({
+          data: { ...data, slug: club.slug, institutionId: institution.id },
+        })
+
+    // Advisors for this club
+    for (const advisor of club.advisors) {
+      const personId = await directoryPerson({ ...advisor, kind: "ADVISOR" })
+      await db.organizationAdvisor.upsert({
+        where: { organizationId_personId: { organizationId: org.id, personId } },
+        update: {},
+        create: { organizationId: org.id, personId },
       })
     }
+
+    const desiredCodes = new Set(club.seats.map((s) => s.positionCode))
+    const desiredNames = new Set([...club.seats.map((s) => s.name), "Member"])
+
+    // Position codes are globally unique. A renamed seat ("VP Casing" ->
+    // "VP of Casing") reduces to the same code, so release the code from the
+    // old row before the new one claims it.
+    const stale = await db.role.findMany({
+      where: { organizationId: org.id, positionCode: { in: [...desiredCodes] } },
+    })
+    for (const role of stale) {
+      if (!desiredNames.has(role.name)) {
+        await db.role.update({ where: { id: role.id }, data: { positionCode: null } })
+      }
+    }
+
+    for (const [index, seat] of club.seats.entries()) {
+      const role = await db.role.upsert({
+        where: { organizationId_name: { organizationId: org.id, name: seat.name } },
+        update: {
+          positionCode: seat.positionCode,
+          positionNote: seat.positionNote,
+          vacancyNote: seat.holder ? null : seat.vacancyNote || null,
+          scope: scopeFor(seat.basePosition),
+          seatOrder: index,
+        },
+        create: {
+          organizationId: org.id,
+          name: seat.name,
+          positionCode: seat.positionCode,
+          positionNote: seat.positionNote,
+          vacancyNote: seat.holder ? null : seat.vacancyNote || null,
+          scope: scopeFor(seat.basePosition),
+          seatOrder: index,
+        },
+      })
+
+      async function hold(person, term, isCurrent) {
+        const personId = await directoryPerson({
+          name: person.name,
+          email: person.email,
+          kind: "STUDENT",
+          affiliation: null,
+        })
+        await db.seatHolding.upsert({
+          where: { roleId_personId_term: { roleId: role.id, personId, term } },
+          update: { isCurrent },
+          create: { roleId: role.id, personId, term, isCurrent },
+        })
+      }
+
+      if (seat.holder) await hold(seat.holder, CURRENT_TERM, true)
+      // Last year's holder — the person to call during a handoff
+      if (seat.predecessor) await hold(seat.predecessor, PRIOR_TERM, false)
+    }
+
+    // Generic membership seat, used by the demo accounts
     await db.role.upsert({
-      where: { organizationId_name: { organizationId: club.id, name: "Member" } },
-      update: { positionCode: `${positionCode(clubName, "Member")}` },
+      where: { organizationId_name: { organizationId: org.id, name: "Member" } },
+      update: {},
       create: {
-        organizationId: club.id,
+        organizationId: org.id,
         name: "Member",
         scope: "MEMBER",
-        positionCode: positionCode(clubName, "Member"),
+        // club.code, not the legacy helper: initials alone collide
+        // (Simon Says and Simon Sports both reduce to "SS")
+        positionCode: `${club.code}-MEMB`,
       },
     })
-  }
 
-  // Legacy demo-only clubs from the scaffold — archive if present
-  for (const legacySlug of ["finance-society", "public-speaking"]) {
-    await db.organization.updateMany({
-      where: { slug: legacySlug },
-      data: { status: "ARCHIVED" },
+    // Drop seats that no longer exist on the roster, but only when nothing is
+    // attached to them — never delete a seat that carries history.
+    const obsolete = await db.role.findMany({
+      where: { organizationId: org.id, name: { notIn: [...desiredNames] } },
+      include: {
+        _count: { select: { assignments: true, memoryRecords: true, holdings: true } },
+      },
     })
+    for (const role of obsolete) {
+      const { assignments, memoryRecords, holdings } = role._count
+      if (assignments + memoryRecords + holdings === 0) {
+        await db.role.delete({ where: { id: role.id } })
+      }
+    }
   }
 
+  // Clubs from earlier scaffolds that the 2026-2027 roster does not list
+  const currentSlugs = new Set(ROSTER.map((c) => c.slug))
+  await db.organization.updateMany({
+    where: { institutionId: institution.id, slug: { notIn: [...currentSlugs] } },
+    data: { status: "ARCHIVED" },
+  })
+
+  // ── Demo assignments (the only accounts that can actually sign in) ─────────
   const consulting = await db.organization.findUniqueOrThrow({
-    where: { slug: "consulting-club" },
+    where: { slug: "simon-consulting-club" },
   })
 
   async function findRole(organizationId, name) {
@@ -123,10 +247,18 @@ async function main() {
   const swib = await db.organization.findUniqueOrThrow({
     where: { slug: "simon-women-in-business" },
   })
-  const swibPresident = await findRole(swib.id, "President")
-  await assign(president.id, swibPresident.id, "ACTIVE")
+  await assign(president.id, (await findRole(swib.id, "President")).id, "ACTIVE")
 
-  console.log("✅ Seed complete")
+  const counts = {
+    clubs: ROSTER.length,
+    seats: await db.role.count(),
+    people: await db.directoryPerson.count(),
+    holdings: await db.seatHolding.count(),
+  }
+  console.log(
+    `✅ Seed complete — ${counts.clubs} clubs, ${counts.seats} seats, ` +
+      `${counts.people} directory people, ${counts.holdings} seat holdings`
+  )
 }
 
 main()

@@ -117,14 +117,20 @@ model Organization {
   institutionId String
   institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   name          String
+  // Official name minus the parenthetical acronym, for compact display
+  shortName     String?
+  acronym       String?
   slug          String      @unique
   description   String?
+  // Roster annotation, e.g. "Board formed Fall 2026"
+  rosterNote    String?
   logoUrl       String?
   status        OrgStatus   @default(ACTIVE)
   category      OrgCategory @default(PROFESSIONAL)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
+  advisors       OrganizationAdvisor[]
   roles          Role[]
   approvals      ApprovalRequest[]
   events         Event[]
@@ -163,14 +169,82 @@ model Role {
   // Permanent position ID — the seat's identity outlives every holder.
   // Knowledge, history, and accomplishments attach to this, not to people.
   positionCode   String?      @unique
+  // Editorial note from the roster, e.g. "Interim oversee marketing and Comms"
+  positionNote   String?
+  // Why a seat is empty, e.g. "Opening in the fall". Only meaningful when the
+  // seat has no current holder.
+  vacancyNote    String?
+  // Preserves the seat order as published by OSE
+  seatOrder      Int?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   assignments   RoleAssignment[]
   memoryRecords MemoryRecord[]
+  holdings      SeatHolding[]
 
   @@unique([organizationId, name])
   @@index([organizationId, scope])
+}
+
+/// A person from the OSE roster — board member or club advisor.
+///
+/// Deliberately NOT a User. Seeding the real roster as login accounts would
+/// let anyone with the URL impersonate a real student while dev sign-in is
+/// enabled. These records are directory data: displayed, searchable, and
+/// emailable, but they cannot be signed in as. When Okta lands, real people
+/// authenticate there and are matched to these records by email.
+model DirectoryPerson {
+  id          String        @id @default(cuid())
+  name        String
+  email       String        @unique
+  kind        DirectoryKind @default(STUDENT)
+  // For advisors: "Ainslie OSE", "Benet Center", "Faculty", ...
+  affiliation String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  holdings   SeatHolding[]
+  advisorFor OrganizationAdvisor[]
+
+  @@index([kind])
+}
+
+enum DirectoryKind {
+  STUDENT
+  ADVISOR
+}
+
+/// Who holds (or held) a seat in a given academic year.
+///
+/// Past terms are kept rather than overwritten: "who had this job last year
+/// and how do I reach them" is the core handoff question Tenure exists to
+/// answer.
+model SeatHolding {
+  id        String          @id @default(cuid())
+  roleId    String
+  role      Role            @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  personId  String
+  person    DirectoryPerson @relation(fields: [personId], references: [id], onDelete: Cascade)
+  term      String          // "2026-2027"
+  isCurrent Boolean         @default(true)
+  createdAt DateTime        @default(now())
+
+  @@unique([roleId, personId, term])
+  @@index([roleId, isCurrent])
+  @@index([personId])
+}
+
+/// Club advisors, with the contact details every board member needs on hand.
+model OrganizationAdvisor {
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  personId       String
+  person         DirectoryPerson @relation(fields: [personId], references: [id], onDelete: Cascade)
+  createdAt      DateTime        @default(now())
+
+  @@id([organizationId, personId])
+  @@index([personId])
 }
 
 enum RoleScope {

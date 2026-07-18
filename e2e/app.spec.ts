@@ -98,7 +98,7 @@ test.describe("organizations + roster RBAC", () => {
   test("roster shows lifecycle badges and gates the manage form", async ({ page }) => {
     // President: full roster + manage form
     await signIn(page, "Priya Raman")
-    await page.goto("/orgs/consulting-club/members")
+    await page.goto("/orgs/simon-consulting-club/members")
     await expect(page.getByText("Victor Chen")).toBeVisible()
     await expect(page.getByText("Isaiah Brooks")).toBeVisible()
     await expect(page.getByText("Shadow", { exact: true })).toBeVisible()
@@ -107,14 +107,14 @@ test.describe("organizations + roster RBAC", () => {
 
     // Regular member: read-only
     await signIn(page, "Maya Johnson")
-    await page.goto("/orgs/consulting-club/members")
+    await page.goto("/orgs/simon-consulting-club/members")
     await expect(page.getByText("Victor Chen")).toBeVisible()
     await expect(page.getByText("Add to roster")).not.toBeVisible()
   })
 
   test("president can add a member to the roster", async ({ page }) => {
     await signIn(page, "Priya Raman")
-    await page.goto("/orgs/consulting-club/members")
+    await page.goto("/orgs/simon-consulting-club/members")
     const email = `e2e-${Date.now()}@tenure.demo`
     await page.getByPlaceholder("student@rochester.edu").fill(email)
     await page.getByRole("combobox").first().selectOption({ label: "Member" })

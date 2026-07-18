@@ -5,9 +5,13 @@ import { canManageRoster, canViewOrg, getUserContext } from "@/lib/rbac"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { AssignmentBadge, Badge } from "@/components/ui/Badge"
 import { OrgTabs } from "@/components/OrgTabs"
+import { EmailLink } from "@/components/EmailLink"
 import { assignMember, transitionAssignment } from "./actions"
 
 export const dynamic = "force-dynamic"
+
+/** An empty seat is a fact worth stating plainly, not a blank space. */
+const VACANT_LABEL = "Vacant Position"
 
 export default async function MembersPage({
   params,
@@ -21,12 +25,21 @@ export default async function MembersPage({
   const org = await db.organization.findUnique({
     where: { slug },
     include: {
+      advisors: {
+        include: { person: true },
+      },
       roles: {
-        orderBy: { scope: "asc" }, // PRESIDENT → FUNCTIONAL → MEMBER
+        // seatOrder preserves the order OSE publishes; nulls (e.g. the generic
+        // Member seat) sort last
+        orderBy: [{ seatOrder: "asc" }, { scope: "asc" }],
         include: {
           assignments: {
             orderBy: { startDate: "desc" },
             include: { user: { select: { name: true, email: true } } },
+          },
+          holdings: {
+            include: { person: true },
+            orderBy: { term: "desc" },
           },
         },
       },
@@ -61,8 +74,38 @@ export default async function MembersPage({
       </div>
       <OrgTabs slug={slug} />
 
+      {org.advisors.length > 0 && (
+        <Card className="mb-4">
+          <CardHeader
+            title="Club advisors"
+            subtitle="Your staff and faculty contacts — boards must meet with an advisor at least twice per mini-mester."
+          />
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {org.advisors.map(({ person }) => (
+              <li
+                key={person.id}
+                className="rounded border border-border p-3"
+              >
+                <p className="text-sm font-medium text-text-1">{person.name}</p>
+                {person.affiliation && (
+                  <p className="text-xs text-text-3">{person.affiliation}</p>
+                )}
+                <p className="mt-1 text-xs">
+                  <EmailLink email={person.email} showIcon />
+                </p>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       <div className="space-y-4">
-        {current.map((role) => (
+        {current.map((role) => {
+          const holders = role.holdings.filter((h) => h.isCurrent)
+          const past = role.holdings.filter((h) => !h.isCurrent)
+          const isVacant = holders.length === 0 && role.assignments.length === 0
+
+          return (
           <Card key={role.id}>
             <CardHeader
               title={role.name}
@@ -71,11 +114,66 @@ export default async function MembersPage({
                   ? `Position ID ${role.positionCode} — permanent seat, knowledge stays with the job`
                   : role.description ?? undefined
               }
-              action={<Badge variant="info">{role.scope.toLowerCase()}</Badge>}
+              action={
+                <div className="flex items-center gap-2">
+                  {isVacant && <Badge variant="warning">{VACANT_LABEL}</Badge>}
+                  <Badge variant="info">{role.scope.toLowerCase()}</Badge>
+                </div>
+              }
             />
-            {role.assignments.length === 0 ? (
-              <p className="text-sm text-text-3">Seat is vacant.</p>
-            ) : (
+
+            {role.positionNote && (
+              <p className="mb-3 text-xs text-text-2">Note: {role.positionNote}</p>
+            )}
+
+            {/* Current holders from the OSE roster */}
+            {holders.length > 0 && (
+              <ul className="mb-3 divide-y divide-border">
+                {holders.map((h) => (
+                  <li key={h.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text-1">{h.person.name}</p>
+                      <p className="text-xs">
+                        <EmailLink
+                          email={h.person.email}
+                          subject={`${org.shortName ?? org.name} — ${role.name}`}
+                        />
+                      </p>
+                    </div>
+                    <Badge variant="success">{h.term}</Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {isVacant && (
+              <p className="mb-3 text-sm text-text-3">
+                {VACANT_LABEL}
+                {role.vacancyNote ? ` — ${role.vacancyNote}` : ""}
+              </p>
+            )}
+
+            {/* Who held this seat before — the handoff contact */}
+            {past.length > 0 && (
+              <div className="mb-3 rounded border border-dashed border-border p-3">
+                <p className="text-xs font-medium text-text-2">
+                  Previously held by
+                </p>
+                <ul className="mt-1.5 space-y-1">
+                  {past.map((h) => (
+                    <li key={h.id} className="text-xs text-text-3">
+                      <span className="text-text-1">{h.person.name}</span> ({h.term}) ·{" "}
+                      <EmailLink
+                        email={h.person.email}
+                        subject={`${org.shortName ?? org.name} — question about the ${role.name} role`}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {role.assignments.length === 0 ? null : (
               <ul className="divide-y divide-border">
                 {role.assignments.map((a) => (
                   <li key={a.id} className="flex items-center justify-between py-2.5">
@@ -84,7 +182,7 @@ export default async function MembersPage({
                         {a.user.name ?? a.user.email}
                       </p>
                       <p className="text-xs text-text-3">
-                        {a.user.email} · since{" "}
+                        {a.user.email && <EmailLink email={a.user.email} />} · since{" "}
                         {a.startDate.toLocaleDateString("en-US", {
                           month: "short",
                           year: "numeric",
@@ -117,7 +215,8 @@ export default async function MembersPage({
               </ul>
             )}
           </Card>
-        ))}
+          )
+        })}
 
         {canManage && (
           <Card>

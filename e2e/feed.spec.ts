@@ -60,7 +60,8 @@ test.describe("community feed", () => {
     await page.goto("/feed")
     await expect(page.getByText("Your approvals")).toBeVisible()
     await expect(
-      page.getByText("Simon Women in Business ↔ Simon Consulting Club").first()
+      // Official names carry a parenthetical acronym, e.g. "... (SWiB)"
+      page.getByText(/Simon Women in Business.*↔.*Simon Consulting Club/).first()
     ).toBeVisible()
     await page.getByRole("button", { name: "Approve", exact: true }).first().click()
     await expect(

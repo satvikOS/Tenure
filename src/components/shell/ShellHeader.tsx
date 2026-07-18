@@ -10,6 +10,7 @@ import {
 } from "react-aria-components"
 import { Bell, Search, ChevronDown, LogOut, UserRound } from "lucide-react"
 import { TenureAIMark, TenureLogo } from "@/components/brand/TenureLogo"
+import { EmailLink } from "@/components/EmailLink"
 
 interface ShellHeaderProps {
   userName?: string
@@ -134,7 +135,11 @@ export function ShellHeader({
               <p className="text-sm font-semibold text-text-1 flex items-center gap-2">
                 <UserRound size={14} className="text-text-3" /> {userName}
               </p>
-              {userEmail && <p className="text-xs text-text-3 mt-0.5">{userEmail}</p>}
+              {userEmail && (
+                <p className="text-xs mt-0.5">
+                  <EmailLink email={userEmail} />
+                </p>
+              )}
             </div>
             <Menu className="p-1 outline-none">
               <MenuItem

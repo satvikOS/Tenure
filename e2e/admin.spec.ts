@@ -25,7 +25,7 @@ test.describe("real clubs + permanent position IDs", () => {
 
   test("roster seats show their permanent position IDs", async ({ page }) => {
     await signIn(page, "Priya Raman")
-    await page.goto("/orgs/consulting-club/members")
+    await page.goto("/orgs/simon-consulting-club/members")
     await expect(page.getByText("Position ID SCC-PRES", { exact: false })).toBeVisible()
     await expect(page.getByText("Position ID SCC-VP-CASI", { exact: false })).toBeVisible()
   })
