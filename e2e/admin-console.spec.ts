@@ -1,0 +1,57 @@
+import { test, expect, type Page } from "@playwright/test"
+
+/** The dedicated admin console: gating, and assign / transfer / remove roles
+ *  through the University directory picker. */
+
+async function signIn(page: Page, userName: string) {
+  await page.context().clearCookies()
+  await page.goto("/signin")
+  await page.getByRole("button", { name: new RegExp(userName) }).click()
+  await page.waitForURL(/\/dashboard/)
+}
+
+const stamp = Date.now()
+const SEARCH = "Search the directory by name or email…"
+
+test.describe("admin console", () => {
+  test("the director sees the console; a member cannot", async ({ page }) => {
+    await signIn(page, "Dana Whitfield")
+    await page.goto("/admin")
+    await expect(page.getByText("Administration Console")).toBeVisible()
+    await expect(page.getByText("OSE Director")).toBeVisible()
+    // The side nav exposes the Admin entry for OSE users.
+    await expect(page.getByRole("link", { name: "Admin Console" })).toBeVisible()
+
+    await signIn(page, "Maya Johnson") // plain member
+    await page.goto("/admin")
+    await expect(page.getByText("Administration Console")).toHaveCount(0)
+  })
+
+  test("admin assigns, transfers and removes a role via the directory", async ({ page }) => {
+    await signIn(page, "Dana Whitfield")
+
+    // Self-contained club so we never disturb the seeded roster.
+    await page.goto("/admin/clubs")
+    await page.getByPlaceholder("Simon Real Estate Club").fill(`E2E Roles ${stamp}`)
+    await page.getByRole("button", { name: "Charter club" }).click()
+    await page.waitForURL(/\/admin\/clubs\/[a-z0-9-]+$/)
+
+    // Assign Arjun (a real directory person) to the first seat.
+    await page.getByPlaceholder(SEARCH).first().fill("amoghe")
+    await page.getByRole("button", { name: /amoghe@simon/ }).first().click()
+    await page.getByRole("button", { name: "Assign", exact: true }).first().click()
+    await expect(page.getByRole("button", { name: /Remove Arjun Prashant Moghe/ })).toBeVisible()
+
+    // Transfer the seat to a different person.
+    await page.getByRole("button", { name: "Clear selection" }).first().click()
+    await page.getByPlaceholder(SEARCH).first().fill("esquivel")
+    await page.getByRole("button", { name: /esquivel/i }).first().click()
+    await page.getByRole("button", { name: /Transfer to this person/ }).first().click()
+    await expect(page.getByRole("button", { name: /Remove Jaime Esquivel/ })).toBeVisible()
+    await expect(page.getByRole("button", { name: /Remove Arjun Prashant Moghe/ })).toHaveCount(0)
+
+    // Remove the current holder.
+    await page.getByRole("button", { name: /Remove Jaime Esquivel/ }).first().click()
+    await expect(page.getByRole("button", { name: /Remove Jaime Esquivel/ })).toHaveCount(0)
+  })
+})

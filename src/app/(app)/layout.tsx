@@ -28,7 +28,10 @@ export default async function AppLayout({
         unreadNotifications={unreadNotifications}
         onSignOut={signOutAction}
       />
-      <SideNav showReports={ctx.institutionRoles.length > 0} />
+      <SideNav
+        showReports={ctx.institutionRoles.length > 0}
+        showAdmin={ctx.institutionRoles.length > 0}
+      />
       <main
         className="min-h-screen bg-base"
         style={{

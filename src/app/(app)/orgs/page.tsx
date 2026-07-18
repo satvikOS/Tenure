@@ -4,10 +4,10 @@ import { Archive } from "lucide-react"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext, isOse, isOseDirector } from "@/lib/rbac"
-import { Card, CardHeader } from "@/components/ui/Card"
+import { ShieldCheck } from "lucide-react"
+import { Card } from "@/components/ui/Card"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { ClubCard, type ClubCardStats } from "@/components/ClubCard"
-import { createClub } from "./actions"
 
 export const dynamic = "force-dynamic"
 
@@ -115,6 +115,16 @@ export default async function OrgsPage({
             ? "Every registered organization at your institution."
             : "Organizations where you hold a current or incoming role."
         }
+        actions={
+          isOseViewer ? (
+            <Link
+              href="/admin/clubs"
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-[--accent] px-4 text-sm font-medium text-[--accent-text] no-underline transition-colors hover:bg-[--accent-hover]"
+            >
+              <ShieldCheck size={16} /> Manage in Admin
+            </Link>
+          ) : undefined
+        }
       />
 
       {/* Category filter — URL-driven so a filtered view is shareable */}
@@ -147,51 +157,6 @@ export default async function OrgsPage({
             )
           })}
       </nav>
-
-      {isDirector && (
-        <Card className="mb-6">
-          <CardHeader
-            title="Charter a new club"
-            subtitle="Creates the club with standard board seats — each with a permanent position ID."
-          />
-          <form action={createClub} className="flex flex-wrap items-end gap-3">
-            <label className="flex flex-1 min-w-48 flex-col gap-1.5 text-[13px] font-semibold text-text-2">
-              Club name
-              <input
-                name="name"
-                required
-                maxLength={120}
-                placeholder="Simon Real Estate Club"
-                className="h-10 w-full rounded-md border border-border px-3.5 text-[15px] text-text-1 outline-none focus:border-[--border-focus]"
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-text-2">
-              Category
-              <select
-                name="category"
-                required
-                className="h-10 rounded-md border border-border bg-surface px-2.5 text-[15px] text-text-1"
-              >
-                <option value="PROFESSIONAL">Professional</option>
-                <option value="COMMUNITY">Community</option>
-                <option value="ORGANIZATION">Organization</option>
-                <option value="SOCIAL">Social</option>
-              </select>
-            </label>
-            <label className="flex flex-1 min-w-48 flex-col gap-1.5 text-[13px] font-semibold text-text-2">
-              Description
-              <input
-                name="description"
-                placeholder="What the club does"
-                className="h-10 w-full rounded-md border border-border px-3.5 text-[15px] text-text-1 outline-none focus:border-[--border-focus]"
-              />
-            </label>
-            <button className="h-10 rounded-md bg-[--primary] px-5 text-sm font-medium text-white hover:bg-[--primary-hover]">
-              Charter club
-            </button>
-          </form>
-        </Card>
-      )}
 
       {activeClubs.length === 0 ? (
         <Card>

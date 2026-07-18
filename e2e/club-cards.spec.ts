@@ -18,11 +18,11 @@ test.describe("club cards", () => {
     const name = `E2E Archivable ${stamp}`
     await signIn(page, "Dana Whitfield")
 
-    // Charter a throwaway club so the test is self-contained.
-    await page.goto("/orgs")
+    // Charter a throwaway club from the admin console so the test is self-contained.
+    await page.goto("/admin/clubs")
     await page.getByPlaceholder("Simon Real Estate Club").fill(name)
     await page.getByRole("button", { name: "Charter club" }).click()
-    await page.waitForURL(/\/members$/)
+    await page.waitForURL(/\/admin\/clubs\/[a-z0-9-]+$/)
 
     // It starts active — its card sits in the category grid with an Archive action.
     await page.goto("/orgs")
