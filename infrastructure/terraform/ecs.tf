@@ -179,6 +179,11 @@ resource "aws_ecs_task_definition" "app" {
           valueFrom = "${aws_secretsmanager_secret.app.arn}:OKTA_ISSUER::"
         },
         {
+          # Bearer token the scheduler presents to /api/jobs/*
+          name      = "JOB_SECRET"
+          valueFrom = "${aws_secretsmanager_secret.job.arn}:JOB_SECRET::"
+        },
+        {
           # RDS-managed secret value is JSON {"username","password"} — the
           # entrypoint parses it and exports a proper DATABASE_URL.
           name      = "DB_CREDS"

@@ -3,7 +3,6 @@ import { redirect } from "next/navigation"
 import { ExternalLink, AlertCircle } from "lucide-react"
 import { auth } from "@/lib/auth"
 import { getUserContext, isOse } from "@/lib/rbac"
-import { Card, CardHeader } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import {
   KIND_LABELS,

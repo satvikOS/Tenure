@@ -34,6 +34,8 @@ resource "aws_iam_policy" "ecs_secrets" {
         Action   = ["secretsmanager:GetSecretValue"]
         Resource = [
           aws_secretsmanager_secret.app.arn,
+          # Bearer token for scheduled job endpoints
+          aws_secretsmanager_secret.job.arn,
           # RDS managed password secret
           "${aws_db_instance.postgres.master_user_secret[0].secret_arn}",
         ]

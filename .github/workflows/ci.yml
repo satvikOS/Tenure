@@ -76,6 +76,7 @@ jobs:
       OKTA_CLIENT_SECRET: ""
       OKTA_ISSUER: ""
       IMAGE_TAG: e2e-local
+      JOB_SECRET: e2e-job-secret
 
     steps:
       - name: Checkout
