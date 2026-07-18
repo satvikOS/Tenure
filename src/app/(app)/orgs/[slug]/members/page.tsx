@@ -1,11 +1,14 @@
 import { notFound, redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { canManageRoster, canViewOrg, getUserContext } from "@/lib/rbac"
+import { canManageOrg, canManageRoster, canViewOrg, getUserContext } from "@/lib/rbac"
+import { storageConfigured } from "@/lib/s3"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { AssignmentBadge, Badge } from "@/components/ui/Badge"
+import { Avatar } from "@/components/ui/Avatar"
 import { OrgTabs } from "@/components/OrgTabs"
 import { EmailLink } from "@/components/EmailLink"
+import { ClubImageEditor } from "@/components/ClubImageEditor"
 import { assignMember, transitionAssignment } from "./actions"
 
 export const dynamic = "force-dynamic"
@@ -50,6 +53,7 @@ export default async function MembersPage({
   const ctx = await getUserContext(session.user.id)
   if (!canViewOrg(ctx, org)) notFound()
   const canManage = canManageRoster(ctx, org)
+  const canEditImage = canManageOrg(ctx, org)
 
   const assignWithSlug = assignMember.bind(null, slug)
   const transitionWithSlug = transitionAssignment.bind(null, slug)
@@ -66,11 +70,22 @@ export default async function MembersPage({
 
   return (
     <div className="w-full">
-      <div className="mb-4">
-        <h1 className="text-text-1">{org.name}</h1>
-        <p className="text-sm text-text-2 mt-1">
-          Roster — role seats persist across leadership transitions.
-        </p>
+      <div className="mb-6 flex items-start gap-4">
+        <Avatar name={org.name} imageUrl={org.logoUrl} size="xl" className="hidden sm:grid" />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-text-1">{org.name}</h1>
+          <p className="mt-1 text-lead text-text-2">
+            Roster — role seats persist across leadership transitions.
+          </p>
+        </div>
+        {canEditImage && (
+          <ClubImageEditor
+            orgId={org.id}
+            orgName={org.name}
+            logoUrl={org.logoUrl}
+            canUpload={storageConfigured()}
+          />
+        )}
       </div>
       <OrgTabs slug={slug} />
 

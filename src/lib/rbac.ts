@@ -104,6 +104,21 @@ export function canListAllOrgs(ctx: UserContext, institutionId: string): boolean
   return isOse(ctx, institutionId)
 }
 
+/**
+ * Manage a club's own profile — name, description, and image.
+ * OSE (any club) or the club's ACTIVE President (their own). Used for the club
+ * image feature: administrators for all clubs, club leaders for their own.
+ */
+export function canManageOrg(
+  ctx: UserContext,
+  org: { id: string; institutionId: string }
+): boolean {
+  if (isOse(ctx, org.institutionId)) return true
+  return orgRolesFor(ctx, org.id).some(
+    (r) => r.scope === "PRESIDENT" && r.status === "ACTIVE"
+  )
+}
+
 /** Write to the org workspace (requests, events, documents) — ACTIVE members only. */
 export function canContribute(
   ctx: UserContext,
