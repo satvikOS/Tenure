@@ -95,9 +95,9 @@ export default async function ReportsPage() {
   }
 
   return (
-    <div className="max-w-screen-2xl">
+    <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-text-1">Reports</h1>
+        <h1 className="text-text-1">Reports</h1>
         <p className="text-sm text-text-2 mt-1">
           Institution-wide operational picture — live from the system of record.
         </p>

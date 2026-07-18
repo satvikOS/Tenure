@@ -91,10 +91,10 @@ export default async function CalendarPage({
   const canCreate = ctx.orgRoles.some((r) => r.status === "ACTIVE")
 
   return (
-    <div className="max-w-screen-2xl">
+    <div className="w-full">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text-1">Calendar</h1>
+          <h1 className="text-text-1">Calendar</h1>
           <p className="text-sm text-text-2 mt-1">
             Shared schedule across clubs — click any day to inspect it.
           </p>

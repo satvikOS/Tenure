@@ -118,9 +118,9 @@ export default async function FeedPage() {
   const canComment = activeOrgIds.length > 0 || oseInstitutionIds.length > 0
 
   return (
-    <div className="max-w-screen-2xl">
+    <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-text-1">Community Feed</h1>
+        <h1 className="text-text-1">Community Feed</h1>
         <p className="text-sm text-text-2 mt-1">
           Find collaborators for your events — every partnership is approved by
           the OSE Director.

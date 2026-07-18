@@ -36,8 +36,10 @@ export default async function AppLayout({
           paddingLeft: "var(--sidenav-width)",
         }}
       >
-        <div className="flex-1 px-6 pt-6 xl:px-10">{children}</div>
-        <div className="px-6 xl:px-10">
+        {/* Width and gutters live here, not on every page, so the whole app
+            responds to the viewport consistently. */}
+        <div className="page-shell flex-1 pt-6">{children}</div>
+        <div className="page-shell">
           <Footer />
         </div>
       </main>

@@ -35,7 +35,7 @@ export default async function NewEventPage() {
     <div className="max-w-2xl">
       <BackButton />
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-text-1">Propose an event</h1>
+        <h1 className="text-text-1">Propose an event</h1>
         <p className="text-sm text-text-2 mt-1">
           Submitting checks the shared calendar for conflicts and routes the
           proposal into the approval chain. It publishes once approved.

@@ -70,9 +70,9 @@ export default async function MemoryPage({
   const createWithSlug = createMemoryCard.bind(null, slug)
 
   return (
-    <div className="max-w-screen-2xl">
+    <div className="w-full">
       <div className="mb-4">
-        <h1 className="text-xl font-bold text-text-1">{org.name}</h1>
+        <h1 className="text-text-1">{org.name}</h1>
         <p className="text-sm text-text-2 mt-1">
           Institutional memory — knowledge that outlives every board.
         </p>

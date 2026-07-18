@@ -148,7 +148,7 @@ export default async function DocumentViewPage({
     <div className="max-w-screen-xl">
       <BackButton label="Back to documents" />
       <div className="mb-4">
-        <h1 className="text-xl font-bold text-text-1">{doc.title}</h1>
+        <h1 className="text-text-1">{doc.title}</h1>
         <p className="text-sm text-text-2 mt-0.5">
           {doc.organization.name} · {mime}
         </p>

@@ -65,9 +65,9 @@ export default async function MembersPage({
   )
 
   return (
-    <div className="max-w-screen-2xl">
+    <div className="w-full">
       <div className="mb-4">
-        <h1 className="text-xl font-bold text-text-1">{org.name}</h1>
+        <h1 className="text-text-1">{org.name}</h1>
         <p className="text-sm text-text-2 mt-1">
           Roster — role seats persist across leadership transitions.
         </p>

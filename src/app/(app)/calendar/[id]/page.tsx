@@ -53,7 +53,7 @@ export default async function EventDetailPage({
       <BackButton />
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text-1">{event.title}</h1>
+          <h1 className="text-text-1">{event.title}</h1>
           <p className="text-sm text-text-2 mt-1">{event.organization.name}</p>
         </div>
         <EventBadge status={event.status} />

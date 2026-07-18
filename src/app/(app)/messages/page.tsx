@@ -61,11 +61,11 @@ export default async function MessagesPage() {
   const canBroadcast = oseInstitutionIds.length > 0
 
   return (
-    <div className="max-w-screen-2xl grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-text-1">Messages</h1>
+            <h1 className="text-text-1">Messages</h1>
             <p className="text-sm text-text-2 mt-1">
               Conversations that survive leadership transitions.
             </p>

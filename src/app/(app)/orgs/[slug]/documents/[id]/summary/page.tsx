@@ -70,7 +70,7 @@ export default async function DocumentSummaryPage({
         <p className="text-xs font-semibold uppercase tracking-wide text-text-3 flex items-center gap-1.5">
           <Sparkles size={12} style={{ color: "var(--primary)" }} /> Tenure AI summary
         </p>
-        <h1 className="text-xl font-bold text-text-1 mt-0.5">{doc.title}</h1>
+        <h1 className="text-text-1 mt-0.5">{doc.title}</h1>
         <Link
           href={`/orgs/${slug}/documents`}
           className="text-xs text-[--primary] hover:underline"

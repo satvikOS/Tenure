@@ -27,7 +27,7 @@ export default async function NotificationsPage() {
   return (
     <div className="max-w-screen-md">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-text-1">Notifications</h1>
+        <h1 className="text-text-1">Notifications</h1>
         <p className="text-sm text-text-2 mt-1">
           Approvals, roster changes, events, and messages that involve you.
         </p>

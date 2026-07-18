@@ -155,9 +155,9 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="max-w-screen-2xl">
+    <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-text-1">
+        <h1 className="text-text-1">
           {isOse ? "OSE Dashboard" : "Dashboard"}
         </h1>
         <p className="text-sm text-text-2 mt-0.5">

@@ -90,7 +90,7 @@ export default async function ConversationPage({
         <p className="text-xs font-semibold uppercase tracking-wide text-text-3">
           {TYPE_LABEL[convo.type]}
         </p>
-        <h1 className="text-xl font-bold text-text-1 mt-0.5">{title}</h1>
+        <h1 className="text-text-1 mt-0.5">{title}</h1>
         {convo.approval && (
           <Link
             href={`/approvals/${convo.approval.id}`}

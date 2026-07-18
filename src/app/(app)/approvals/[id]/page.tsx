@@ -59,7 +59,7 @@ export default async function ApprovalDetailPage({
       <BackButton />
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-text-1">{approval.title}</h1>
+          <h1 className="text-text-1">{approval.title}</h1>
           <p className="text-sm text-text-2 mt-1">{approval.organization.name}</p>
         </div>
         <div className="flex items-center gap-3 shrink-0">

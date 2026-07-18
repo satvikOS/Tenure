@@ -50,7 +50,7 @@ export default async function ComposePage() {
     <div className="max-w-2xl">
       <BackButton />
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-text-1">New message</h1>
+        <h1 className="text-text-1">New message</h1>
         <p className="text-sm text-text-2 mt-1">
           Recipients follow the role hierarchy — you only see people you may address.
         </p>

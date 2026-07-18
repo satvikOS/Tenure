@@ -44,7 +44,7 @@ export default async function NewApprovalPage() {
     <div className="max-w-2xl">
       <BackButton />
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-text-1">New approval request</h1>
+        <h1 className="text-text-1">New approval request</h1>
         <p className="text-sm text-text-2 mt-1">
           VP and member requests go to your President first, then OSE. President
           requests go straight to OSE.

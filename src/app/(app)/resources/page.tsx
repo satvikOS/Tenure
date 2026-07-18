@@ -99,9 +99,9 @@ export default async function ResourcesPage() {
   const ordered = [...groups].sort((a, b) => Number(b.mine) - Number(a.mine))
 
   return (
-    <div className="max-w-screen-2xl">
+    <div className="w-full">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-text-1">Board Resources</h1>
+        <h1 className="text-text-1">Board Resources</h1>
         <p className="mt-1 text-sm text-text-2">
           Every form, guide and policy your seat needs — so it survives the
           handoff instead of living in someone&apos;s bookmarks.
