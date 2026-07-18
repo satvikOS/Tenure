@@ -30,19 +30,21 @@ export default async function AppLayout({
       />
       <SideNav showReports={ctx.institutionRoles.length > 0} />
       <main
-        className="min-h-screen bg-base flex flex-col"
+        className="min-h-screen bg-base"
         style={{
           paddingTop: "var(--shell-height)",
           paddingLeft: "var(--sidenav-width)",
+          // Room for the hardened (fixed) footer so content never hides beneath it.
+          paddingBottom: "var(--footer-height)",
         }}
       >
         {/* Width and gutters live here, not on every page, so the whole app
             responds to the viewport consistently. */}
-        <div className="page-shell flex-1 pt-6">{children}</div>
-        <div className="page-shell">
-          <Footer />
-        </div>
+        <div className="page-shell py-7 sm:py-8">{children}</div>
       </main>
+      {/* Hardened frame: header + side nav + footer stay put; only this main
+          content region scrolls. */}
+      <Footer />
     </>
   )
 }
