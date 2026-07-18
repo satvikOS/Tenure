@@ -67,6 +67,7 @@ model Institution {
   organizations Organization[]
   memberships   InstitutionMembership[]
   auditEvents   AuditEvent[]
+  deliverables  Deliverable[]
 }
 
 enum InstitutionRole {
@@ -107,6 +108,7 @@ model User {
   participants          Participant[]
   notifications         Notification[]
   notificationPrefs     NotificationPreference[]
+  deliverableReminders  DeliverableReminder[]
 }
 
 // ─── Organizations & Role Seats ───────────────────────────────────────────────
@@ -185,6 +187,58 @@ model Role {
 
   @@unique([organizationId, name])
   @@index([organizationId, scope])
+}
+
+/// An institution-wide club deadline: audits, evaluations, event submission
+/// windows, transition milestones, trainings.
+///
+/// Separate from Event because these are published by OSE for every club at
+/// once, rather than being one club's activity. `key` is a stable identifier
+/// from the source document so re-seeding updates rather than duplicates.
+model Deliverable {
+  id            String          @id @default(cuid())
+  institutionId String
+  institution   Institution     @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  key           String          @unique
+  title         String
+  description   String?
+  dueAt         DateTime
+  /// FALL_A | FALL_B | SPRING_A | SPRING_B — null outside the mini-mesters
+  /// (a December audit falls over winter break and is still due)
+  term          String?
+  /// Which board seat owns it, matching SeatKey in src/lib/resources.ts
+  seat          String          @default("ALL")
+  kind          DeliverableKind @default(DEADLINE)
+  /// Which OSE document this came from, so the rule is auditable
+  source        String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  reminders DeliverableReminder[]
+
+  @@index([institutionId, dueAt])
+  @@index([seat, dueAt])
+}
+
+enum DeliverableKind {
+  DEADLINE
+  WINDOW
+  TRAINING
+  MEETING
+}
+
+/// Records that a person was reminded about a deliverable, so the 24-hour
+/// warning fires exactly once per person.
+model DeliverableReminder {
+  id            String      @id @default(cuid())
+  deliverableId String
+  deliverable   Deliverable @relation(fields: [deliverableId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sentAt        DateTime    @default(now())
+
+  @@unique([deliverableId, userId])
+  @@index([userId])
 }
 
 /// A person from the OSE roster — board member or club advisor.

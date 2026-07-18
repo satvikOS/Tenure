@@ -13,6 +13,11 @@ export interface GridEvent {
   venue: string | null
   status: string
   hardConflicts: number
+  /**
+   * Club events open their detail page; OSE deliverables have no detail
+   * route, so they render inert rather than as links that 404.
+   */
+  kind?: "event" | "deliverable"
 }
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -157,12 +162,9 @@ export function CalendarGrid({
                 </p>
               ) : (
                 <ul className="space-y-2">
-                  {dayEvents.map((e) => (
-                    <li key={e.id}>
-                      <Link
-                        href={`/calendar/${e.id}`}
-                        className="block rounded border border-border px-3 py-2 hover:border-[--primary] transition-colors no-underline"
-                      >
+                  {dayEvents.map((e) => {
+                    const body = (
+                      <>
                         <p className="text-sm font-medium text-text-1">{e.title}</p>
                         <p className="text-xs text-text-3 mt-0.5 flex items-center gap-2">
                           <span>{e.time}</span>
@@ -182,9 +184,26 @@ export function CalendarGrid({
                             {e.hardConflicts === 1 ? "" : "s"}
                           </p>
                         )}
-                      </Link>
-                    </li>
-                  ))}
+                      </>
+                    )
+
+                    return (
+                      <li key={e.id}>
+                        {e.kind === "deliverable" ? (
+                          <div className="block rounded border border-dashed border-border px-3 py-2">
+                            {body}
+                          </div>
+                        ) : (
+                          <Link
+                            href={`/calendar/${e.id}`}
+                            className="block rounded border border-border px-3 py-2 hover:border-[--primary] transition-colors no-underline"
+                          >
+                            {body}
+                          </Link>
+                        )}
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
             </>

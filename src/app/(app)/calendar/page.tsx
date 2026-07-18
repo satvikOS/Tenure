@@ -66,6 +66,32 @@ export default async function CalendarPage({
     },
   })
 
+  // OSE deliverables for this month — institution-wide deadlines that apply
+  // to every board, shown alongside club events.
+  const deliverables = await db.deliverable.findMany({
+    where: { dueAt: { gte: monthStart, lt: monthEnd } },
+    orderBy: { dueAt: "asc" },
+  })
+
+  const TERM_LABELS: Record<string, string> = {
+    FALL_A: "Fall A",
+    FALL_B: "Fall B",
+    SPRING_A: "Spring A",
+    SPRING_B: "Spring B",
+  }
+
+  const deliverableEvents: GridEvent[] = deliverables.map((d) => ({
+    id: `deliverable-${d.id}`,
+    title: d.title,
+    day: d.dueAt.getUTCDate(),
+    time: d.kind === "DEADLINE" ? "Due" : d.kind.toLowerCase(),
+    org: d.term ? `Ainslie OSE · ${TERM_LABELS[d.term] ?? d.term}` : "Ainslie OSE",
+    venue: null,
+    status: d.kind,
+    hardConflicts: 0,
+    kind: "deliverable",
+  }))
+
   const gridEvents: GridEvent[] = events.map((e) => ({
     id: e.id,
     title: e.title,
@@ -78,7 +104,10 @@ export default async function CalendarPage({
     venue: e.venue,
     status: e.status,
     hardConflicts: e.conflicts.length,
+    kind: "event" as const,
   }))
+
+  const allGridEntries: GridEvent[] = [...gridEvents, ...deliverableEvents]
 
   const firstWeekday = monthStart.getUTCDay()
   const daysInMonth = new Date(Date.UTC(y, mo, 0)).getUTCDate()
@@ -135,7 +164,7 @@ export default async function CalendarPage({
       </div>
 
       <CalendarGrid
-        events={gridEvents}
+        events={allGridEntries}
         firstWeekday={firstWeekday}
         daysInMonth={daysInMonth}
         todayDay={todayDay}

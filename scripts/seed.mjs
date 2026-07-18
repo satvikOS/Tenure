@@ -13,6 +13,7 @@
 import { PrismaClient } from "@prisma/client"
 
 import { ROSTER, ADVISORS, CURRENT_TERM, PRIOR_TERM } from "./roster-data.mjs"
+import { deliverablesWithTerms } from "./deliverables-data.mjs"
 
 const db = new PrismaClient()
 
@@ -205,6 +206,26 @@ async function main() {
     }
   }
 
+  // ── Club deliverables & deadlines (2026-2027) ──────────────────────────────
+  for (const d of deliverablesWithTerms()) {
+    const data = {
+      title: d.title,
+      description: d.description,
+      // Deadlines land end-of-day local; storing noon UTC keeps the calendar
+      // date stable regardless of the viewer's timezone.
+      dueAt: new Date(`${d.date}T12:00:00.000Z`),
+      term: d.term,
+      seat: d.seat,
+      kind: d.kind,
+      source: d.source,
+    }
+    await db.deliverable.upsert({
+      where: { key: d.key },
+      update: data,
+      create: { ...data, key: d.key, institutionId: institution.id },
+    })
+  }
+
   // Clubs from earlier scaffolds that the 2026-2027 roster does not list
   const currentSlugs = new Set(ROSTER.map((c) => c.slug))
   await db.organization.updateMany({
@@ -253,11 +274,12 @@ async function main() {
     clubs: ROSTER.length,
     seats: await db.role.count(),
     people: await db.directoryPerson.count(),
+    deliverables: await db.deliverable.count(),
     holdings: await db.seatHolding.count(),
   }
   console.log(
     `✅ Seed complete — ${counts.clubs} clubs, ${counts.seats} seats, ` +
-      `${counts.people} directory people, ${counts.holdings} seat holdings`
+      `${counts.people} directory people, ${counts.holdings} seat holdings, ${counts.deliverables} deliverables`
   )
 }
 
