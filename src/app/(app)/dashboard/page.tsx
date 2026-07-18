@@ -12,6 +12,8 @@ import {
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
+import { QuickLinks } from "@/components/QuickLinks"
+import { seatKeysForRole, type SeatKey } from "@/lib/resources"
 import { Card, CardHeader } from "@/components/ui/Card"
 
 export const metadata: Metadata = { title: "Dashboard" }
@@ -141,6 +143,17 @@ export default async function DashboardPage() {
     },
   ]
 
+  // Resource audiences this person belongs to, across every seat they hold
+  const quickLinkSeats: SeatKey[] = [
+    ...new Set<SeatKey>([
+      "ALL",
+      ...ctx.orgRoles
+        .filter((r) => r.status !== "ALUMNI")
+        .flatMap((r) => seatKeysForRole(r.roleName)),
+      ...(ctx.institutionRoles.length > 0 ? (["OSE"] as SeatKey[]) : []),
+    ]),
+  ]
+
   return (
     <div className="max-w-screen-2xl">
       <div className="mb-6">
@@ -174,6 +187,11 @@ export default async function DashboardPage() {
             </Card>
           </Link>
         ))}
+      </div>
+
+      {/* The links board members open constantly, scoped to their seats */}
+      <div className="mb-6">
+        <QuickLinks seats={quickLinkSeats} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

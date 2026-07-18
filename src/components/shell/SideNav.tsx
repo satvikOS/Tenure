@@ -13,6 +13,7 @@ import {
   Building2,
   BarChart3,
   Bell,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react"
 import { TenureAIMark } from "@/components/brand/TenureLogo"
@@ -57,6 +58,7 @@ function buildNav(showReports?: boolean): NavSection[] {
     {
       label: "Knowledge",
       items: [
+        { label: "Resources", href: "/resources", icon: BookOpen },
         { label: "Search", href: "/search", icon: Search },
         { label: "Tenure AI", href: "/search", icon: TenureAIMark, ai: true },
       ],

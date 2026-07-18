@@ -31,7 +31,8 @@ test.describe("club roster", () => {
     await signIn(page, "Dana Whitfield")
     await page.goto("/orgs/simon-consulting-club/members")
 
-    await expect(page.getByText("Arjun Prashant Moghe")).toBeVisible()
+    // He also appears as last year's 1Y MBA Rep further down the page
+    await expect(page.getByText("Arjun Prashant Moghe").first()).toBeVisible()
     const member = page.getByRole("link", { name: "amoghe@simon.rochester.edu" }).first()
     await expect(member).toHaveAttribute("href", /^mailto:amoghe@simon\.rochester\.edu/)
   })

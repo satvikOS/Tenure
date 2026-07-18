@@ -46,7 +46,14 @@ test.describe("community feed", () => {
     await signIn(page, "Priya Raman")
     await page.goto("/feed")
     const collabAs = page.getByLabel("Collaborate as").first()
-    await collabAs.selectOption({ label: "as Simon Women in Business" })
+    // selectOption matches labels exactly, and official names carry an
+    // acronym ("... (SWiB)") — resolve the value instead of hardcoding it.
+    const swibValue = await collabAs
+      .locator("option")
+      .filter({ hasText: "Simon Women in Business" })
+      .first()
+      .getAttribute("value")
+    await collabAs.selectOption(swibValue!)
     await page.getByPlaceholder("Add a note (optional)").first().fill("We'll bring 30 members.")
     await page.getByRole("button", { name: "Request to collaborate" }).first().click()
     await expect(page.getByText("1 pending OSE").first()).toBeVisible()
