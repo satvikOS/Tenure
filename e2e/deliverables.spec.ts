@@ -16,7 +16,7 @@ test.describe("club deliverables", () => {
 
     // Sept 30 2026 is the last weekday of the month
     await page.getByRole("button", { name: /^Day 30,/ }).click()
-    await expect(page.getByText(/Monthly club audit due — September/)).toBeVisible()
+    await expect(page.getByText(/Monthly club audit due — September/).first()).toBeVisible()
     await expect(page.getByText(/Ainslie OSE · Fall A/).first()).toBeVisible()
   })
 
@@ -26,7 +26,7 @@ test.describe("club deliverables", () => {
     // October 31 2026 is a Saturday, so the audit must fall back to Friday 30th
     await page.goto("/calendar?m=2026-10")
     await page.getByRole("button", { name: /^Day 30,/ }).click()
-    await expect(page.getByText(/Monthly club audit due — October/)).toBeVisible()
+    await expect(page.getByText(/Monthly club audit due — October/).first()).toBeVisible()
   })
 
   test("event submission deadlines carry the right mini-mester label", async ({ page }) => {
@@ -34,7 +34,7 @@ test.describe("club deliverables", () => {
     await page.goto("/calendar?m=2026-12")
 
     await page.getByRole("button", { name: /^Day 4,/ }).click()
-    await expect(page.getByText(/Spring A event submissions due/)).toBeVisible()
+    await expect(page.getByText(/Spring A event submissions due/).first()).toBeVisible()
   })
 
   test("deliverables render inert — no link to a detail page that does not exist", async ({
