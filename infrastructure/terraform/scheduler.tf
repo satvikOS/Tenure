@@ -41,6 +41,18 @@ resource "aws_iam_role" "scheduler" {
   })
 }
 
+locals {
+  # EventBridge returns the API destination ARN with a trailing UUID
+  # (.../name/3dbc6b38-...), but Scheduler rejects that form outright:
+  # "Provided Arn is not in correct format". It wants the bare
+  # arn:aws:events:<region>:<account>:api-destination/<name>.
+  reminders_destination_arn = replace(
+    aws_cloudwatch_event_api_destination.reminders.arn,
+    "//[0-9a-f-]{36}$/",
+    ""
+  )
+}
+
 resource "aws_iam_role_policy" "scheduler_invoke" {
   name = "${local.name_prefix}-scheduler-invoke"
   role = aws_iam_role.scheduler.id
@@ -49,9 +61,15 @@ resource "aws_iam_role_policy" "scheduler_invoke" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = ["events:InvokeApiDestination"]
-        Resource = aws_cloudwatch_event_api_destination.reminders.arn
+        Effect = "Allow"
+        Action = ["events:InvokeApiDestination"]
+        # Both forms, since the destination is addressed with and without
+        # its UUID depending on which service is doing the addressing.
+        Resource = [
+          aws_cloudwatch_event_api_destination.reminders.arn,
+          local.reminders_destination_arn,
+          "${local.reminders_destination_arn}/*",
+        ]
       },
     ]
   })
@@ -104,7 +122,7 @@ resource "aws_scheduler_schedule" "deliverable_reminders" {
   schedule_expression_timezone = "UTC"
 
   target {
-    arn      = aws_cloudwatch_event_api_destination.reminders.arn
+    arn      = local.reminders_destination_arn
     role_arn = aws_iam_role.scheduler.arn
 
     retry_policy {
