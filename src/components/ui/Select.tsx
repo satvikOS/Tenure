@@ -38,7 +38,7 @@ export function Select({
   options: SelectOption[]
   defaultSelectedKey?: string
   selectedKey?: string | null
-  onSelectionChange?: (key: Key) => void
+  onSelectionChange?: (key: Key | null) => void
   placeholder?: string
   className?: string
 }) {

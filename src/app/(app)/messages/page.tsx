@@ -5,8 +5,18 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
 import { Card, CardHeader } from "@/components/ui/Card"
+import { Avatar } from "@/components/ui/Avatar"
 import { SeeAllSection } from "@/components/ui/SeeAllSection"
 import { openBoardChannel, sendBroadcast } from "./actions"
+
+function ago(d: Date): string {
+  const s = Math.max(0, (Date.now() - d.getTime()) / 1000)
+  if (s < 60) return "now"
+  if (s < 3600) return `${Math.floor(s / 60)}m`
+  if (s < 86400) return `${Math.floor(s / 3600)}h`
+  if (s < 604800) return `${Math.floor(s / 86400)}d`
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+}
 
 export const dynamic = "force-dynamic"
 
@@ -42,8 +52,12 @@ export default async function MessagesPage() {
     take: 50,
     include: {
       organization: { select: { name: true } },
-      participants: { include: { user: { select: { id: true, name: true } } } },
-      messages: { orderBy: { createdAt: "desc" }, take: 1 },
+      participants: { include: { user: { select: { id: true, name: true, image: true } } } },
+      messages: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        include: { sender: { select: { name: true } } },
+      },
     },
   })
 
@@ -114,26 +128,36 @@ export default async function MessagesPage() {
                     ? others.map((p) => p.user.name ?? "Unknown").join(", ") || "Direct message"
                     : c.organization?.name ?? "Conversation")
                 const last = c.messages[0]
+                const dm = c.type === "DIRECT_MESSAGE" ? others[0]?.user : null
                 return (
                   <li key={c.id}>
                     <Link
                       href={`/messages/${c.id}`}
-                      className="flex items-center gap-3 px-5 py-3.5 hover:bg-base transition-colors no-underline"
+                      className="flex items-center gap-3 px-5 py-3.5 no-underline transition-colors hover:bg-base"
                     >
-                      <Icon size={16} className="text-text-3 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm truncate ${unreadCount ? "font-semibold" : "font-medium"} text-text-1`}>
-                          {label}
-                        </p>
+                      {dm ? (
+                        <Avatar name={dm.name ?? "?"} imageUrl={dm.image} size="md" />
+                      ) : (
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-subtle text-text-3">
+                          <Icon size={18} />
+                        </span>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <p className={`truncate text-sm ${unreadCount ? "font-semibold" : "font-medium"} text-text-1`}>
+                            {label}
+                          </p>
+                          {last && <span className="shrink-0 text-meta text-text-3">{ago(last.createdAt)}</span>}
+                        </div>
                         {last && (
-                          <p className="text-xs text-text-3 truncate mt-0.5">{last.body}</p>
+                          <p className="mt-0.5 truncate text-[13px] text-text-3">
+                            {last.sender?.name ? `${last.sender.name.split(" ")[0]}: ` : ""}
+                            {last.body}
+                          </p>
                         )}
                       </div>
                       {unreadCount > 0 && (
-                        <span
-                          className="text-xs font-semibold px-1.5 py-0.5 rounded-full shrink-0"
-                          style={{ background: "var(--primary-light)", color: "var(--primary)" }}
-                        >
+                        <span className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-[--primary] px-1 text-[11px] font-bold text-white">
                           {unreadCount}
                         </span>
                       )}

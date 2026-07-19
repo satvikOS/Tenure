@@ -4,10 +4,19 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
 import { canPostToConversation, canReadConversation } from "@/lib/messaging"
+import { storageConfigured } from "@/lib/s3"
+import { Paperclip } from "@/components/ui/icons"
 import { Card } from "@/components/ui/Card"
 import { Avatar } from "@/components/ui/Avatar"
 import { BackButton } from "@/components/BackButton"
 import { sendMessage } from "../actions"
+
+function formatBytes(n: number | null): string {
+  if (!n) return ""
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`
+}
 
 interface ChipPerson {
   id: string
@@ -66,7 +75,10 @@ export default async function ConversationPage({
       messages: {
         orderBy: { createdAt: "asc" },
         take: 100,
-        include: { sender: { select: { id: true, name: true, image: true } } },
+        include: {
+          sender: { select: { id: true, name: true, image: true } },
+          attachments: { select: { id: true, fileName: true, mimeType: true, sizeBytes: true } },
+        },
       },
     },
   })
@@ -166,7 +178,22 @@ export default async function ConversationPage({
                       })}
                     </p>
                   </div>
-                  <p className="mt-1 whitespace-pre-wrap text-sm text-text-1">{m.body}</p>
+                  {m.body && <p className="mt-1 whitespace-pre-wrap text-sm text-text-1">{m.body}</p>}
+                  {m.attachments.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {m.attachments.map((a) => (
+                        <a
+                          key={a.id}
+                          href={`/api/attachment/${a.id}`}
+                          className="inline-flex items-center gap-2 rounded-md border border-border bg-base px-3 py-1.5 text-[13px] text-text-1 no-underline transition-colors hover:border-[--primary]"
+                        >
+                          <Paperclip size={14} className="text-text-3" />
+                          <span className="max-w-[200px] truncate">{a.fileName}</span>
+                          {a.sizeBytes ? <span className="text-text-3">{formatBytes(a.sizeBytes)}</span> : null}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </li>
             ))}
@@ -175,17 +202,24 @@ export default async function ConversationPage({
       </Card>
 
       {canPost ? (
-        <form action={sendWithId} className="mt-4 flex gap-2">
-          <input
-            name="body"
-            required
-            autoComplete="off"
-            placeholder="Write a message…"
-            className="h-10 flex-1 rounded border border-border px-3 text-sm text-text-1"
-          />
-          <button className="h-10 rounded bg-[--primary] px-4 text-sm font-medium text-white hover:opacity-90">
-            Send
-          </button>
+        <form action={sendWithId} encType="multipart/form-data" className="mt-4 space-y-2">
+          <div className="flex gap-2">
+            <input
+              name="body"
+              autoComplete="off"
+              placeholder="Write a message…"
+              className="h-10 flex-1 rounded-md border border-border px-3.5 text-[15px] text-text-1 outline-none focus:border-[--border-focus]"
+            />
+            <button className="h-10 rounded-md bg-[--primary] px-5 text-sm font-medium text-white hover:bg-[--primary-hover]">
+              Send
+            </button>
+          </div>
+          {storageConfigured() && (
+            <label className="inline-flex cursor-pointer items-center gap-2 text-[13px] text-text-3">
+              <Paperclip size={14} /> Attach files
+              <input type="file" name="attachments" multiple className="text-[13px] text-text-2" />
+            </label>
+          )}
         </form>
       ) : (
         <p className="mt-4 text-xs text-text-3">
