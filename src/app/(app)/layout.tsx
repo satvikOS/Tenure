@@ -5,6 +5,7 @@ import { getUserContext } from "@/lib/rbac"
 import { ShellHeader } from "@/components/shell/ShellHeader"
 import { SideNav } from "@/components/shell/SideNav"
 import { Footer } from "@/components/shell/Footer"
+import { MainRegion } from "@/components/shell/MainRegion"
 import { AIProvider } from "@/components/ai/AIProvider"
 import { TenureAIPanel } from "@/components/ai/TenureAIPanel"
 import { signOutAction } from "./actions"
@@ -37,19 +38,9 @@ export default async function AppLayout({
         showReports={ctx.institutionRoles.length > 0}
         showAdmin={ctx.institutionRoles.length > 0}
       />
-      <main
-        className="min-h-screen bg-base"
-        style={{
-          paddingTop: "var(--shell-height)",
-          paddingLeft: "var(--sidenav-width)",
-          // Room for the hardened (fixed) footer so content never hides beneath it.
-          paddingBottom: "var(--footer-height)",
-        }}
-      >
-        {/* Width and gutters live here, not on every page, so the whole app
-            responds to the viewport consistently. */}
-        <div className="page-shell py-7 sm:py-8">{children}</div>
-      </main>
+      {/* Width and gutters live inside MainRegion, which also squeezes the
+          content in when the Tenure AI panel opens. */}
+      <MainRegion>{children}</MainRegion>
       {/* Hardened frame: header + side nav + footer stay put; only this main
           content region scrolls. */}
       <Footer />

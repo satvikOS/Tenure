@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
 import { Card, CardHeader } from "@/components/ui/Card"
+import { SeeAllSection } from "@/components/ui/SeeAllSection"
 import { openBoardChannel, sendBroadcast } from "./actions"
 
 export const dynamic = "force-dynamic"
@@ -59,6 +60,21 @@ export default async function MessagesPage() {
     : await db.organization.findMany({ where: { institutionId: { in: oseInstitutionIds } } })
 
   const canBroadcast = oseInstitutionIds.length > 0
+
+  const boardChannelList = (orgs: typeof myOrgs) => (
+    <ul className="space-y-2">
+      {orgs.map((o) => (
+        <li key={o.id}>
+          <form action={openBoardChannel}>
+            <input type="hidden" name="organizationId" value={o.id} />
+            <button className="inline-flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-left text-sm text-text-1 transition-colors hover:border-[--primary] hover:bg-base">
+              <Hash size={14} className="text-text-3" /> {o.name}
+            </button>
+          </form>
+        </li>
+      ))}
+    </ul>
+  )
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -133,19 +149,14 @@ export default async function MessagesPage() {
       <div className="space-y-4 lg:pt-14">
         {myOrgs.length > 0 && (
           <Card>
-            <CardHeader title="Board channels" />
-            <ul className="space-y-2">
-              {myOrgs.map((o) => (
-                <li key={o.id}>
-                  <form action={openBoardChannel}>
-                    <input type="hidden" name="organizationId" value={o.id} />
-                    <button className="w-full text-left inline-flex items-center gap-2 rounded border border-border px-3 py-2 text-sm text-text-1 hover:border-[--primary] hover:bg-blue-50 transition-colors">
-                      <Hash size={14} className="text-text-3" /> {o.name}
-                    </button>
-                  </form>
-                </li>
-              ))}
-            </ul>
+            <SeeAllSection
+              title="Board channels"
+              count={myOrgs.length}
+              overlayTitle="Board channels"
+              full={myOrgs.length > 6 ? boardChannelList(myOrgs) : undefined}
+            >
+              {boardChannelList(myOrgs.slice(0, 6))}
+            </SeeAllSection>
           </Card>
         )}
 

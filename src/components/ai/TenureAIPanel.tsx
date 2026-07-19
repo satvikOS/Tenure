@@ -85,10 +85,11 @@ export function TenureAIPanel() {
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — only on narrow screens, where the panel overlays instead
+          of squeezing the content. */}
       <div
         onClick={closePanel}
-        className={`fixed inset-0 z-[60] bg-black/20 transition-opacity ${
+        className={`fixed inset-0 z-[60] bg-black/20 transition-opacity lg:hidden ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         aria-hidden
@@ -99,7 +100,7 @@ export function TenureAIPanel() {
         aria-label="Tenure AI assistant"
         aria-hidden={open ? undefined : true}
         inert={!open}
-        className={`fixed right-0 z-[61] flex w-[min(30rem,100vw)] flex-col border-l border-border bg-surface shadow-lg transition-transform duration-300 ${
+        className={`fixed right-0 z-[61] flex w-[min(26rem,100vw)] flex-col border-l border-border bg-surface shadow-lg transition-transform duration-300 ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
         style={{ top: "var(--shell-height)", bottom: "var(--footer-height)" }}
