@@ -116,6 +116,18 @@ test.describe("calendar + conflicts + publishing", () => {
     await expect(page.getByText("Your seats")).toBeVisible()
   })
 
+  test("week and day views render an hourly grid", async ({ page }) => {
+    await signIn(page, "Priya Raman")
+
+    await page.goto("/calendar?view=week")
+    await expect(page.getByRole("link", { name: "Next week" })).toBeVisible()
+    await expect(page.getByText("7am").first()).toBeVisible()
+
+    await page.goto("/calendar?view=day")
+    await expect(page.getByRole("link", { name: "Next day" })).toBeVisible()
+    await expect(page.getByText("7am").first()).toBeVisible()
+  })
+
   test("agenda view, Outlook subscription and the ICS feed", async ({ page }) => {
     await signIn(page, "Dana Whitfield")
     await page.goto("/calendar")
