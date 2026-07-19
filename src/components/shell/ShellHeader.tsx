@@ -18,6 +18,7 @@ import { useAI } from "@/components/ai/AIProvider"
 interface ShellHeaderProps {
   userName?: string
   userEmail?: string
+  userImage?: string
   orgName?: string
   unreadNotifications?: number
   onSignOut?: () => Promise<void>
@@ -26,6 +27,7 @@ interface ShellHeaderProps {
 export function ShellHeader({
   userName = "User",
   userEmail,
+  userImage,
   orgName,
   unreadNotifications = 0,
   onSignOut,
@@ -91,12 +93,21 @@ export function ShellHeader({
             style={{ color: "var(--shell-text-secondary)" }}
             aria-label="User menu"
           >
-            <div
-              className="grid h-7 w-7 place-items-center rounded-full text-[13px] font-semibold text-white"
-              style={{ background: "var(--primary)" }}
-            >
-              {userName[0]?.toUpperCase()}
-            </div>
+            {userImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={userImage}
+                alt=""
+                className="h-7 w-7 rounded-full object-cover ring-1 ring-white/25"
+              />
+            ) : (
+              <div
+                className="grid h-7 w-7 place-items-center rounded-full text-[13px] font-semibold text-white"
+                style={{ background: "var(--primary)" }}
+              >
+                {userName[0]?.toUpperCase()}
+              </div>
+            )}
             <span className="hidden text-sm text-white sm:block">{userName}</span>
             <ChevronDown size={14} />
           </Button>

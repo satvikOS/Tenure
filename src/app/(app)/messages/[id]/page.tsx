@@ -5,8 +5,36 @@ import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
 import { canPostToConversation, canReadConversation } from "@/lib/messaging"
 import { Card } from "@/components/ui/Card"
+import { Avatar } from "@/components/ui/Avatar"
 import { BackButton } from "@/components/BackButton"
 import { sendMessage } from "../actions"
+
+interface ChipPerson {
+  id: string
+  name: string | null
+  image: string | null
+}
+
+/** An email-style recipient line with avatars — From / To / Cc. */
+function RecipientRow({ label, people }: { label: string; people: ChipPerson[] }) {
+  if (people.length === 0) return null
+  return (
+    <div className="flex items-start gap-3">
+      <span className="w-9 shrink-0 pt-1.5 text-[13px] font-semibold text-text-3">{label}</span>
+      <div className="flex flex-wrap gap-1.5">
+        {people.map((u) => (
+          <span
+            key={u.id}
+            className="inline-flex items-center gap-1.5 rounded-full bg-base py-0.5 pl-0.5 pr-2.5"
+          >
+            <Avatar name={u.name ?? "?"} imageUrl={u.image} size="sm" />
+            <span className="text-[13px] font-medium text-text-1">{u.name ?? "Unknown"}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export const dynamic = "force-dynamic"
 
@@ -34,11 +62,11 @@ export default async function ConversationPage({
     include: {
       organization: { select: { name: true } },
       approval: { select: { id: true, title: true } },
-      participants: { include: { user: { select: { id: true, name: true } } } },
+      participants: { include: { user: { select: { id: true, name: true, image: true } } } },
       messages: {
         orderBy: { createdAt: "asc" },
         take: 100,
-        include: { sender: { select: { id: true, name: true } } },
+        include: { sender: { select: { id: true, name: true, image: true } } },
       },
     },
   })
@@ -73,12 +101,11 @@ export default async function ConversationPage({
   // Email-style header lines. From = original sender; Bcc participants are
   // visible only to themselves — nobody else learns they were included.
   const firstSenderId = convo.messages[0]?.senderId
-  const nameOf = (p: (typeof convo.participants)[number]) => p.user.name ?? "Unknown"
-  const fromName = convo.messages[0]?.sender.name
-  const toLine = convo.participants
+  const fromSender = convo.messages[0]?.sender
+  const toParts = convo.participants
     .filter((p) => p.kind === "to" && p.userId !== firstSenderId)
-    .map(nameOf)
-  const ccLine = convo.participants.filter((p) => p.kind === "cc").map(nameOf)
+    .map((p) => p.user)
+  const ccParts = convo.participants.filter((p) => p.kind === "cc").map((p) => p.user)
   const selfBcc = convo.participants.find((p) => p.kind === "bcc" && p.userId === userId)
 
   const sendWithId = sendMessage.bind(null, convo.id)
@@ -99,15 +126,21 @@ export default async function ConversationPage({
             View the approval request →
           </Link>
         )}
-        {convo.type === "DIRECT_MESSAGE" && toLine.length > 0 && (
-          <div className="mt-1 text-xs text-text-3">
-            {fromName && <p>{`From: ${fromName}`}</p>}
-            <p>{`To: ${toLine.join(", ")}`}</p>
-            {ccLine.length > 0 && <p>{`Cc: ${ccLine.join(", ")}`}</p>}
-            {selfBcc && <p>Bcc: you</p>}
-          </div>
-        )}
       </div>
+
+      {convo.type === "DIRECT_MESSAGE" && toParts.length > 0 && (
+        <div className="mb-4 space-y-2 rounded-lg border border-border bg-surface p-4">
+          {fromSender && <RecipientRow label="From" people={[fromSender]} />}
+          <RecipientRow label="To" people={toParts} />
+          <RecipientRow label="Cc" people={ccParts} />
+          {selfBcc && (
+            <div className="flex items-start gap-3">
+              <span className="w-9 shrink-0 text-[13px] font-semibold text-text-3">Bcc</span>
+              <span className="text-[13px] text-text-2">you</span>
+            </div>
+          )}
+        </div>
+      )}
 
       <Card padding="none">
         {convo.messages.length === 0 ? (
@@ -117,21 +150,24 @@ export default async function ConversationPage({
         ) : (
           <ul className="divide-y divide-border">
             {convo.messages.map((m) => (
-              <li key={m.id} className="px-5 py-3.5">
-                <div className="flex items-baseline gap-2">
-                  <p className="text-sm font-semibold text-text-1">
-                    {m.sender.name ?? "Unknown"}
-                  </p>
-                  <p className="text-xs text-text-3">
-                    {m.createdAt.toLocaleString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </p>
+              <li key={m.id} className="flex gap-3 px-5 py-4">
+                <Avatar name={m.sender.name ?? "?"} imageUrl={m.sender.image} size="md" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-sm font-semibold text-text-1">
+                      {m.sender.name ?? "Unknown"}
+                    </p>
+                    <p className="text-[13px] text-text-3">
+                      {m.createdAt.toLocaleString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-text-1">{m.body}</p>
                 </div>
-                <p className="text-sm text-text-1 mt-1 whitespace-pre-wrap">{m.body}</p>
               </li>
             ))}
           </ul>

@@ -96,7 +96,11 @@ model User {
   name          String?
   email         String?   @unique
   emailVerified DateTime?
+  // Profile picture. `image` is what the UI renders (an external URL or the
+  // /api/profile-image proxy path); `imageKey` is the S3 object key for
+  // uploaded pictures, resolved to a signed URL by the proxy.
   image         String?
+  imageKey      String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

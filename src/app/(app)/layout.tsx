@@ -17,9 +17,11 @@ export default async function AppLayout({
   const session = await auth()
   if (!session?.user) redirect("/signin")
 
-  const [ctx, unreadNotifications] = await Promise.all([
+  const [ctx, unreadNotifications, me] = await Promise.all([
     getUserContext(session.user.id),
     db.notification.count({ where: { userId: session.user.id, readAt: null } }),
+    // Fresh image (JWT sessions don't refresh it when the user changes it).
+    db.user.findUnique({ where: { id: session.user.id }, select: { image: true } }),
   ])
 
   return (
@@ -27,6 +29,7 @@ export default async function AppLayout({
       <ShellHeader
         userName={session.user.name ?? session.user.email ?? "User"}
         userEmail={session.user.email ?? undefined}
+        userImage={me?.image ?? undefined}
         unreadNotifications={unreadNotifications}
         onSignOut={signOutAction}
       />
