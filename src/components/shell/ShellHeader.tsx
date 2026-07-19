@@ -41,7 +41,7 @@ export function ShellHeader({
       {/* Brand — rosette + wordmark */}
       <Link
         href="/dashboard"
-        className="flex shrink-0 items-center gap-2.5 text-white no-underline"
+        className="flex shrink-0 items-center gap-2.5 text-[--shell-text] no-underline"
       >
         <TenureLogo size={26} color="#25a96d" />
         <span className="font-display text-lg font-bold tracking-tight">Tenure</span>
@@ -71,9 +71,9 @@ export function ShellHeader({
             onClick={openPanel}
             className="hidden h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors md:inline-flex"
             style={{
-              color: "#ffffff",
-              background: "rgba(37, 169, 109, 0.18)",
-              border: "1px solid rgba(37, 169, 109, 0.45)",
+              color: "var(--primary)",
+              background: "var(--primary-light)",
+              border: "1px solid var(--primary)",
             }}
             aria-label="Ask Tenure AI"
           >
@@ -98,7 +98,7 @@ export function ShellHeader({
               <img
                 src={userImage}
                 alt=""
-                className="h-7 w-7 rounded-full object-cover ring-1 ring-white/25"
+                className="h-7 w-7 rounded-full object-cover ring-1 ring-border"
               />
             ) : (
               <div
@@ -108,7 +108,7 @@ export function ShellHeader({
                 {userName[0]?.toUpperCase()}
               </div>
             )}
-            <span className="hidden text-sm text-white sm:block">{userName}</span>
+            <span className="hidden text-sm text-[--shell-text] sm:block">{userName}</span>
             <ChevronDown size={14} />
           </Button>
           <Popover

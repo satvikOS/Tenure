@@ -275,11 +275,6 @@ export default async function DashboardPage() {
         </StatGrid>
       </div>
 
-      {/* The links board members open constantly, scoped to their seats */}
-      <div className="mb-6">
-        <QuickLinks seats={quickLinkSeats} />
-      </div>
-
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Recent activity — capped preview, full list in a See-all overlay */}
         <Card className="lg:col-span-2">
@@ -300,7 +295,9 @@ export default async function DashboardPage() {
           </SeeAllSection>
         </Card>
 
+        {/* Right rail — the compact cards stack evenly beside recent activity */}
         <div className="space-y-5">
+          <QuickLinks seats={quickLinkSeats} />
           {mySeats.length > 0 && (
             <Card>
               <SeeAllSection

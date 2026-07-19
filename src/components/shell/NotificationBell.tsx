@@ -91,7 +91,7 @@ export function NotificationBell({ initialUnread = 0 }: { initialUnread?: number
     <DialogTrigger onOpenChange={(open) => open && refresh()}>
       <Button
         aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}
-        className="relative grid h-10 w-10 place-items-center rounded-lg text-[--shell-text-secondary] outline-none transition-colors data-[hovered]:bg-[--shell-item-hover] data-[hovered]:text-white data-[focus-visible]:ring-2 data-[focus-visible]:ring-[--primary]"
+        className="relative grid h-10 w-10 place-items-center rounded-lg text-[--shell-text-secondary] outline-none transition-colors data-[hovered]:bg-[--shell-item-hover] data-[hovered]:text-[--shell-text] data-[focus-visible]:ring-2 data-[focus-visible]:ring-[--primary]"
       >
         <Bell size={19} />
         {unread > 0 && (

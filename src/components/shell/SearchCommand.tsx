@@ -129,7 +129,7 @@ export function SearchCommand() {
               placeholder="Search Tenure…"
               aria-label="Search Tenure"
               autoComplete="off"
-              className="flex-1 bg-transparent text-sm text-white outline-none placeholder:text-[--shell-text-secondary]"
+              className="flex-1 bg-transparent text-sm text-[--shell-text] outline-none placeholder:text-[--shell-text-secondary]"
             />
           </div>
         </form>
@@ -185,7 +185,7 @@ export function SearchCommand() {
       <Link
         href="/search"
         aria-label="Search Tenure"
-        className="grid h-10 w-10 place-items-center rounded-lg text-[--shell-text-secondary] no-underline transition-colors hover:bg-[--shell-item-hover] hover:text-white sm:hidden"
+        className="grid h-10 w-10 place-items-center rounded-lg text-[--shell-text-secondary] no-underline transition-colors hover:bg-[--shell-item-hover] hover:text-[--shell-text] sm:hidden"
       >
         <Search size={18} />
       </Link>

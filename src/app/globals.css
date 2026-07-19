@@ -13,14 +13,15 @@
 ────────────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    /* Shell — tenure-landing "ink" navy */
-    --shell-bg: #0c1e33;
-    --shell-bg-elevated: #12294180;
-    --shell-text: #ffffff;
-    --shell-text-secondary: rgba(255, 255, 255, 0.68);
-    --shell-border: #21384f;
-    --shell-item-hover: rgba(255, 255, 255, 0.09);
-    --shell-item-active: rgba(255, 255, 255, 0.15);
+    /* Shell — light in light mode (matches the side nav and footer), dark in
+       dark mode. Theme-aware so the whole frame reads as one surface. */
+    --shell-bg: #ffffff;
+    --shell-bg-elevated: #f5f7f9;
+    --shell-text: #0c1e33;
+    --shell-text-secondary: #46586c;
+    --shell-border: #e3e7ec;
+    --shell-item-hover: rgba(12, 30, 51, 0.05);
+    --shell-item-active: rgba(12, 30, 51, 0.08);
 
     /* Primary — tenure-landing "grove" green */
     --primary: #1c8c5a;

@@ -15,7 +15,7 @@ export function QuickLinks({ seats }: { seats: SeatKey[] }) {
   if (links.length === 0) return null
 
   return (
-    <Card className="max-w-xl">
+    <Card>
       <QuickLinksRotator links={links} />
     </Card>
   )
