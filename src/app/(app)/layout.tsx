@@ -5,6 +5,8 @@ import { getUserContext } from "@/lib/rbac"
 import { ShellHeader } from "@/components/shell/ShellHeader"
 import { SideNav } from "@/components/shell/SideNav"
 import { Footer } from "@/components/shell/Footer"
+import { AIProvider } from "@/components/ai/AIProvider"
+import { TenureAIPanel } from "@/components/ai/TenureAIPanel"
 import { signOutAction } from "./actions"
 
 export default async function AppLayout({
@@ -21,7 +23,7 @@ export default async function AppLayout({
   ])
 
   return (
-    <>
+    <AIProvider>
       <ShellHeader
         userName={session.user.name ?? session.user.email ?? "User"}
         userEmail={session.user.email ?? undefined}
@@ -48,6 +50,7 @@ export default async function AppLayout({
       {/* Hardened frame: header + side nav + footer stay put; only this main
           content region scrolls. */}
       <Footer />
-    </>
+      <TenureAIPanel />
+    </AIProvider>
   )
 }

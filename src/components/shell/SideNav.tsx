@@ -17,6 +17,7 @@ import {
   type IconType,
 } from "@/components/ui/icons"
 import { TenureAIMark } from "@/components/brand/TenureLogo"
+import { useAI } from "@/components/ai/AIProvider"
 
 interface NavItem {
   label: string
@@ -80,25 +81,33 @@ interface SideNavProps {
 
 function ItemLink({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon
-  return (
-    <Link
-      href={item.href}
-      className={`
-        mx-2.5 flex h-11 items-center gap-3 rounded-lg px-3 text-[15px] no-underline transition-colors
-        ${
-          active
-            ? "bg-[--primary-light] font-semibold text-[--primary]"
-            : "text-text-2 hover:bg-base hover:text-text-1"
-        }
-      `}
-      aria-current={active ? "page" : undefined}
-    >
-      <Icon
-        size={19}
-        {...(item.ai ? {} : { strokeWidth: active ? 2.4 : 2 })}
-        className={active ? "text-[--primary]" : "text-text-3"}
-      />
+  const { openPanel } = useAI()
+  const className = `
+    mx-2.5 flex h-11 items-center gap-3 rounded-lg px-3 text-[15px] no-underline transition-colors
+    ${
+      active
+        ? "bg-[--primary-light] font-semibold text-[--primary]"
+        : "text-text-2 hover:bg-base hover:text-text-1"
+    }
+  `
+  const inner = (
+    <>
+      <Icon size={19} className={active ? "text-[--primary]" : "text-text-3"} />
       <span className="truncate">{item.label}</span>
+    </>
+  )
+
+  // Tenure AI opens the right-side assistant panel instead of navigating.
+  if (item.ai) {
+    return (
+      <button type="button" onClick={openPanel} className={`w-[calc(100%-1.25rem)] ${className}`}>
+        {inner}
+      </button>
+    )
+  }
+  return (
+    <Link href={item.href} className={className} aria-current={active ? "page" : undefined}>
+      {inner}
     </Link>
   )
 }

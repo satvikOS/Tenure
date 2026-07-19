@@ -11,8 +11,9 @@ import {
 import { ChevronDown, LogOut, UserRound } from "@/components/ui/icons"
 import { TenureAIMark, TenureLogo } from "@/components/brand/TenureLogo"
 import { EmailLink } from "@/components/EmailLink"
-import { SearchBar } from "./SearchBar"
+import { SearchCommand } from "./SearchCommand"
 import { NotificationBell } from "./NotificationBell"
+import { useAI } from "@/components/ai/AIProvider"
 
 interface ShellHeaderProps {
   userName?: string
@@ -29,6 +30,7 @@ export function ShellHeader({
   unreadNotifications = 0,
   onSignOut,
 }: ShellHeaderProps) {
+  const { openPanel } = useAI()
   return (
     <header
       className="fixed top-0 left-0 right-0 z-50 flex h-shell items-center gap-3 px-4 sm:px-5"
@@ -62,9 +64,10 @@ export function ShellHeader({
           search sits directly left of the notification bell. */}
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <div className="flex items-center gap-2">
-          <Link
-            href="/search"
-            className="hidden h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-medium no-underline transition-colors md:inline-flex"
+          <button
+            type="button"
+            onClick={openPanel}
+            className="hidden h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors md:inline-flex"
             style={{
               color: "#ffffff",
               background: "rgba(37, 169, 109, 0.18)",
@@ -74,9 +77,9 @@ export function ShellHeader({
           >
             <TenureAIMark size={17} color="#2fbf7d" />
             Tenure AI
-          </Link>
+          </button>
 
-          <SearchBar />
+          <SearchCommand />
         </div>
 
         <NotificationBell initialUnread={unreadNotifications} />

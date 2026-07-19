@@ -10,12 +10,15 @@ async function signIn(page: Page, userName: string) {
 }
 
 test.describe("shell + brand", () => {
-  test("header has the Tenure AI entry outside the search bar", async ({ page }) => {
+  test("the Tenure AI entry opens the right-side assistant panel", async ({ page }) => {
     await signIn(page, "Maya Johnson")
-    const ai = page.getByRole("link", { name: "Ask Tenure AI" })
+    const ai = page.getByRole("button", { name: "Ask Tenure AI" })
     await expect(ai).toBeVisible()
     await ai.click()
-    await expect(page).toHaveURL(/\/search/)
+    const panel = page.getByRole("complementary", { name: "Tenure AI assistant" })
+    await expect(panel).toBeVisible()
+    await expect(panel.getByRole("textbox", { name: "Ask Tenure AI" })).toBeVisible()
+    await panel.getByRole("button", { name: "Close Tenure AI" }).click()
   })
 
   test("footer with wordmark and copyright renders on every page", async ({ page }) => {
