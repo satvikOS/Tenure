@@ -121,7 +121,7 @@ export default async function AdminOverviewPage() {
             What your OSE role can do across the institution.
           </p>
           <ul className="space-y-2">
-            {caps.map((id) => (
+            {caps.slice(0, 6).map((id) => (
               <li key={id} className="flex items-start gap-2.5 text-sm">
                 <CheckCircle size={16} className="mt-0.5 shrink-0 text-[--success]" />
                 <span>
@@ -131,6 +131,11 @@ export default async function AdminOverviewPage() {
               </li>
             ))}
           </ul>
+          {caps.length > 6 && (
+            <p className="mt-3 text-[13px] font-medium text-text-3">
+              + {caps.length - 6} more capabilities in your role
+            </p>
+          )}
         </BentoTile>
 
         {/* Recent admin activity */}
@@ -140,7 +145,7 @@ export default async function AdminOverviewPage() {
             <p className="text-sm text-text-3">No activity yet.</p>
           ) : (
             <ul className="space-y-3">
-              {recentAudit.map((e) => (
+              {recentAudit.slice(0, 6).map((e) => (
                 <li key={e.id} className="flex items-start gap-2.5">
                   {e.outcome === "DENY" ? (
                     <AlertTriangle size={15} className="mt-0.5 shrink-0 text-[--error]" />
@@ -172,6 +177,12 @@ export default async function AdminOverviewPage() {
               ))}
             </ul>
           )}
+          <Link
+            href="/admin/audit"
+            className="mt-4 inline-flex items-center gap-1 text-[13px] font-medium text-text-link no-underline hover:underline"
+          >
+            Full audit log <ArrowRight size={13} />
+          </Link>
         </BentoTile>
       </BentoGrid>
     </div>

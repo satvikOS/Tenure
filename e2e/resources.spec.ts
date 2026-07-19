@@ -10,12 +10,12 @@ async function signIn(page: Page, userName: string) {
 }
 
 test.describe("board resources", () => {
-  test("dashboard surfaces quick links to the OSE forms", async ({ page }) => {
+  test("dashboard surfaces a compact rotating quick-links card", async ({ page }) => {
     await signIn(page, "Priya Raman")
     await expect(page.getByText("Quick links")).toBeVisible()
-
-    const simonSource = page.getByRole("link", { name: /SimonSource/ }).first()
-    await expect(simonSource).toHaveAttribute("href", /12twenty\.com/)
+    // The compact card rotates through the seat's resource links and offers a
+    // route to the full resource hub.
+    await expect(page.getByRole("link", { name: /All resources/ })).toBeVisible()
   })
 
   test("resources page groups by seat and links out to the real forms", async ({ page }) => {
@@ -24,6 +24,9 @@ test.describe("board resources", () => {
 
     await expect(page.getByRole("heading", { name: "Board Resources" })).toBeVisible()
 
+    await expect(
+      page.getByRole("link", { name: /SimonSource/ }).first()
+    ).toHaveAttribute("href", /12twenty\.com/)
     await expect(
       page.getByRole("link", { name: /Student Expense Form/ }).first()
     ).toHaveAttribute("href", /form\.jotform\.com/)
