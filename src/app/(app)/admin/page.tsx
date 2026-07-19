@@ -8,7 +8,6 @@ import {
   CheckCircle,
   Archive,
   ArrowRight,
-  ShieldCheck,
 } from "@/components/ui/icons"
 import { db } from "@/lib/db"
 import { requireAdminContext } from "@/lib/admin/guard"
@@ -93,8 +92,8 @@ export default async function AdminOverviewPage() {
             {[
               { href: "/admin/clubs", label: "Charter or edit a club", icon: Building2 },
               { href: "/admin/clubs", label: "Assign, remove or transfer a role", icon: UserCog },
+              { href: "/admin/approvals", label: "Override an approval", icon: CheckCircle },
               { href: "/admin/people", label: "Manage directory & OSE access", icon: Users },
-              { href: "/admin/audit", label: "Review the audit log", icon: ShieldCheck },
             ].map((a) => (
               <Link
                 key={a.label}

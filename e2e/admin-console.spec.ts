@@ -54,4 +54,22 @@ test.describe("admin console", () => {
     await page.getByRole("button", { name: /Remove Jaime Esquivel/ }).first().click()
     await expect(page.getByRole("button", { name: /Remove Jaime Esquivel/ })).toHaveCount(0)
   })
+
+  test("admin can force-decide any approval, overriding the gates", async ({ page }) => {
+    const title = `E2E Override ${stamp}`
+    // A VP submits a request — it enters the normal President/OSE gate.
+    await signIn(page, "Victor Chen")
+    await page.goto("/approvals/new")
+    await page.getByLabel("Title").fill(title)
+    await page.getByRole("button", { name: "Submit for approval" }).click()
+    await page.waitForURL(/\/approvals\/(?!new)[a-z0-9]+$/)
+
+    // The director force-approves it directly from the console.
+    await signIn(page, "Dana Whitfield")
+    await page.goto("/admin/approvals")
+    const row = page.locator("li").filter({ hasText: title })
+    await row.getByRole("button", { name: "Force approve" }).click()
+    await expect(row.getByText("Approved")).toBeVisible()
+    await expect(row.getByRole("button", { name: "Force approve" })).toHaveCount(0)
+  })
 })

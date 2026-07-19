@@ -27,6 +27,7 @@ export type CapabilityId =
   | "seat.manage"
   | "directory.manage"
   | "institution.grantRole"
+  | "approval.override"
   | "audit.view"
 
 export interface Capability {
@@ -102,6 +103,12 @@ export const CAPABILITIES: Record<CapabilityId, Capability> = {
     id: "institution.grantRole",
     label: "Grant OSE access",
     description: "Grant or revoke Director / Staff / Advisor access.",
+    minRole: "OSE_DIRECTOR",
+  },
+  "approval.override": {
+    id: "approval.override",
+    label: "Override approvals",
+    description: "Force-approve or force-reject any request institution-wide, bypassing the gates.",
     minRole: "OSE_DIRECTOR",
   },
   "audit.view": {

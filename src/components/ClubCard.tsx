@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Users, Archive, ArchiveRestore } from "@/components/ui/icons"
 import type { OrgStatus, OrgCategory } from "@prisma/client"
 import { Badge } from "@/components/ui/Badge"
+import { Avatar } from "@/components/ui/Avatar"
 import { setClubStatus } from "@/app/(app)/orgs/actions"
 
 const CATEGORY_LABEL: Record<OrgCategory, string> = {
@@ -9,19 +10,6 @@ const CATEGORY_LABEL: Record<OrgCategory, string> = {
   PROFESSIONAL: "Professional",
   COMMUNITY: "Community",
   SOCIAL: "Social",
-}
-
-const BANNER_HUES = [210, 262, 288, 152, 24, 340, 190, 128]
-function hueFor(seed: string): number {
-  let h = 0
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
-  return BANNER_HUES[h % BANNER_HUES.length]
-}
-function monogram(name: string): string {
-  const parts = name.replace(/\(.*?\)/g, "").trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return "?"
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
 export interface ClubCardStats {
@@ -32,10 +20,11 @@ export interface ClubCardStats {
 }
 
 /**
- * The single, uniform club card. Every card is the same height and structure:
- * an image (or generated monogram) banner, the category lozenge, name, a
- * two-line description, a seats summary, and a dedicated footer action row —
- * so the archive control lives beside the content instead of on top of it.
+ * The single, uniform club card. Every card is the same structure and height:
+ * an optional image banner (only when the club has one — otherwise a clean,
+ * uncoloured header with a muted monogram), the category lozenge, name, a
+ * two-line description, a seats summary, and a dedicated footer action row so
+ * the archive control never overlaps the content.
  */
 export function ClubCard({
   org,
@@ -54,39 +43,30 @@ export function ClubCard({
   stats: ClubCardStats
   canArchive: boolean
 }) {
-  const hue = hueFor(org.name)
-
   return (
     <article className="tile-float group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface hover:border-[--border-strong]">
-      {/* Banner — uploaded/linked image or a deterministic monogram */}
-      <div className="relative h-28 shrink-0 overflow-hidden">
-        {org.logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+      {org.logoUrl && (
+        <div className="h-28 shrink-0 overflow-hidden border-b border-border">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={org.logoUrl} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <div
-            className="grid h-full w-full place-items-center"
-            style={{
-              background: `linear-gradient(135deg, hsl(${hue} 20% 44%), hsl(${hue} 24% 30%))`,
-            }}
-          >
-            <span className="font-display text-3xl font-bold text-white/95">{monogram(org.name)}</span>
-          </div>
-        )}
-        <div className="absolute right-3 top-3 flex gap-1.5">
-          {org.status !== "ACTIVE" && (
-            <Badge variant={org.status === "ARCHIVED" ? "default" : "warning"}>
-              {org.status.toLowerCase()}
-            </Badge>
-          )}
-          <span className="rounded-md bg-black/45 px-2 py-1 text-[12px] font-semibold leading-none text-white backdrop-blur-sm">
-            {CATEGORY_LABEL[org.category]}
-          </span>
         </div>
-      </div>
+      )}
 
-      {/* Body */}
       <div className="flex flex-1 flex-col p-5">
+        <div className="mb-3 flex items-center gap-3">
+          {!org.logoUrl && <Avatar name={org.name} size="lg" />}
+          <div className="flex flex-1 flex-wrap items-center gap-1.5">
+            <span className="rounded-md bg-subtle px-2 py-1 text-[12px] font-semibold leading-none text-text-2">
+              {CATEGORY_LABEL[org.category]}
+            </span>
+            {org.status !== "ACTIVE" && (
+              <Badge variant={org.status === "ARCHIVED" ? "default" : "warning"}>
+                {org.status.toLowerCase()}
+              </Badge>
+            )}
+          </div>
+        </div>
+
         <h3 className="font-display text-base font-semibold text-text-1">
           <Link
             href={`/orgs/${org.slug}/members`}
@@ -98,6 +78,7 @@ export function ClubCard({
         <p className="mt-1.5 line-clamp-2 min-h-[2.7em] text-sm text-text-2">
           {org.description || "No description yet."}
         </p>
+
         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-text-3">
           <span className="inline-flex items-center gap-1.5">
             <Users size={14} /> {stats.filledSeats}/{stats.boardSeats} seats filled
@@ -109,7 +90,7 @@ export function ClubCard({
         )}
       </div>
 
-      {/* Footer action row — sits above the stretched link, so no overlap */}
+      {/* Footer action row — above the stretched link, so no overlap */}
       <div className="relative z-10 flex items-center justify-between gap-2 border-t border-border px-5 py-3">
         <span className="text-[13px] font-medium text-text-link">View roster →</span>
         {canArchive && (

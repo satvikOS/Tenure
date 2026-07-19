@@ -2,11 +2,19 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutGrid, Building2, Users, ScrollText, type IconType } from "@/components/ui/icons"
+import {
+  LayoutGrid,
+  Building2,
+  Users,
+  ScrollText,
+  CheckCircle,
+  type IconType,
+} from "@/components/ui/icons"
 
 const TABS: { href: string; label: string; icon: IconType; exact?: boolean }[] = [
   { href: "/admin", label: "Overview", icon: LayoutGrid, exact: true },
   { href: "/admin/clubs", label: "Clubs", icon: Building2 },
+  { href: "/admin/approvals", label: "Approvals", icon: CheckCircle },
   { href: "/admin/people", label: "Directory & Access", icon: Users },
   { href: "/admin/audit", label: "Audit log", icon: ScrollText },
 ]

@@ -316,6 +316,60 @@ export async function adminGrantInstitutionRole(formData: FormData) {
   revalidateAdmin()
 }
 
+// ─── Approvals: force-decide (override the gates) ─────────────────────────────
+
+export async function adminDecideApproval(formData: FormData) {
+  const approvalId = String(formData.get("approvalId") ?? "")
+  const decision = String(formData.get("decision") ?? "") as "APPROVED" | "REJECTED"
+  const approval = await db.approvalRequest.findUnique({
+    where: { id: approvalId },
+    include: { event: { select: { id: true, title: true } } },
+  })
+  if (!approval) throw new Error("Request not found")
+  const { userId } = await requireCapability("approval.override", {
+    institutionId: approval.institutionId,
+    organizationId: approval.organizationId,
+    resourceType: "ApprovalRequest",
+    resourceId: approvalId,
+    reason: "OSE override",
+  })
+  if (!["APPROVED", "REJECTED"].includes(decision)) throw new Error("Invalid decision")
+  if (["APPROVED", "REJECTED", "CANCELLED"].includes(approval.status))
+    throw new Error("This request is already decided")
+
+  await db.$transaction([
+    db.approvalRequest.update({ where: { id: approvalId }, data: { status: decision } }),
+    db.approvalStep.create({
+      data: {
+        approvalId,
+        fromStatus: approval.status,
+        toStatus: decision,
+        actorId: userId,
+        actorRoleContext: "OSE Override",
+        reason: "Administrator override",
+        policySnapshot: { override: true },
+      },
+    }),
+    ...(approval.event && decision === "APPROVED"
+      ? [db.event.update({ where: { id: approval.event.id }, data: { status: "PUBLISHED" } })]
+      : []),
+    ...(approval.event && decision === "REJECTED"
+      ? [db.event.update({ where: { id: approval.event.id }, data: { status: "CANCELLED" } })]
+      : []),
+  ])
+
+  await notifyUsers([approval.submittedById], {
+    title: `“${approval.title}” was ${decision === "APPROVED" ? "approved" : "rejected"} by OSE`,
+    body: "An administrator decided this request directly.",
+    href: `/approvals/${approvalId}`,
+    excludeUserId: userId,
+  })
+  revalidateAdmin()
+  revalidatePath("/admin/approvals")
+  revalidatePath("/approvals")
+  revalidatePath(`/approvals/${approvalId}`)
+}
+
 export async function adminRevokeInstitutionRole(formData: FormData) {
   const { institutionId, userId: actorId } = await requireCapability("institution.grantRole", {
     resourceType: "InstitutionMembership",
