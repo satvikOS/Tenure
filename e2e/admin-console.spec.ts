@@ -72,4 +72,25 @@ test.describe("admin console", () => {
     await expect(row.getByText("Approved")).toBeVisible()
     await expect(row.getByRole("button", { name: "Force approve" })).toHaveCount(0)
   })
+
+  test("admin can archive any content via overrides", async ({ page }) => {
+    const title = `E2E Moderate ${stamp}`
+    // A VP writes a memory card.
+    await signIn(page, "Victor Chen")
+    await page.goto("/orgs/simon-consulting-club/memory")
+    await page.getByLabel("Type").selectOption("VENDOR")
+    await page.getByLabel("Title").fill(title)
+    await page
+      .getByPlaceholder("The details your successor will thank you for.")
+      .fill(`moderation details ${stamp}`)
+    await page.getByRole("button", { name: "Save card" }).click()
+    await expect(page.getByText(title)).toBeVisible()
+
+    // The director archives it institution-wide from the overrides hub.
+    await signIn(page, "Dana Whitfield")
+    await page.goto("/admin/overrides")
+    const row = page.locator("li").filter({ hasText: title })
+    await row.getByRole("button", { name: "Archive" }).click()
+    await expect(row.getByText("archived")).toBeVisible()
+  })
 })

@@ -8,6 +8,7 @@ import {
   Users,
   ScrollText,
   CheckCircle,
+  SlidersHorizontal,
   type IconType,
 } from "@/components/ui/icons"
 
@@ -15,6 +16,7 @@ const TABS: { href: string; label: string; icon: IconType; exact?: boolean }[] =
   { href: "/admin", label: "Overview", icon: LayoutGrid, exact: true },
   { href: "/admin/clubs", label: "Clubs", icon: Building2 },
   { href: "/admin/approvals", label: "Approvals", icon: CheckCircle },
+  { href: "/admin/overrides", label: "Overrides", icon: SlidersHorizontal },
   { href: "/admin/people", label: "Directory & Access", icon: Users },
   { href: "/admin/audit", label: "Audit log", icon: ScrollText },
 ]

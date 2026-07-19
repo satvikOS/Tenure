@@ -393,3 +393,85 @@ export async function adminRevokeInstitutionRole(formData: FormData) {
     })
   revalidateAdmin()
 }
+
+// ─── Entity overrides: events, content, budgets ──────────────────────────────
+
+export async function adminSetEventStatus(formData: FormData) {
+  const eventId = String(formData.get("eventId") ?? "")
+  const status = String(formData.get("status") ?? "") as "PUBLISHED" | "CANCELLED"
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, institutionId: true, organizationId: true },
+  })
+  if (!event) throw new Error("Event not found")
+  await requireCapability("event.override", {
+    institutionId: event.institutionId,
+    organizationId: event.organizationId,
+    resourceType: "Event",
+    resourceId: eventId,
+  })
+  if (!["PUBLISHED", "CANCELLED"].includes(status)) throw new Error("Invalid status")
+  await db.event.update({ where: { id: eventId }, data: { status } })
+  revalidateAdmin()
+  revalidatePath("/calendar")
+  revalidatePath(`/calendar/${eventId}`)
+  revalidatePath("/admin/overrides")
+}
+
+export async function adminSetMemoryArchived(formData: FormData) {
+  const memoryId = String(formData.get("memoryId") ?? "")
+  const archived = String(formData.get("archived") ?? "") === "true"
+  const rec = await db.memoryRecord.findUnique({
+    where: { id: memoryId },
+    select: { id: true, institutionId: true, organizationId: true },
+  })
+  if (!rec) throw new Error("Memory record not found")
+  await requireCapability("content.override", {
+    institutionId: rec.institutionId,
+    organizationId: rec.organizationId,
+    resourceType: "MemoryRecord",
+    resourceId: memoryId,
+  })
+  await db.memoryRecord.update({ where: { id: memoryId }, data: { isArchived: archived } })
+  revalidateAdmin()
+  revalidatePath("/admin/overrides")
+}
+
+export async function adminSetDocumentArchived(formData: FormData) {
+  const documentId = String(formData.get("documentId") ?? "")
+  const archived = String(formData.get("archived") ?? "") === "true"
+  const doc = await db.document.findUnique({
+    where: { id: documentId },
+    select: { id: true, institutionId: true, organizationId: true },
+  })
+  if (!doc) throw new Error("Document not found")
+  await requireCapability("content.override", {
+    institutionId: doc.institutionId,
+    organizationId: doc.organizationId,
+    resourceType: "Document",
+    resourceId: documentId,
+  })
+  await db.document.update({ where: { id: documentId }, data: { isArchived: archived } })
+  revalidateAdmin()
+  revalidatePath("/admin/overrides")
+}
+
+export async function adminAdjustBudget(formData: FormData) {
+  const budgetId = String(formData.get("budgetId") ?? "")
+  const allocatedCents = Math.max(0, Math.round(Number(formData.get("allocatedDollars") ?? 0) * 100))
+  const notes = String(formData.get("notes") ?? "").trim()
+  const budget = await db.budget.findUnique({
+    where: { id: budgetId },
+    select: { id: true, institutionId: true, organizationId: true },
+  })
+  if (!budget) throw new Error("Budget not found")
+  await requireCapability("budget.override", {
+    institutionId: budget.institutionId,
+    organizationId: budget.organizationId,
+    resourceType: "Budget",
+    resourceId: budgetId,
+  })
+  await db.budget.update({ where: { id: budgetId }, data: { allocatedCents, notes: notes || null } })
+  revalidateAdmin()
+  revalidatePath("/admin/overrides")
+}

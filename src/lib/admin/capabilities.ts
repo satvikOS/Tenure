@@ -28,6 +28,9 @@ export type CapabilityId =
   | "directory.manage"
   | "institution.grantRole"
   | "approval.override"
+  | "event.override"
+  | "content.override"
+  | "budget.override"
   | "audit.view"
 
 export interface Capability {
@@ -109,6 +112,24 @@ export const CAPABILITIES: Record<CapabilityId, Capability> = {
     id: "approval.override",
     label: "Override approvals",
     description: "Force-approve or force-reject any request institution-wide, bypassing the gates.",
+    minRole: "OSE_DIRECTOR",
+  },
+  "event.override": {
+    id: "event.override",
+    label: "Override events",
+    description: "Publish or cancel any club event across the institution.",
+    minRole: "OSE_DIRECTOR",
+  },
+  "content.override": {
+    id: "content.override",
+    label: "Moderate content",
+    description: "Archive or restore any memory record or document.",
+    minRole: "OSE_STAFF",
+  },
+  "budget.override": {
+    id: "budget.override",
+    label: "Adjust budgets",
+    description: "Edit any club's budget allocation and notes.",
     minRole: "OSE_DIRECTOR",
   },
   "audit.view": {
