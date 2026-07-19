@@ -6,6 +6,7 @@ import { hasCapability, roleLabel } from "@/lib/admin/capabilities"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Avatar } from "@/components/ui/Avatar"
+import { Select } from "@/components/ui/Select"
 import { EmailLink } from "@/components/EmailLink"
 import { adminGrantInstitutionRole, adminRevokeInstitutionRole, adminAddDirectoryPerson } from "../actions"
 
@@ -77,14 +78,17 @@ export default async function AdminPeoplePage() {
                 className="h-10 w-full rounded-md border border-border px-3.5 text-[15px] text-text-1 outline-none focus:border-[--border-focus]"
               />
             </label>
-            <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-text-2">
-              Role
-              <select name="role" className="h-10 rounded-md border border-border bg-surface px-2.5 text-[15px] text-text-1">
-                <option value="OSE_STAFF">Staff</option>
-                <option value="OSE_ADVISOR">Advisor</option>
-                <option value="OSE_DIRECTOR">Director</option>
-              </select>
-            </label>
+            <Select
+              label="Role"
+              name="role"
+              defaultSelectedKey="OSE_STAFF"
+              className="min-w-40"
+              options={[
+                { value: "OSE_STAFF", label: "Staff" },
+                { value: "OSE_ADVISOR", label: "Advisor" },
+                { value: "OSE_DIRECTOR", label: "Director" },
+              ]}
+            />
             <button className="inline-flex h-10 items-center gap-2 rounded-md bg-[--accent] px-5 text-sm font-medium text-[--accent-text] hover:bg-[--accent-hover]">
               <ShieldCheck size={16} /> Grant access
             </button>
@@ -111,13 +115,16 @@ export default async function AdminPeoplePage() {
               Email
               <input type="email" name="email" required placeholder="jlee@rochester.edu" className="h-10 rounded-md border border-border px-3.5 text-[15px] text-text-1 outline-none focus:border-[--border-focus]" />
             </label>
-            <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-text-2">
-              Kind
-              <select name="kind" className="h-10 rounded-md border border-border bg-surface px-2.5 text-[15px] text-text-1">
-                <option value="STUDENT">Student</option>
-                <option value="ADVISOR">Advisor</option>
-              </select>
-            </label>
+            <Select
+              label="Kind"
+              name="kind"
+              defaultSelectedKey="STUDENT"
+              className="min-w-36"
+              options={[
+                { value: "STUDENT", label: "Student" },
+                { value: "ADVISOR", label: "Advisor" },
+              ]}
+            />
             <label className="flex min-w-40 flex-1 flex-col gap-1.5 text-[13px] font-semibold text-text-2">
               Affiliation (optional)
               <input name="affiliation" placeholder="Ainslie OSE" className="h-10 rounded-md border border-border px-3.5 text-[15px] text-text-1 outline-none focus:border-[--border-focus]" />

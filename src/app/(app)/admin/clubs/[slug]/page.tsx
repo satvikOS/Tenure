@@ -6,6 +6,7 @@ import { requireAdminContext } from "@/lib/admin/guard"
 import { hasCapability } from "@/lib/admin/capabilities"
 import { storageConfigured } from "@/lib/s3"
 import { Card, CardHeader } from "@/components/ui/Card"
+import { Select } from "@/components/ui/Select"
 import { Badge, AssignmentBadge } from "@/components/ui/Badge"
 import { Avatar } from "@/components/ui/Avatar"
 import { PageHeader } from "@/components/ui/PageHeader"
@@ -104,19 +105,17 @@ export default async function AdminClubDetailPage({
                 className="h-10 rounded-md border border-border px-3.5 text-[15px] text-text-1 outline-none focus:border-[--border-focus]"
               />
             </label>
-            <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-text-2">
-              Category
-              <select
-                name="category"
-                defaultValue={org.category}
-                className="h-10 rounded-md border border-border bg-surface px-2.5 text-[15px] text-text-1"
-              >
-                <option value="PROFESSIONAL">Professional</option>
-                <option value="COMMUNITY">Community</option>
-                <option value="ORGANIZATION">Organization</option>
-                <option value="SOCIAL">Social</option>
-              </select>
-            </label>
+            <Select
+              label="Category"
+              name="category"
+              defaultSelectedKey={org.category}
+              options={[
+                { value: "PROFESSIONAL", label: "Professional" },
+                { value: "COMMUNITY", label: "Community" },
+                { value: "ORGANIZATION", label: "Organization" },
+                { value: "SOCIAL", label: "Social" },
+              ]}
+            />
             <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-text-2 sm:col-span-2">
               Description
               <input
@@ -268,17 +267,17 @@ export default async function AdminClubDetailPage({
                 className="h-10 w-full rounded-md border border-border px-3.5 text-[15px] text-text-1 outline-none focus:border-[--border-focus]"
               />
             </label>
-            <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-text-2">
-              Scope
-              <select
-                name="scope"
-                className="h-10 rounded-md border border-border bg-surface px-2.5 text-[15px] text-text-1"
-              >
-                <option value="FUNCTIONAL">Functional (VP / Chair)</option>
-                <option value="PRESIDENT">President</option>
-                <option value="MEMBER">Member</option>
-              </select>
-            </label>
+            <Select
+              label="Scope"
+              name="scope"
+              defaultSelectedKey="FUNCTIONAL"
+              className="min-w-48"
+              options={[
+                { value: "FUNCTIONAL", label: "Functional (VP / Chair)" },
+                { value: "PRESIDENT", label: "President" },
+                { value: "MEMBER", label: "Member" },
+              ]}
+            />
             <button className="inline-flex h-10 items-center gap-2 rounded-md bg-[--accent] px-5 text-sm font-medium text-[--accent-text] hover:bg-[--accent-hover]">
               <Plus size={16} /> Add seat
             </button>

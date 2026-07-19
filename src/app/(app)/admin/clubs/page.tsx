@@ -7,7 +7,15 @@ import { hasCapability } from "@/lib/admin/capabilities"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Avatar } from "@/components/ui/Avatar"
+import { Select } from "@/components/ui/Select"
 import { adminCharterClub, adminSetOrgStatus } from "../actions"
+
+const CATEGORY_OPTIONS = [
+  { value: "PROFESSIONAL", label: "Professional" },
+  { value: "COMMUNITY", label: "Community" },
+  { value: "ORGANIZATION", label: "Organization" },
+  { value: "SOCIAL", label: "Social" },
+]
 
 export const metadata: Metadata = { title: "Admin · Clubs" }
 export const dynamic = "force-dynamic"
@@ -105,19 +113,13 @@ export default async function AdminClubsPage() {
                 className="h-10 w-full rounded-md border border-border px-3.5 text-[15px] text-text-1 outline-none focus:border-[--border-focus]"
               />
             </label>
-            <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-text-2">
-              Category
-              <select
-                name="category"
-                required
-                className="h-10 rounded-md border border-border bg-surface px-2.5 text-[15px] text-text-1"
-              >
-                <option value="PROFESSIONAL">Professional</option>
-                <option value="COMMUNITY">Community</option>
-                <option value="ORGANIZATION">Organization</option>
-                <option value="SOCIAL">Social</option>
-              </select>
-            </label>
+            <Select
+              label="Category"
+              name="category"
+              defaultSelectedKey="PROFESSIONAL"
+              options={CATEGORY_OPTIONS}
+              className="min-w-44"
+            />
             <label className="flex min-w-48 flex-1 flex-col gap-1.5 text-[13px] font-semibold text-text-2">
               Description
               <input
