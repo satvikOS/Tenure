@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { ExternalLink, AlertCircle } from "lucide-react"
+import { ExternalLink, AlertCircle } from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { getUserContext, isOse } from "@/lib/rbac"
 import { Badge } from "@/components/ui/Badge"

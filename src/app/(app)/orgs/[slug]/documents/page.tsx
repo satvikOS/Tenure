@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
-import { FileText, Download, Eye, Sparkles, Trash2 } from "lucide-react"
+import { FileText, Download, Eye, Sparkles, Trash2 } from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canContribute, canManageRoster, canViewOrg, getUserContext } from "@/lib/rbac"

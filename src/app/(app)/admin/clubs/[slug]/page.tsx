@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 import type { Metadata } from "next"
-import { UserPlus, ArrowLeftRight, X, Plus, Trash2 } from "lucide-react"
+import { UserPlus, ArrowLeftRight, X, Plus, Trash2 } from "@/components/ui/icons"
 import { db } from "@/lib/db"
 import { requireAdminContext } from "@/lib/admin/guard"
 import { hasCapability } from "@/lib/admin/capabilities"

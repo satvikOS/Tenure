@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Hash, Megaphone, MessageSquare, FileCheck, PenSquare } from "lucide-react"
+import { Hash, Megaphone, MessageSquare, FileCheck, PenSquare } from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"

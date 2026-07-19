@@ -1,7 +1,7 @@
 "use client"
 
 import { Button as AriaButton } from "react-aria-components"
-import { ImagePlus, Trash2, Link2, Upload } from "lucide-react"
+import { ImagePlus, Trash2, Link2, Upload } from "@/components/ui/icons"
 import { Overlay } from "@/components/ui/Overlay"
 import { Avatar } from "@/components/ui/Avatar"
 import { setOrgImageUrl, uploadOrgImage, removeOrgImage } from "@/app/(app)/orgs/actions"

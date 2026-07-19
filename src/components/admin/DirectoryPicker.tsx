@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Search, X, UserRound, Loader2 } from "lucide-react"
+import { Search, X, UserRound, Loader2 } from "@/components/ui/icons"
 import { Avatar } from "@/components/ui/Avatar"
 
 interface Entry {

@@ -6,7 +6,7 @@ import { hasCapability } from "@/lib/admin/capabilities"
 import { Card } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { EmptyState } from "@/components/ui/EmptyState"
-import { ScrollText } from "lucide-react"
+import { ScrollText } from "@/components/ui/icons"
 
 export const metadata: Metadata = { title: "Admin · Audit log" }
 export const dynamic = "force-dynamic"

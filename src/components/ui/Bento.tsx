@@ -1,6 +1,6 @@
 import { type ReactNode } from "react"
 import Link from "next/link"
-import { type LucideIcon } from "lucide-react"
+import { type IconType } from "@/components/ui/icons"
 
 /**
  * The Bento system — one uniform tile grammar for the whole product.
@@ -60,7 +60,7 @@ export function BentoTile({
     <div
       className={`
         ${SPAN[span] ?? SPAN[4]}
-        rounded-lg border ${toneClass} shadow-sm
+        tile-float rounded-lg border ${toneClass}
         ${padding ? "p-5 sm:p-6" : ""}
         ${className ?? ""}
       `}
@@ -89,18 +89,18 @@ export function StatTile({
   label: string
   value: ReactNode
   hint?: string
-  icon: LucideIcon
+  icon: IconType
   color?: string
   bg?: string
   href?: string
 }) {
   const inner = (
-    <div className="flex h-full flex-col rounded-lg border border-border bg-surface p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6">
+    <div className="tile-float flex h-full flex-col rounded-lg border border-border bg-surface p-5 sm:p-6">
       <div
         className="grid h-11 w-11 shrink-0 place-items-center rounded-lg"
         style={{ background: bg }}
       >
-        <Icon size={22} style={{ color }} strokeWidth={2} />
+        <Icon size={22} style={{ color }} weight="duotone" />
       </div>
       <p
         className="mt-4 text-3xl font-bold tabular-nums"

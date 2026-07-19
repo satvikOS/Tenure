@@ -14,14 +14,14 @@ import {
   Bell,
   BookOpen,
   ShieldCheck,
-  type LucideIcon,
-} from "lucide-react"
+  type IconType,
+} from "@/components/ui/icons"
 import { TenureAIMark } from "@/components/brand/TenureLogo"
 
 interface NavItem {
   label: string
   href: string
-  icon: LucideIcon | typeof TenureAIMark
+  icon: IconType | typeof TenureAIMark
   ai?: boolean
 }
 
@@ -114,7 +114,7 @@ export function SideNav({ showReports, showAdmin }: SideNavProps) {
   return (
     <nav
       className="fixed left-0 z-40 flex w-sidenav flex-col border-r border-border bg-surface"
-      style={{ top: "var(--shell-height)", bottom: 0 }}
+      style={{ top: "var(--shell-height)", bottom: "var(--footer-height)" }}
       aria-label="Primary navigation"
     >
       <div className="flex-1 overflow-y-auto py-4">

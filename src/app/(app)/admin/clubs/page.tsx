@@ -1,6 +1,6 @@
 import Link from "next/link"
 import type { Metadata } from "next"
-import { Archive, ArchiveRestore, ArrowRight, Plus } from "lucide-react"
+import { Archive, ArchiveRestore, ArrowRight, Plus } from "@/components/ui/icons"
 import { db } from "@/lib/db"
 import { requireAdminContext } from "@/lib/admin/guard"
 import { hasCapability } from "@/lib/admin/capabilities"

@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react"
+import type { IconType } from "@/components/ui/icons"
 import { Card } from "@/components/ui/Card"
 
 export function ComingSoon({
@@ -7,7 +7,7 @@ export function ComingSoon({
   description,
   phase,
 }: {
-  icon: LucideIcon
+  icon: IconType
   title: string
   description: string
   phase: string

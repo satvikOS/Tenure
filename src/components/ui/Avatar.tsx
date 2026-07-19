@@ -37,6 +37,8 @@ export function Avatar({
   size?: keyof typeof SIZES
   className?: string
 }) {
+  // Muted, low-saturation tints: distinguishable per person/club but never
+  // colourful. Only entities without a profile picture fall back to this.
   const h = hueFor(name || "?")
   if (imageUrl) {
     return (
@@ -53,8 +55,8 @@ export function Avatar({
       aria-hidden
       className={`${SIZES[size]} grid shrink-0 place-items-center rounded-full font-semibold ${className ?? ""}`}
       style={{
-        background: `hsl(${h} 70% 92%)`,
-        color: `hsl(${h} 62% 32%)`,
+        background: `hsl(${h} 20% 90%)`,
+        color: `hsl(${h} 24% 34%)`,
       }}
     >
       {initials(name)}

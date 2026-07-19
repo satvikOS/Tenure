@@ -29,23 +29,25 @@
     --primary-light: #e4f1e9;
     --primary-text: #ffffff;
 
-    /* Accent — the administration system reads as its own, more powerful
-       surface. Indigo separates "override everything" from everyday work. */
-    --accent: #4f46b8;
-    --accent-hover: #413a99;
-    --accent-light: #ecebf9;
+    /* Accent — the administration system reads as its own, more authoritative
+       surface. Ink-slate (neutral, not a second brand colour) separates
+       "override everything" from everyday work while keeping the palette
+       professional and uncolourful. */
+    --accent: #26364a;
+    --accent-hover: #1a2634;
+    --accent-light: #eef1f5;
     --accent-text: #ffffff;
-    --accent-strong: #322c7a;
+    --accent-strong: #16202c;
 
-    /* Surfaces — offwhite base + pure white cards */
-    --bg-base: #f7f6fb;
+    /* Surfaces — neutral slate base + pure white cards */
+    --bg-base: #f5f7f9;
     --bg-surface: #ffffff;
-    --bg-subtle: #f2f1f7;
+    --bg-subtle: #eef1f4;
     --bg-overlay: rgba(12, 30, 51, 0.48);
 
     /* Borders */
-    --border: #e6e4ee;
-    --border-strong: #c9c5d8;
+    --border: #e3e7ec;
+    --border-strong: #c6cdd6;
     --border-focus: #1c8c5a;
 
     /* Text — ink scale */
@@ -75,8 +77,8 @@
     --badge-rejected-text: #a63c22;
     --badge-draft-bg: #f1ece2;
     --badge-draft-text: #46586c;
-    --badge-accent-bg: #ecebf9;
-    --badge-accent-text: #413a99;
+    --badge-accent-bg: #eef1f5;
+    --badge-accent-text: #26364a;
 
     /* Spacing scale — 4px base, extended for the roomier layout */
     --space-1: 4px;
@@ -128,11 +130,11 @@
     --primary-press: #1c8c5a;
     --primary-light: rgba(37, 169, 109, 0.16);
 
-    --accent: #8b83ff;
-    --accent-hover: #a49dff;
-    --accent-light: rgba(139, 131, 255, 0.16);
-    --accent-text: #05040f;
-    --accent-strong: #b7b1ff;
+    --accent: #cbd5e1;
+    --accent-hover: #e2e8f0;
+    --accent-light: rgba(203, 213, 225, 0.14);
+    --accent-text: #0b1220;
+    --accent-strong: #e2e8f0;
 
     --bg-base: #000000;
     --bg-surface: #0c0c10;
@@ -167,8 +169,8 @@
     --badge-rejected-text: #f2917a;
     --badge-draft-bg: rgba(255, 255, 255, 0.08);
     --badge-draft-text: #a9b8c6;
-    --badge-accent-bg: rgba(139, 131, 255, 0.18);
-    --badge-accent-text: #b7b1ff;
+    --badge-accent-bg: rgba(203, 213, 225, 0.16);
+    --badge-accent-text: #cbd5e1;
 
     --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
@@ -264,6 +266,20 @@
   /* Reading-width content (forms, prose) inside the wide shell */
   .prose-measure {
     max-width: 74ch;
+  }
+
+  /* Floating tiles — bento boxes and cards rest slightly above the surface and
+     lift a touch on hover, giving the product a soft, modern depth. */
+  .tile-float {
+    box-shadow: var(--shadow-sm);
+    transition:
+      box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 200ms ease;
+  }
+  .tile-float:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
   }
 
   /* Uniform bento grid — every dashboard/worklet grid opts into the same

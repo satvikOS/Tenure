@@ -9,7 +9,7 @@ import {
   Archive,
   ArrowRight,
   ShieldCheck,
-} from "lucide-react"
+} from "@/components/ui/icons"
 import { db } from "@/lib/db"
 import { requireAdminContext } from "@/lib/admin/guard"
 import { CAPABILITIES, capabilitiesForRole } from "@/lib/admin/capabilities"
@@ -70,23 +70,17 @@ export default async function AdminOverviewPage() {
           value={filledSeats}
           hint={`${vacantSeats} vacant`}
           icon={Users}
-          color="var(--info)"
-          bg="var(--info-light)"
         />
         <StatTile
           label="Pending approvals"
           value={pendingApprovals}
           icon={CheckCircle}
-          color="var(--warning)"
-          bg="var(--warning-light)"
           href="/approvals"
         />
         <StatTile
           label="Directory people"
           value={people}
           icon={UserCog}
-          color="var(--accent)"
-          bg="var(--accent-light)"
           href="/admin/people"
         />
       </StatGrid>

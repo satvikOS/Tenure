@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Search } from "lucide-react"
+import { Search } from "@/components/ui/icons"
 
 /**
  * Global search, promoted out of the side nav into the header where Workday and

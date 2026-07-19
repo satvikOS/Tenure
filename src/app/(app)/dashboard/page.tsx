@@ -8,7 +8,7 @@ import {
   Users,
   ArrowRight,
   Clock,
-} from "lucide-react"
+} from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
@@ -269,8 +269,6 @@ export default async function DashboardPage() {
               value={kpi.value}
               hint={kpi.hint}
               icon={kpi.icon}
-              color={kpi.color}
-              bg={kpi.bg}
               href={kpi.href}
             />
           ))}

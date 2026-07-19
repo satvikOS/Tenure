@@ -1,5 +1,5 @@
 import { type ReactNode } from "react"
-import { type LucideIcon } from "lucide-react"
+import { type IconType } from "@/components/ui/icons"
 
 /**
  * One empty state for the whole product. A muted icon, a plain statement of
@@ -13,7 +13,7 @@ export function EmptyState({
   action,
   className,
 }: {
-  icon: LucideIcon
+  icon: IconType
   title: string
   description?: string
   action?: ReactNode

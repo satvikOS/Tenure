@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
-import { Building2, Users, CheckCircle, CalendarCheck } from "lucide-react"
+import { Building2, Users, CheckCircle, CalendarCheck } from "@/components/ui/icons"
 import { Card, CardHeader, Attribute } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { PageHeader } from "@/components/ui/PageHeader"
@@ -112,24 +112,18 @@ export default async function ReportsPage() {
             value={activeSeats}
             hint={`${shadowSeats} incoming (shadow)`}
             icon={Users}
-            color="var(--info)"
-            bg="var(--info-light)"
           />
           <StatTile
             label="Approvals awaiting decision"
             value={pending}
             hint={`median time to decision ${medianLabel}`}
             icon={CheckCircle}
-            color="var(--warning)"
-            bg="var(--warning-light)"
           />
           <StatTile
             label="Published events"
             value={publishedEvents}
             hint={`${hardConflicts} unresolved hard conflict${hardConflicts === 1 ? "" : "s"}`}
             icon={CalendarCheck}
-            color="var(--accent)"
-            bg="var(--accent-light)"
           />
         </StatGrid>
       </div>

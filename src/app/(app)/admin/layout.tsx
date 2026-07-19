@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation"
-import { ShieldCheck } from "lucide-react"
+import { ShieldCheck } from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { getUserContext } from "@/lib/rbac"
 import { adminRoleAt, capabilitiesForRole, isAdmin, roleLabel } from "@/lib/admin/capabilities"

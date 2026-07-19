@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { UserPlus, ShieldCheck, X } from "lucide-react"
+import { UserPlus, ShieldCheck, X } from "@/components/ui/icons"
 import { db } from "@/lib/db"
 import { requireAdminContext } from "@/lib/admin/guard"
 import { hasCapability, roleLabel } from "@/lib/admin/capabilities"

@@ -8,7 +8,7 @@ import {
   DialogTrigger,
   Popover,
 } from "react-aria-components"
-import { Bell, BellOff, CheckCheck } from "lucide-react"
+import { Bell, BellOff, CheckCheck } from "@/components/ui/icons"
 
 interface NotificationItem {
   id: string

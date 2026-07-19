@@ -8,7 +8,7 @@ import {
   MenuTrigger,
   Popover,
 } from "react-aria-components"
-import { ChevronDown, LogOut, UserRound } from "lucide-react"
+import { ChevronDown, LogOut, UserRound } from "@/components/ui/icons"
 import { TenureAIMark, TenureLogo } from "@/components/brand/TenureLogo"
 import { EmailLink } from "@/components/EmailLink"
 import { SearchBar } from "./SearchBar"

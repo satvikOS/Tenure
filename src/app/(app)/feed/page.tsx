@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { CalendarDays, Handshake, MessageCircle, Newspaper } from "lucide-react"
+import { CalendarDays, Handshake, MessageCircle, Newspaper } from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext, isOseDirector } from "@/lib/rbac"

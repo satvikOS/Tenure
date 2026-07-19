@@ -9,7 +9,7 @@ import {
   Heading,
   Button as AriaButton,
 } from "react-aria-components"
-import { X } from "lucide-react"
+import { X } from "@/components/ui/icons"
 
 /**
  * A single, product-wide modal overlay. Every "See all", detail peek, and

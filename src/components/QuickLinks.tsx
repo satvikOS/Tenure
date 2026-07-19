@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight, ExternalLink } from "lucide-react"
+import { ArrowRight, ExternalLink } from "@/components/ui/icons"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { resourcesForSeats, type SeatKey } from "@/lib/resources"
 

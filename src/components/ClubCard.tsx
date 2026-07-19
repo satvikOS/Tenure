@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Users, Archive, ArchiveRestore } from "lucide-react"
+import { Users, Archive, ArchiveRestore } from "@/components/ui/icons"
 import type { OrgStatus, OrgCategory } from "@prisma/client"
 import { Badge } from "@/components/ui/Badge"
 import { setClubStatus } from "@/app/(app)/orgs/actions"
@@ -57,7 +57,7 @@ export function ClubCard({
   const hue = hueFor(org.name)
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-sm transition hover:border-[--border-strong] hover:shadow-md">
+    <article className="tile-float group relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface hover:border-[--border-strong]">
       {/* Banner — uploaded/linked image or a deterministic monogram */}
       <div className="relative h-28 shrink-0 overflow-hidden">
         {org.logoUrl ? (
@@ -67,7 +67,7 @@ export function ClubCard({
           <div
             className="grid h-full w-full place-items-center"
             style={{
-              background: `linear-gradient(135deg, hsl(${hue} 62% 55%), hsl(${(hue + 40) % 360} 58% 42%))`,
+              background: `linear-gradient(135deg, hsl(${hue} 20% 44%), hsl(${hue} 24% 30%))`,
             }}
           >
             <span className="font-display text-3xl font-bold text-white/95">{monogram(org.name)}</span>
