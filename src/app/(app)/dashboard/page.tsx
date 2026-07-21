@@ -18,6 +18,8 @@ import { Card } from "@/components/ui/Card"
 import { StatGrid, StatTile } from "@/components/ui/Bento"
 import { SeeAllSection } from "@/components/ui/SeeAllSection"
 import { Avatar } from "@/components/ui/Avatar"
+import { isFinanceRole } from "@/lib/rbac"
+import { formatCents } from "@/lib/finance"
 
 export const metadata: Metadata = { title: "Dashboard" }
 export const dynamic = "force-dynamic"
@@ -50,10 +52,42 @@ export default async function DashboardPage() {
   const mySeats = await db.roleAssignment.findMany({
     where: { userId: ctx.userId, status: { in: ["ACTIVE", "SHADOW"] } },
     include: {
-      role: { include: { organization: { select: { name: true, slug: true } } } },
+      role: { include: { organization: { select: { id: true, name: true, slug: true } } } },
     },
     orderBy: { startDate: "desc" },
   })
+
+  // Clubs whose money this person answers for (VP Finance / president seats):
+  // their budget summary belongs on the first page they land on, not three
+  // clicks deep behind a club tab.
+  const financeOrgs = [
+    ...new Map(
+      mySeats
+        .filter(
+          (s) =>
+            s.status === "ACTIVE" &&
+            (s.role.scope === "PRESIDENT" || isFinanceRole(s.role.name))
+        )
+        .map((s) => [s.role.organization.id, s.role.organization])
+    ).values(),
+  ]
+
+  const financeSummaries =
+    financeOrgs.length > 0
+      ? await Promise.all(
+          financeOrgs.map(async (org) => {
+            const agg = await db.budgetLine.aggregate({
+              where: { organizationId: org.id, academicYear: "2026-2027" },
+              _sum: { budgetedCents: true, actualCents: true },
+            })
+            return {
+              org,
+              budgetedCents: agg._sum.budgetedCents ?? 0,
+              actualCents: agg._sum.actualCents ?? 0,
+            }
+          })
+        )
+      : []
 
   const [pendingApprovals, upcomingEvents, unreadMessages, activeMembers, memberCounts, recentAudit] =
     await Promise.all([
@@ -297,6 +331,62 @@ export default async function DashboardPage() {
 
         {/* Right rail — the compact cards stack evenly beside recent activity */}
         <div className="space-y-5">
+          {/* Budget at a glance for finance seats, linking to the full chart */}
+          {financeSummaries.length > 0 && (
+            <Card>
+              <h2 className="text-sm font-semibold text-text-1">Club finances</h2>
+              <ul className="mt-3 space-y-3">
+                {financeSummaries.map(({ org, budgetedCents, actualCents }) => {
+                  const pct =
+                    budgetedCents > 0
+                      ? Math.min(100, Math.round((actualCents / budgetedCents) * 100))
+                      : 0
+                  const over = actualCents > budgetedCents
+                  return (
+                    <li key={org.id}>
+                      <Link
+                        href={`/orgs/${org.slug}/finance`}
+                        className="group block no-underline"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-sm text-text-1 group-hover:text-[--primary]">
+                            {org.name}
+                          </span>
+                          <ArrowRight size={13} className="shrink-0 text-text-3" />
+                        </div>
+                        {budgetedCents > 0 ? (
+                          <>
+                            <div
+                              className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full"
+                              style={{ background: "var(--bg-base)" }}
+                            >
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${pct}%`,
+                                  background: over ? "var(--error)" : "var(--primary)",
+                                }}
+                              />
+                            </div>
+                            <p className="mt-1 text-meta text-text-3 tabular">
+                              {formatCents(actualCents)} of {formatCents(budgetedCents)} spent
+                              {over && (
+                                <span className="text-[--error]"> · over budget</span>
+                              )}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="mt-1 text-meta text-text-3">
+                            No budget yet — set one up or upload a spreadsheet
+                          </p>
+                        )}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </Card>
+          )}
           <QuickLinks seats={quickLinkSeats} />
           {mySeats.length > 0 && (
             <Card>

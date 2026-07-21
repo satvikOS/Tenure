@@ -12,6 +12,25 @@ async function signIn(page: Page, userName: string) {
 const FINANCE_URL = "/orgs/simon-consulting-club/finance"
 
 test.describe("finance dashboard", () => {
+  test("VP of Finance lands on a Club finances card that links to the graph", async ({
+    page,
+  }) => {
+    await signIn(page, "Victor Chen")
+
+    // Straight on the dashboard — no digging through club tabs
+    await expect(page.getByText("Club finances")).toBeVisible()
+    await expect(page.getByText(/of .* spent/).first()).toBeVisible()
+
+    await page
+      .getByRole("link", { name: /Simon Consulting Club/ })
+      .first()
+      .click()
+    await expect(page).toHaveURL(/\/orgs\/simon-consulting-club\/finance/)
+    await expect(
+      page.getByRole("img", { name: /Budget versus actual spending/ })
+    ).toBeVisible()
+  })
+
   test("VP of Finance sees budget lines, summary and the chart", async ({ page }) => {
     await signIn(page, "Victor Chen") // VP Finance & Operations, consulting club
     await page.goto(FINANCE_URL)
