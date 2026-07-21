@@ -8,6 +8,7 @@ import {
   Users,
   ArrowRight,
   Clock,
+  type IconType,
 } from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
@@ -15,7 +16,10 @@ import { getUserContext } from "@/lib/rbac"
 import { QuickLinks } from "@/components/QuickLinks"
 import { seatKeysForRole, type SeatKey } from "@/lib/resources"
 import { Card } from "@/components/ui/Card"
-import { StatGrid, StatTile } from "@/components/ui/Bento"
+import { StatGrid, StatTile, type StatDelta } from "@/components/ui/Bento"
+import { Meter } from "@/components/charts"
+import { ActivityChart } from "@/components/charts/panels/ActivityChart"
+import { bucketByWeek, trendDelta } from "@/components/charts/timeseries"
 import { SeeAllSection } from "@/components/ui/SeeAllSection"
 import { Avatar } from "@/components/ui/Avatar"
 import { isFinanceRole } from "@/lib/rbac"
@@ -89,8 +93,23 @@ export default async function DashboardPage() {
         )
       : []
 
-  const [pendingApprovals, upcomingEvents, unreadMessages, activeMembers, memberCounts, recentAudit] =
-    await Promise.all([
+  // Trend windows for the KPI sparklines and the activity chart.
+  const now = new Date()
+  const TREND_WEEKS = 12
+  const trendSince = new Date(now.getTime() - TREND_WEEKS * 7 * 86_400_000)
+  const activitySince = new Date(now.getTime() - 30 * 86_400_000)
+
+  const [
+    pendingApprovals,
+    upcomingEvents,
+    unreadMessages,
+    activeMembers,
+    memberCounts,
+    recentAudit,
+    approvalTrend,
+    eventTrend,
+    activityAudit,
+  ] = await Promise.all([
       db.approvalRequest.count({
         where: {
           organizationId: { in: orgIds },
@@ -98,7 +117,7 @@ export default async function DashboardPage() {
         },
       }),
       db.event.count({
-        where: { organizationId: { in: orgIds }, startAt: { gte: new Date() } },
+        where: { organizationId: { in: orgIds }, startAt: { gte: now } },
       }),
       db.delivery.count({
         where: { readAt: null, participant: { userId: ctx.userId } },
@@ -117,7 +136,28 @@ export default async function DashboardPage() {
         take: 24,
         include: { institution: { select: { name: true } } },
       }),
+      db.approvalRequest.findMany({
+        where: { organizationId: { in: orgIds }, createdAt: { gte: trendSince } },
+        select: { createdAt: true },
+      }),
+      db.event.findMany({
+        where: { organizationId: { in: orgIds }, startAt: { gte: trendSince } },
+        select: { startAt: true },
+      }),
+      db.auditEvent.findMany({
+        where: { organizationId: { in: orgIds }, occurredAt: { gte: activitySince } },
+        select: { occurredAt: true },
+      }),
     ])
+
+  // Weekly buckets → sparkline series, plus a week-over-week delta chip.
+  const approvalSpark = bucketByWeek(approvalTrend.map((a) => a.createdAt), TREND_WEEKS, now)
+  const eventSpark = bucketByWeek(eventTrend.map((e) => e.startAt), TREND_WEEKS, now)
+  const fmtDelta = (d: { direction: "up" | "down" | "flat"; pct: number }) =>
+    d.direction === "up" ? `+${d.pct}%` : d.direction === "down" ? `−${d.pct}%` : "0%"
+  const approvalTrendDelta = trendDelta(approvalSpark)
+  const eventTrendDelta = trendDelta(eventSpark)
+  const activityEvents = activityAudit.map((a) => a.occurredAt.toISOString())
 
   // Map role→org so club cards show real member counts
   const rolesByOrg = await db.role.findMany({
@@ -141,7 +181,19 @@ export default async function DashboardPage() {
   }
   const orgNames = new Map(orgs.map((o) => [o.id, o.name]))
 
-  const kpis = [
+  type Kpi = {
+    label: string
+    value: number
+    hint: string
+    icon: IconType
+    color: string
+    bg: string
+    href: string
+    delta?: StatDelta
+    spark?: number[]
+  }
+
+  const kpis: Kpi[] = [
     {
       label: "Pending Approvals",
       value: pendingApprovals,
@@ -150,6 +202,13 @@ export default async function DashboardPage() {
       color: "var(--warning)",
       bg: "var(--warning-light)",
       href: "/approvals",
+      spark: approvalSpark,
+      // A shrinking backlog is the good direction.
+      delta: {
+        value: fmtDelta(approvalTrendDelta),
+        direction: approvalTrendDelta.direction,
+        good: approvalTrendDelta.direction === "down",
+      },
     },
     {
       label: "Upcoming Events",
@@ -159,6 +218,12 @@ export default async function DashboardPage() {
       color: "var(--primary)",
       bg: "var(--primary-light)",
       href: "/calendar",
+      spark: eventSpark,
+      delta: {
+        value: fmtDelta(eventTrendDelta),
+        direction: eventTrendDelta.direction,
+        good: eventTrendDelta.direction === "up",
+      },
     },
     {
       label: "Unread Messages",
@@ -304,30 +369,37 @@ export default async function DashboardPage() {
               hint={kpi.hint}
               icon={kpi.icon}
               href={kpi.href}
+              delta={kpi.delta}
+              spark={kpi.spark}
             />
           ))}
         </StatGrid>
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        {/* Recent activity — capped preview, full list in a See-all overlay */}
-        <Card className="lg:col-span-2">
-          <SeeAllSection
-            title="Recent activity"
-            count={recentAudit.length}
-            overlayTitle="Recent activity"
-            overlayDescription="From the institution audit log."
-            full={recentAudit.length > 6 ? activityList(recentAudit) : undefined}
-          >
-            {recentAudit.length === 0 ? (
-              <p className="py-8 text-center text-sm text-text-3">
-                No activity yet — actions like roster changes will appear here.
-              </p>
-            ) : (
-              activityList(recentAudit.slice(0, 6))
-            )}
-          </SeeAllSection>
-        </Card>
+        {/* Main column: activity trend chart above the recent-activity feed */}
+        <div className="space-y-5 lg:col-span-2">
+          <ActivityChart events={activityEvents} />
+
+          {/* Recent activity — capped preview, full list in a See-all overlay */}
+          <Card>
+            <SeeAllSection
+              title="Recent activity"
+              count={recentAudit.length}
+              overlayTitle="Recent activity"
+              overlayDescription="From the institution audit log."
+              full={recentAudit.length > 6 ? activityList(recentAudit) : undefined}
+            >
+              {recentAudit.length === 0 ? (
+                <p className="py-8 text-center text-sm text-text-3">
+                  No activity yet — actions like roster changes will appear here.
+                </p>
+              ) : (
+                activityList(recentAudit.slice(0, 6))
+              )}
+            </SeeAllSection>
+          </Card>
+        </div>
 
         {/* Right rail — the compact cards stack evenly beside recent activity */}
         <div className="space-y-5">
@@ -356,18 +428,12 @@ export default async function DashboardPage() {
                         </div>
                         {budgetedCents > 0 ? (
                           <>
-                            <div
-                              className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full"
-                              style={{ background: "var(--bg-base)" }}
-                            >
-                              <div
-                                className="h-full rounded-full"
-                                style={{
-                                  width: `${pct}%`,
-                                  background: over ? "var(--error)" : "var(--primary)",
-                                }}
-                              />
-                            </div>
+                            <Meter
+                              pct={pct}
+                              tone={over ? "over" : "default"}
+                              className="mt-1.5"
+                              ariaLabel={`${org.name} budget used: ${pct}%`}
+                            />
                             <p className="mt-1 text-meta text-text-3 tabular">
                               {formatCents(actualCents)} of {formatCents(budgetedCents)} spent
                               {over && (

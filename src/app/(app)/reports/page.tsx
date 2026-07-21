@@ -3,10 +3,11 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
 import { Building2, Users, CheckCircle, CalendarCheck } from "@/components/ui/icons"
-import { Card, CardHeader, Attribute } from "@/components/ui/Card"
+import { Card, CardHeader } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { StatGrid, StatTile } from "@/components/ui/Bento"
+import { ReportsAnalytics } from "@/components/charts/panels/ReportsAnalytics"
 
 export const dynamic = "force-dynamic"
 
@@ -23,12 +24,12 @@ export default async function ReportsPage() {
     orgs,
     activeSeats,
     shadowSeats,
-    approvalsByStatus,
+    approvals,
     decidedSteps,
-    publishedEvents,
+    eventRows,
     hardConflicts,
-    memoryByType,
-    documents,
+    memory,
+    roles,
     deniedActions,
   ] = await Promise.all([
     db.organization.count({ where: { institutionId, status: "ACTIVE" } }),
@@ -38,10 +39,9 @@ export default async function ReportsPage() {
     db.roleAssignment.count({
       where: { status: "SHADOW", role: { organization: { institutionId } } },
     }),
-    db.approvalRequest.groupBy({
-      by: ["status"],
+    db.approvalRequest.findMany({
       where: { institutionId },
-      _count: true,
+      select: { status: true, createdAt: true },
     }),
     db.approvalStep.findMany({
       where: {
@@ -50,16 +50,28 @@ export default async function ReportsPage() {
       },
       select: { occurredAt: true, approval: { select: { createdAt: true } } },
     }),
-    db.event.count({ where: { institutionId, status: "PUBLISHED" } }),
+    db.event.findMany({
+      where: { institutionId, status: "PUBLISHED" },
+      select: { createdAt: true },
+    }),
     db.conflictRecord.count({
       where: { severity: "HARD", resolved: false, event: { institutionId } },
     }),
-    db.memoryRecord.groupBy({
-      by: ["type"],
+    db.memoryRecord.findMany({
       where: { institutionId, isArchived: false },
-      _count: true,
+      select: { type: true, createdAt: true },
     }),
-    db.document.count({ where: { institutionId, isArchived: false } }),
+    db.role.findMany({
+      where: { organization: { institutionId }, name: { not: "Member" } },
+      select: {
+        name: true,
+        assignments: {
+          where: { status: { in: ["ACTIVE", "SHADOW"] } },
+          select: { id: true },
+        },
+        holdings: { where: { isCurrent: true }, select: { id: true } },
+      },
+    }),
     db.auditEvent.findMany({
       where: { institutionId, outcome: "DENY" },
       orderBy: { occurredAt: "desc" },
@@ -67,9 +79,9 @@ export default async function ReportsPage() {
     }),
   ])
 
-  const statusCount = (s: string) =>
-    approvalsByStatus.find((a) => a.status === s)?._count ?? 0
+  const statusCount = (s: string) => approvals.filter((a) => a.status === s).length
   const pending = statusCount("PENDING_PRESIDENT") + statusCount("PENDING_OSE")
+  const publishedEvents = eventRows.length
 
   // Median hours from request creation to final decision
   const durations = decidedSteps
@@ -85,7 +97,34 @@ export default async function ReportsPage() {
         ? `${Math.max(1, Math.round(medianMs / 6e4))} min`
         : `${(medianMs / 36e5).toFixed(1)} h`
 
-  const totalMemory = memoryByType.reduce((n, m) => n + m._count, 0)
+  // Roster fill by board-position category — filled vs vacant across all clubs.
+  const rosterMap = new Map<string, { filled: number; vacant: number }>()
+  for (const role of roles) {
+    const isFilled = role.assignments.length > 0 || role.holdings.length > 0
+    const cur = rosterMap.get(role.name) ?? { filled: 0, vacant: 0 }
+    if (isFilled) cur.filled++
+    else cur.vacant++
+    rosterMap.set(role.name, cur)
+  }
+  const roster = [...rosterMap.entries()]
+    .map(([category, v]) => ({ category, filled: v.filled, vacant: v.vacant }))
+    .sort((a, b) => b.filled + b.vacant - (a.filled + a.vacant))
+    .slice(0, 8)
+
+  // Serialise the record streams the analytics panel re-aggregates client-side.
+  const approvalsSeries = approvals.map((a) => ({
+    status: a.status,
+    createdAt: a.createdAt.toISOString(),
+  }))
+  const decisionsSeries = decidedSteps.map((s) => ({
+    occurredAt: s.occurredAt.toISOString(),
+    durationMs: s.occurredAt.getTime() - s.approval.createdAt.getTime(),
+  }))
+  const eventDates = eventRows.map((e) => e.createdAt.toISOString())
+  const memorySeries = memory.map((m) => ({
+    type: m.type,
+    createdAt: m.createdAt.toISOString(),
+  }))
 
   const deniedActors = new Map<string, string>()
   const actorIds = [...new Set(deniedActions.map((d) => d.actorId).filter((x): x is string => !!x))]
@@ -128,43 +167,16 @@ export default async function ReportsPage() {
         </StatGrid>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Card>
-          <CardHeader
-            title="Approval pipeline"
-            subtitle="Requests by state across all clubs"
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <Attribute label="Draft" value={statusCount("DRAFT")} />
-            <Attribute label="Pending President" value={statusCount("PENDING_PRESIDENT")} />
-            <Attribute label="Pending OSE" value={statusCount("PENDING_OSE")} />
-            <Attribute label="Needs Changes" value={statusCount("NEEDS_CHANGES")} />
-            <Attribute label="Approved" value={statusCount("APPROVED")} />
-            <Attribute label="Rejected" value={statusCount("REJECTED")} />
-          </div>
-        </Card>
+      <ReportsAnalytics
+        approvals={approvalsSeries}
+        decisions={decisionsSeries}
+        eventDates={eventDates}
+        memory={memorySeries}
+        roster={roster}
+      />
 
-        <Card>
-          <CardHeader
-            title="Institutional memory"
-            subtitle={`${totalMemory} knowledge cards + ${documents} documents preserved`}
-          />
-          {memoryByType.length === 0 ? (
-            <p className="text-sm text-text-3">No memory captured yet.</p>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {memoryByType.map((m) => (
-                <Attribute
-                  key={m.type}
-                  label={m.type.toLowerCase()}
-                  value={m._count}
-                />
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card padding="none" className="lg:col-span-2">
+      <div className="mt-5 grid grid-cols-1 gap-5">
+        <Card padding="none">
           <div className="p-5 border-b border-border">
             <CardHeader
               title="Denied actions"

@@ -55,14 +55,17 @@ test.describe("notification system", () => {
     // (The new user has a notification waiting for their first sign-in.)
   })
 
-  test("the header bell opens a live notifications dropdown", async ({ page }) => {
+  test("the header bell opens a live dropdown and a centered overlay", async ({ page }) => {
     await signIn(page, "Priya Raman")
     // The bell is an interactive button (not just a link to the page).
     await page.getByRole("button", { name: /Notifications/ }).click()
-    // The dropdown surfaces recent items and a route to the full page.
-    await expect(page.getByRole("link", { name: "See all notifications" })).toBeVisible()
-    await page.getByRole("link", { name: "See all notifications" }).click()
-    await expect(page).toHaveURL(/\/notifications/)
+    // The dropdown surfaces recent items and a control to see the full history.
+    await expect(page.getByRole("button", { name: "See all notifications" })).toBeVisible()
+    // "See all" opens a centered overlay in place — it no longer navigates away.
+    await page.getByRole("button", { name: "See all notifications" }).click()
+    await expect(
+      page.getByText("Approvals, roster changes, events, and messages that involve you.")
+    ).toBeVisible()
   })
 })
 

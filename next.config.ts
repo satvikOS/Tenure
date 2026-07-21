@@ -17,6 +17,14 @@ const nextConfig: NextConfig = {
 
   poweredByHeader: false,
 
+  experimental: {
+    // Server Actions default to a 1 MB request-body cap, which silently
+    // contradicts the advertised 15 MB document / 25 MB attachment uploads.
+    // Raise it to comfortably cover the 15 MB pilot limit (plus base64 slack
+    // from the in-place editor's autosave payloads).
+    serverActions: { bodySizeLimit: "16mb" },
+  },
+
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }]
   },

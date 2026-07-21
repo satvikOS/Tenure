@@ -1,6 +1,4 @@
-import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
-import { FileText, Download, Eye, Sparkles, Trash2 } from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canContribute, canManageRoster, canViewOrg, getUserContext } from "@/lib/rbac"
@@ -8,6 +6,7 @@ import { storageConfigured } from "@/lib/s3"
 import { aiConfigured } from "@/lib/ai"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { OrgTabs } from "@/components/OrgTabs"
+import { DocumentRow } from "@/components/documents/DocumentRow"
 import {
   deleteDocumentAction,
   downloadDocumentAction,
@@ -107,60 +106,32 @@ export default async function DocumentsPage({
           <Card padding="none">
             <ul className="divide-y divide-border">
               {docs.map((d) => (
-                <li key={d.id} className="flex items-center gap-3 px-5 py-3.5">
-                  <FileText size={16} className="text-text-3 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-text-1 truncate">{d.title}</p>
-                    <p className="text-xs text-text-3 mt-0.5">
-                      {formatBytes(d.sizeBytes)} ·{" "}
-                      {d.createdById ? uploaders.get(d.createdById) : "Unknown"} ·{" "}
-                      {d.createdAt.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {aiConfigured() && (
-                      <Link
-                        href={`/orgs/${slug}/documents/${d.id}/summary`}
-                        className="inline-flex items-center gap-1.5 h-8 rounded border border-border px-3 text-xs font-medium text-[--primary] hover:bg-base no-underline"
-                        aria-label={`Summarize ${d.title}`}
-                      >
-                        <Sparkles size={13} /> Summarize
-                      </Link>
-                    )}
-                    <Link
-                      href={`/orgs/${slug}/documents/${d.id}/view`}
-                      className="inline-flex items-center gap-1.5 h-8 rounded border border-border px-3 text-xs font-medium text-text-2 hover:bg-base no-underline"
-                      aria-label={`View ${d.title}`}
-                    >
-                      <Eye size={13} /> View
-                    </Link>
-                    <form action={downloadWithSlug}>
-                      <input type="hidden" name="documentId" value={d.id} />
-                      <button
-                        className="inline-flex items-center gap-1.5 h-8 rounded border border-border px-3 text-xs font-medium text-text-2 hover:bg-base"
-                        aria-label={`Download ${d.title}`}
-                      >
-                        <Download size={13} /> Download
-                      </button>
-                    </form>
-                    {(canManage || d.createdById === userId) && (
-                      <form action={deleteWithSlug}>
-                        <input type="hidden" name="documentId" value={d.id} />
-                        <button
-                          className="inline-flex items-center gap-1.5 h-8 rounded border border-border px-3 text-xs font-medium hover:bg-base"
-                          style={{ color: "var(--error)" }}
-                          aria-label={`Delete ${d.title}`}
-                        >
-                          <Trash2 size={13} /> Delete
-                        </button>
-                      </form>
-                    )}
-                  </div>
-                </li>
+                <DocumentRow
+                  key={d.id}
+                  slug={slug}
+                  docId={d.id}
+                  title={d.title}
+                  sizeLabel={formatBytes(d.sizeBytes)}
+                  uploaderName={
+                    d.createdById ? uploaders.get(d.createdById) ?? "Unknown" : "Unknown"
+                  }
+                  dateLabel={d.createdAt.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                  initialMeta={{
+                    title: d.title,
+                    mimeType: d.mimeType,
+                    sizeBytes: d.sizeBytes,
+                    orgName: org.name,
+                    updatedAt: d.updatedAt.toISOString(),
+                  }}
+                  canDelete={canManage || d.createdById === userId}
+                  showSummarize={aiConfigured()}
+                  downloadAction={downloadWithSlug}
+                  deleteAction={deleteWithSlug}
+                />
               ))}
             </ul>
           </Card>

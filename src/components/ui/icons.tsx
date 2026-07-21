@@ -80,6 +80,7 @@ export {
   X,
   Paperclip,
   ChatCircleDots,
+  CaretDoubleLeft,
   CaretDoubleRight,
   DotsThree,
   FunnelSimple,

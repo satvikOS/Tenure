@@ -2,7 +2,9 @@
 
 import { useRef, useState, useTransition } from "react"
 import * as XLSX from "xlsx"
-import { Upload, FileSpreadsheet, AlertCircle, Check } from "lucide-react"
+// FileSpreadsheet/Check have no direct alias in the icon source; using the
+// closest existing FileText/CheckCircle (see notes).
+import { Upload, FileText as FileSpreadsheet, AlertCircle, CheckCircle as Check } from "@/components/ui/icons"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { formatCents, parseBudgetSheet, type ImportResult } from "@/lib/finance"
 import { importBudget } from "@/app/(app)/orgs/[slug]/finance/actions"

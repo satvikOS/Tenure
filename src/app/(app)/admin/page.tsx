@@ -14,6 +14,8 @@ import { requireAdminContext } from "@/lib/admin/guard"
 import { CAPABILITIES, capabilitiesForRole } from "@/lib/admin/capabilities"
 import { StatGrid, StatTile, BentoGrid, BentoTile } from "@/components/ui/Bento"
 import { Badge } from "@/components/ui/Badge"
+import { DonutChart, slotColor, STATUS, REFERENCE } from "@/components/charts"
+import { bucketByWeek } from "@/components/charts/timeseries"
 
 export const metadata: Metadata = { title: "Admin" }
 export const dynamic = "force-dynamic"
@@ -21,8 +23,22 @@ export const dynamic = "force-dynamic"
 export default async function AdminOverviewPage() {
   const { institutionId, role } = await requireAdminContext()
 
-  const [activeClubs, archivedClubs, filledSeats, vacantSeats, pendingApprovals, people, recentAudit] =
-    await Promise.all([
+  const now = new Date()
+  const TREND_WEEKS = 12
+  const trendSince = new Date(now.getTime() - TREND_WEEKS * 7 * 86_400_000)
+
+  const [
+    activeClubs,
+    archivedClubs,
+    filledSeats,
+    vacantSeats,
+    filledRoles,
+    shadowRoles,
+    pendingApprovals,
+    approvalTrend,
+    people,
+    recentAudit,
+  ] = await Promise.all([
       db.organization.count({ where: { institutionId, status: "ACTIVE" } }),
       db.organization.count({ where: { institutionId, status: "ARCHIVED" } }),
       db.roleAssignment.count({
@@ -36,8 +52,32 @@ export default async function AdminOverviewPage() {
           holdings: { none: { isCurrent: true } },
         },
       }),
+      // Seats with an active holder (assignment or current holding).
+      db.role.count({
+        where: {
+          organization: { institutionId },
+          name: { not: "Member" },
+          OR: [
+            { assignments: { some: { status: "ACTIVE" } } },
+            { holdings: { some: { isCurrent: true } } },
+          ],
+        },
+      }),
+      // Seats with an incoming (shadow) successor and no active holder yet.
+      db.role.count({
+        where: {
+          organization: { institutionId },
+          name: { not: "Member" },
+          assignments: { some: { status: "SHADOW" }, none: { status: "ACTIVE" } },
+          holdings: { none: { isCurrent: true } },
+        },
+      }),
       db.approvalRequest.count({
         where: { institutionId, status: { in: ["PENDING_PRESIDENT", "PENDING_OSE"] } },
+      }),
+      db.approvalRequest.findMany({
+        where: { institutionId, createdAt: { gte: trendSince } },
+        select: { createdAt: true },
       }),
       db.directoryPerson.count(),
       db.auditEvent.findMany({
@@ -49,6 +89,16 @@ export default async function AdminOverviewPage() {
     ])
 
   const caps = capabilitiesForRole(role)
+
+  // Seat-fill breakdown for the donut, and a pending-approvals volume trend.
+  const seatTotal = filledRoles + shadowRoles + vacantSeats
+  const seatData = [
+    { label: "Filled", value: filledRoles, color: slotColor(0) },
+    { label: "Incoming", value: shadowRoles, color: STATUS.info },
+    { label: "Vacant", value: vacantSeats, color: REFERENCE },
+  ]
+  const fillPct = seatTotal > 0 ? Math.round((filledRoles / seatTotal) * 100) : 0
+  const approvalSpark = bucketByWeek(approvalTrend.map((a) => a.createdAt), TREND_WEEKS, now)
 
   const actorIds = [...new Set(recentAudit.map((a) => a.actorId).filter((x): x is string => !!x))]
   const actorNames = new Map<string, string>()
@@ -75,6 +125,7 @@ export default async function AdminOverviewPage() {
           value={pendingApprovals}
           icon={CheckCircle}
           href="/approvals"
+          spark={approvalSpark}
         />
         <StatTile
           label="Directory people"
@@ -85,8 +136,18 @@ export default async function AdminOverviewPage() {
       </StatGrid>
 
       <BentoGrid>
+        {/* Seat fill across the institution */}
+        <BentoTile span={6}>
+          <h2 className="mb-4 font-display text-base font-semibold text-text-1">Seat fill</h2>
+          <DonutChart
+            data={seatData}
+            centerValue={`${fillPct}%`}
+            centerLabel="filled"
+          />
+        </BentoTile>
+
         {/* Quick actions */}
-        <BentoTile span={4}>
+        <BentoTile span={6}>
           <h2 className="mb-4 font-display text-base font-semibold text-text-1">Quick actions</h2>
           <div className="flex flex-col gap-2">
             {[
@@ -114,7 +175,7 @@ export default async function AdminOverviewPage() {
         </BentoTile>
 
         {/* Your capabilities */}
-        <BentoTile span={4}>
+        <BentoTile span={6}>
           <h2 className="mb-1 font-display text-base font-semibold text-text-1">Your capabilities</h2>
           <p className="mb-4 text-[13px] text-text-2">
             What your OSE role can do across the institution.
@@ -138,7 +199,7 @@ export default async function AdminOverviewPage() {
         </BentoTile>
 
         {/* Recent admin activity */}
-        <BentoTile span={4}>
+        <BentoTile span={6}>
           <h2 className="mb-4 font-display text-base font-semibold text-text-1">Recent activity</h2>
           {recentAudit.length === 0 ? (
             <p className="text-sm text-text-3">No activity yet.</p>

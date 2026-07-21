@@ -9,14 +9,8 @@ import { Paperclip } from "@/components/ui/icons"
 import { Card } from "@/components/ui/Card"
 import { Avatar } from "@/components/ui/Avatar"
 import { BackButton } from "@/components/BackButton"
+import { AttachmentChip } from "@/components/documents/AttachmentChip"
 import { sendMessage } from "../actions"
-
-function formatBytes(n: number | null): string {
-  if (!n) return ""
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`
-}
 
 interface ChipPerson {
   id: string
@@ -182,15 +176,13 @@ export default async function ConversationPage({
                   {m.attachments.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {m.attachments.map((a) => (
-                        <a
+                        <AttachmentChip
                           key={a.id}
-                          href={`/api/attachment/${a.id}`}
-                          className="inline-flex items-center gap-2 rounded-md border border-border bg-base px-3 py-1.5 text-[13px] text-text-1 no-underline transition-colors hover:border-[--primary]"
-                        >
-                          <Paperclip size={14} className="text-text-3" />
-                          <span className="max-w-[200px] truncate">{a.fileName}</span>
-                          {a.sizeBytes ? <span className="text-text-3">{formatBytes(a.sizeBytes)}</span> : null}
-                        </a>
+                          id={a.id}
+                          fileName={a.fileName}
+                          mimeType={a.mimeType}
+                          sizeBytes={a.sizeBytes}
+                        />
                       ))}
                     </div>
                   )}

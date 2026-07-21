@@ -1,6 +1,33 @@
-import { type ReactNode } from "react"
+import { type CSSProperties, type ReactNode } from "react"
 import Link from "next/link"
 import { type IconType } from "@/components/ui/icons"
+import { Sparkline } from "@/components/charts/Sparkline"
+
+/** Signed trend chip shown on a stat tile. */
+export type StatDelta = {
+  /** Pre-formatted magnitude, e.g. "+12%" or "3". */
+  value: string
+  direction: "up" | "down" | "flat"
+  /** Whether this movement is good. Defaults to "up is good" when omitted. */
+  good?: boolean
+}
+
+/** Colour a delta chip by whether its movement is good, not merely its sign. */
+function deltaChipStyle(delta: StatDelta): CSSProperties {
+  if (delta.direction === "flat") {
+    return { color: "var(--text-3)", background: "var(--bg-subtle)" }
+  }
+  const good = delta.good ?? delta.direction === "up"
+  return good
+    ? { color: "var(--success)", background: "var(--success-light)" }
+    : { color: "var(--error)", background: "var(--error-light)" }
+}
+
+const DELTA_GLYPH: Record<StatDelta["direction"], string> = {
+  up: "↑",
+  down: "↓",
+  flat: "→",
+}
 
 /**
  * The Bento system — one uniform tile grammar for the whole product.
@@ -85,6 +112,8 @@ export function StatTile({
   color = "var(--primary)",
   bg = "var(--primary-light)",
   href,
+  delta,
+  spark,
 }: {
   label: string
   value: ReactNode
@@ -93,6 +122,10 @@ export function StatTile({
   color?: string
   bg?: string
   href?: string
+  /** Optional signed trend chip beside the value. */
+  delta?: StatDelta
+  /** Optional trend series rendered as a sparkline pinned to the tile foot. */
+  spark?: number[]
 }) {
   const inner = (
     <div className="tile-float flex h-full flex-col rounded-lg border border-border bg-surface p-5 sm:p-6">
@@ -102,14 +135,30 @@ export function StatTile({
       >
         <Icon size={22} style={{ color }} weight="duotone" />
       </div>
-      <p
-        className="mt-4 text-3xl font-bold tabular-nums"
-        style={{ color: "var(--text-1)", letterSpacing: "-0.02em" }}
-      >
-        {value}
-      </p>
+      <div className="mt-4 flex items-baseline gap-2">
+        <p
+          className="text-3xl font-bold tabular-nums"
+          style={{ color: "var(--text-1)", letterSpacing: "-0.02em" }}
+        >
+          {value}
+        </p>
+        {delta && (
+          <span
+            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-meta font-semibold tabular-nums"
+            style={deltaChipStyle(delta)}
+          >
+            <span aria-hidden>{DELTA_GLYPH[delta.direction]}</span>
+            {delta.value}
+          </span>
+        )}
+      </div>
       <p className="mt-1 text-sm font-medium text-text-1">{label}</p>
       {hint && <p className="mt-0.5 text-meta text-text-3">{hint}</p>}
+      {spark && spark.length > 1 && (
+        <div data-testid="stat-spark" className="mt-auto pt-3">
+          <Sparkline values={spark} />
+        </div>
+      )}
     </div>
   )
   if (href) {

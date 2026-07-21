@@ -2,86 +2,100 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Tenure Design Tokens ─────────────────────────────────────────────────
-   A modern institutional design language, informed by Atlassian Design System
-   (lozenges, page headers, tokens) and Workday Canvas (generous type, soft
-   elevation, worklet/bento cards). Deliberately larger and calmer than a dense
-   enterprise grid — every control is sized for comfortable human reading.
+/* ─── Tenure Design Tokens — "Ledger" ──────────────────────────────────────
+   A layered, reference-grade design language. Dark mode is the flagship:
+   near-black neutrals (NOT pure OLED), cards floating one step lighter with
+   hairline borders — depth via layering + borders, not heavy shadows. Light
+   mode is warm "paper": neutral page, pure white cards, near-black ink.
+   Calm chrome, vivid data — colour belongs to charts, status, and the brand
+   grove-green accent only.
 
-   Shell: ink navy. Primary: grove green. Accent (admin): indigo. Surfaces:
-   off-white base + pure white cards.
+   Shell = header/side-nav/footer read as one flat plane on --shell-bg,
+   separated by hairline borders.
 ────────────────────────────────────────────────────────────────────────── */
 @layer base {
   :root {
-    /* Shell — light in light mode (matches the side nav and footer), dark in
-       dark mode. Theme-aware so the whole frame reads as one surface. */
+    /* Shell — flat plane shared by header, side nav and footer. */
     --shell-bg: #ffffff;
-    --shell-bg-elevated: #f5f7f9;
-    --shell-text: #0c1e33;
-    --shell-text-secondary: #46586c;
-    --shell-border: #e3e7ec;
-    --shell-item-hover: rgba(12, 30, 51, 0.05);
-    --shell-item-active: rgba(12, 30, 51, 0.08);
+    --shell-bg-elevated: #f6f5f2;
+    --shell-text: #17181a;
+    --shell-text-secondary: #5a5f66;
+    --shell-border: #e8e7e2;
+    --shell-item-hover: rgba(23, 24, 26, 0.05);
+    --shell-item-active: rgba(23, 24, 26, 0.08);
 
-    /* Primary — tenure-landing "grove" green */
+    /* Primary — "grove" green */
     --primary: #1c8c5a;
-    --primary-hover: #14633f;
-    --primary-press: #14633f;
-    --primary-light: #e4f1e9;
+    --primary-hover: #14724a;
+    --primary-press: #115e3d;
+    --primary-light: #e6f3ec;
     --primary-text: #ffffff;
 
-    /* Accent — the administration system reads as its own, more authoritative
-       surface. Ink-slate (neutral, not a second brand colour) separates
-       "override everything" from everyday work while keeping the palette
-       professional and uncolourful. */
+    /* Accent — the administration surface reads as its own, more authoritative
+       plane. Ink-slate (neutral, not a second brand colour), harmonised warm. */
     --accent: #26364a;
     --accent-hover: #1a2634;
     --accent-light: #eef1f5;
     --accent-text: #ffffff;
     --accent-strong: #16202c;
 
-    /* Surfaces — neutral slate base + pure white cards */
-    --bg-base: #f5f7f9;
+    /* Surfaces — warm paper base + pure white cards */
+    --bg-base: #f7f6f3;
     --bg-surface: #ffffff;
-    --bg-subtle: #eef1f4;
-    --bg-overlay: rgba(12, 30, 51, 0.48);
+    --bg-subtle: #f1f0ec;
+    --bg-overlay: rgba(20, 21, 24, 0.5);
 
     /* Borders */
-    --border: #e3e7ec;
-    --border-strong: #c6cdd6;
+    --border: #e8e7e2;
+    --border-strong: #d4d2cb;
     --border-focus: #1c8c5a;
 
-    /* Text — ink scale */
-    --text-1: #0c1e33;
-    --text-2: #46586c;
-    --text-3: #8a97a4;
-    --text-disabled: #b6bfc8;
+    /* Text — warm ink scale */
+    --text-1: #17181a;
+    --text-2: #5a5f66;
+    --text-3: #8b9096;
+    --text-disabled: #b9bcc0;
     --text-inverse: #ffffff;
-    --text-link: #14633f;
+    --text-link: #14724a;
 
     /* Status */
     --success: #1c8c5a;
-    --success-light: #e4f1e9;
-    --warning: #a4711c;
-    --warning-light: #f9efdb;
-    --error: #c14a2e;
-    --error-light: #fbe7e1;
-    --info: #3e7cb1;
-    --info-light: #e7eff6;
+    --success-light: #e6f3ec;
+    --warning: #b07a10;
+    --warning-light: #faf1dc;
+    --error: #c2402a;
+    --error-light: #fbe9e4;
+    --info: #2a78d6;
+    --info-light: #e9f1fb;
 
-    /* Status badge text */
-    --badge-approved-bg: #e4f1e9;
-    --badge-approved-text: #14633f;
-    --badge-pending-bg: #f9efdb;
+    /* Status badges — tints from the status hues, readable text step */
+    --badge-approved-bg: #e6f3ec;
+    --badge-approved-text: #14724a;
+    --badge-pending-bg: #faf1dc;
     --badge-pending-text: #8a5c0f;
-    --badge-rejected-bg: #fbe7e1;
-    --badge-rejected-text: #a63c22;
-    --badge-draft-bg: #f1ece2;
-    --badge-draft-text: #46586c;
+    --badge-rejected-bg: #fbe9e4;
+    --badge-rejected-text: #a3331f;
+    --badge-draft-bg: #f1f0ec;
+    --badge-draft-text: #5a5f66;
     --badge-accent-bg: #eef1f5;
     --badge-accent-text: #26364a;
 
-    /* Spacing scale — 4px base, extended for the roomier layout */
+    /* Segmented control — active chip pops above the subtle container */
+    --segment-active-bg: #ffffff;
+
+    /* Chart palette — fixed slot order, validated on a #ffffff card */
+    --chart-1: #1c8c5a;
+    --chart-2: #2a78d6;
+    --chart-3: #e87ba4;
+    --chart-4: #eda100;
+    --chart-5: #0f8ba8;
+    --chart-6: #eb6834;
+    --chart-7: #4a3aa7;
+    --chart-8: #e34948;
+    --chart-grid: #eceae4;
+    --chart-axis: #d4d2cb;
+
+    /* Spacing scale — 4px base */
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
@@ -93,43 +107,51 @@
     --space-12: 48px;
     --space-16: 64px;
 
-    /* Layout — enlarged app frame */
+    /* Layout — app frame */
     --shell-height: 60px;
     --sidenav-width: 264px;
-    --sidenav-width-collapsed: 60px;
+    --sidenav-width-collapsed: 64px;
+    /* Resolved side-nav width the whole frame follows; html.nav-collapsed
+       switches it and every consumer (nav, main, footer) transitions. */
+    --sidenav-current-width: var(--sidenav-width);
     --footer-height: 46px;
 
-    /* Radius — softer, Canvas-like */
-    --radius-sm: 6px;
+    /* Radius */
+    --radius-sm: 8px;
     --radius-md: 10px;
     --radius-lg: 16px;
-    --radius-xl: 22px;
+    --radius-xl: 20px;
     --radius-full: 9999px;
 
-    /* Shadow — layered and soft */
-    --shadow-xs: 0 1px 2px rgba(12, 30, 51, 0.06);
-    --shadow-sm: 0 1px 3px rgba(12, 30, 51, 0.07), 0 1px 2px rgba(12, 30, 51, 0.06);
-    --shadow-md: 0 6px 16px rgba(12, 30, 51, 0.10), 0 2px 6px rgba(12, 30, 51, 0.06);
-    --shadow-lg: 0 18px 42px rgba(12, 30, 51, 0.16), 0 4px 12px rgba(12, 30, 51, 0.08);
+    /* Shadow — soft layered set, slightly reduced (light mode) */
+    --shadow-xs: 0 1px 2px rgba(23, 24, 26, 0.05);
+    --shadow-sm: 0 1px 2px rgba(23, 24, 26, 0.06), 0 1px 3px rgba(23, 24, 26, 0.05);
+    --shadow-md: 0 4px 12px rgba(23, 24, 26, 0.08), 0 2px 4px rgba(23, 24, 26, 0.05);
+    --shadow-lg: 0 16px 36px rgba(23, 24, 26, 0.14), 0 4px 10px rgba(23, 24, 26, 0.07);
     --shadow-focus: 0 0 0 3px rgba(28, 140, 90, 0.28);
 
     /* Typography */
     --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
   }
 
-  /* ─── Dark theme ─────────────────────────────────────────────────────────
+  /* ─── Dark theme "graphite" ────────────────────────────────────────────────
      Applied via html.dark (explicit) — the pre-hydration script in the root
-     layout resolves "system" against prefers-color-scheme. */
+     layout resolves "system" against prefers-color-scheme. Layered near-black:
+     page #0b0c0f, cards #131519. Depth from borders, not heavy shadows. */
   html.dark {
-    /* OLED black */
-    --shell-bg: #000000;
-    --shell-bg-elevated: #10131a;
-    --shell-border: #1e1e24;
+    --shell-bg: #0b0c0f;
+    --shell-bg-elevated: #131519;
+    --shell-text: #f7f8fa;
+    --shell-text-secondary: #a6adba;
+    --shell-border: #1e2126;
+    --shell-item-hover: rgba(255, 255, 255, 0.06);
+    --shell-item-active: rgba(255, 255, 255, 0.10);
 
-    --primary: #25a96d;
-    --primary-hover: #2fbf7d;
-    --primary-press: #1c8c5a;
-    --primary-light: rgba(37, 169, 109, 0.16);
+    --primary: #2bb673;
+    --primary-hover: #3acd85;
+    --primary-press: #25a96d;
+    --primary-light: rgba(43, 182, 115, 0.14);
+    --primary-text: #06130c;
 
     --accent: #cbd5e1;
     --accent-hover: #e2e8f0;
@@ -137,49 +159,69 @@
     --accent-text: #0b1220;
     --accent-strong: #e2e8f0;
 
-    --bg-base: #000000;
-    --bg-surface: #0c0c10;
-    --bg-subtle: #121218;
-    --bg-overlay: rgba(0, 0, 0, 0.72);
+    --bg-base: #0b0c0f;
+    --bg-surface: #131519;
+    --bg-subtle: #1a1d23;
+    --bg-overlay: rgba(4, 5, 7, 0.7);
 
-    --border: #24242c;
-    --border-strong: #3c3c48;
-    --border-focus: #25a96d;
+    --border: #23262d;
+    --border-strong: #343943;
+    --border-focus: #2bb673;
 
-    --text-1: #f2f2f6;
-    --text-2: #b4b4c0;
-    --text-3: #83838f;
-    --text-disabled: #4c4c58;
-    --text-inverse: #000000;
-    --text-link: #2fbf7d;
+    --text-1: #f7f8fa;
+    --text-2: #a6adba;
+    --text-3: #717884;
+    --text-disabled: #4a4f58;
+    --text-inverse: #0b0c0f;
+    --text-link: #3acd85;
 
-    --success: #25a96d;
-    --success-light: rgba(37, 169, 109, 0.14);
-    --warning: #e8b04b;
-    --warning-light: rgba(232, 176, 75, 0.14);
-    --error: #ed6a4a;
-    --error-light: rgba(237, 106, 74, 0.14);
-    --info: #5e9bd0;
-    --info-light: rgba(94, 155, 208, 0.14);
+    --success: #2bb673;
+    --success-light: rgba(43, 182, 115, 0.14);
+    --warning: #e0a63c;
+    --warning-light: rgba(224, 166, 60, 0.14);
+    --error: #e8674c;
+    --error-light: rgba(232, 103, 76, 0.14);
+    --info: #4a94ea;
+    --info-light: rgba(74, 148, 234, 0.14);
 
-    --badge-approved-bg: rgba(37, 169, 109, 0.18);
-    --badge-approved-text: #4fd695;
-    --badge-pending-bg: rgba(232, 176, 75, 0.18);
-    --badge-pending-text: #edc06e;
-    --badge-rejected-bg: rgba(237, 106, 74, 0.18);
-    --badge-rejected-text: #f2917a;
+    --badge-approved-bg: rgba(43, 182, 115, 0.18);
+    --badge-approved-text: #5fd89f;
+    --badge-pending-bg: rgba(224, 166, 60, 0.18);
+    --badge-pending-text: #e7c07e;
+    --badge-rejected-bg: rgba(232, 103, 76, 0.18);
+    --badge-rejected-text: #f0977f;
     --badge-draft-bg: rgba(255, 255, 255, 0.08);
-    --badge-draft-text: #a9b8c6;
+    --badge-draft-text: #a6adba;
     --badge-accent-bg: rgba(203, 213, 225, 0.16);
     --badge-accent-text: #cbd5e1;
 
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
-    --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.55);
-    --shadow-lg: 0 18px 42px rgba(0, 0, 0, 0.65);
-    --shadow-focus: 0 0 0 3px rgba(37, 169, 109, 0.4);
+    --segment-active-bg: #262a31;
+
+    /* Chart palette — retuned for the #131519 dark card */
+    --chart-1: #25a96d;
+    --chart-2: #3987e5;
+    --chart-3: #d55181;
+    --chart-4: #c98500;
+    --chart-5: #1899b4;
+    --chart-6: #d95926;
+    --chart-7: #9085e9;
+    --chart-8: #e66767;
+    --chart-grid: #21242a;
+    --chart-axis: #343943;
+
+    /* Dark leans on borders; soft large shadows only for overlays/popovers. */
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 24px 50px rgba(0, 0, 0, 0.6);
+    --shadow-focus: 0 0 0 3px rgba(43, 182, 115, 0.4);
 
     color-scheme: dark;
+  }
+
+  /* Collapsed side nav — switches the width the whole frame follows. */
+  html.nav-collapsed {
+    --sidenav-current-width: var(--sidenav-width-collapsed);
   }
 
   * {
@@ -212,6 +254,8 @@
       --text-1: #000000;
       --text-2: #1f2937;
       --text-3: #374151;
+      --shell-text: #000000;
+      --shell-text-secondary: #1f2937;
       --border: #6b7280;
       --border-strong: #374151;
       --primary: #0f6b42;
@@ -221,6 +265,8 @@
       --text-1: #ffffff;
       --text-2: #e5e7eb;
       --text-3: #d1d5db;
+      --shell-text: #ffffff;
+      --shell-text-secondary: #e5e7eb;
       --border: #9ca3af;
       --border-strong: #d1d5db;
       --primary: #34d399;
@@ -267,6 +313,24 @@
   /* Reading-width content (forms, prose) inside the wide shell */
   .prose-measure {
     max-width: 74ch;
+  }
+
+  /* Uppercase micro-label — card headers and nav section labels (Origin style) */
+  .micro-label {
+    font-size: 11px;
+    line-height: 1.4;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--text-3);
+  }
+
+  /* Collapsed side nav — hide every text label so the 64px rail is icon-only.
+     Driven off the pre-hydration <html class="nav-collapsed"> so there is no
+     flash of squished labels before React catches up. */
+  html.nav-collapsed .nav-label,
+  html.nav-collapsed .nav-section-label {
+    display: none;
   }
 
   /* Floating tiles — bento boxes and cards rest slightly above the surface and
@@ -390,7 +454,7 @@
 
   .overlay-backdrop {
     background: var(--bg-overlay);
-    backdrop-filter: blur(3px);
+    backdrop-filter: blur(6px);
   }
   .overlay-backdrop[data-entering] { animation: tenure-overlay-in 180ms ease-out; }
   .overlay-backdrop[data-exiting]  { animation: tenure-overlay-out 140ms ease-in; }

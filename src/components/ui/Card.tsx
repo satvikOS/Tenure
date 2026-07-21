@@ -39,8 +39,8 @@ export function CardHeader({
   return (
     <div className="flex items-start justify-between gap-4 mb-5">
       <div className="min-w-0">
-        <h2 className="text-base font-display font-semibold text-text-1">{title}</h2>
-        {subtitle && <p className="text-sm text-text-2 mt-1">{subtitle}</p>}
+        <h2 className="micro-label">{title}</h2>
+        {subtitle && <p className="text-sm text-text-2 mt-1.5">{subtitle}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>

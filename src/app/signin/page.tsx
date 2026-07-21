@@ -27,24 +27,19 @@ export default async function SignInPage() {
   }
 
   return (
-    <main
-      className="min-h-screen flex flex-col items-center justify-center px-4"
-      style={{ background: "var(--shell-bg)" }}
-    >
-      <div className="w-full max-w-md rounded-lg bg-white shadow-lg p-8">
+    <main className="min-h-screen flex flex-col items-center justify-center bg-base px-4">
+      <div className="w-full max-w-md rounded-lg border border-border bg-surface p-8 shadow-lg">
         <div className="flex items-center gap-2.5">
-          <TenureLogo size={26} color="#1c8c5a" />
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Tenure</h1>
+          <TenureLogo size={26} color="var(--primary)" />
+          <h1 className="text-2xl font-bold tracking-tight text-text-1">Tenure</h1>
         </div>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-text-2">
           Institutional knowledge that survives every leadership transition.
         </p>
 
         {devLoginEnabled ? (
           <div className="mt-6">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
-              Pilot demo — sign in as
-            </p>
+            <p className="micro-label mb-3">Pilot demo — sign in as</p>
             <ul className="space-y-2">
               {DEMO_USERS.map((u) => (
                 <li key={u.email}>
@@ -52,10 +47,10 @@ export default async function SignInPage() {
                     <input type="hidden" name="email" value={u.email} />
                     <button
                       type="submit"
-                      className="w-full text-left rounded-md border border-gray-200 px-4 py-2.5 hover:border-[var(--primary)] hover:bg-blue-50 transition-colors"
+                      className="w-full rounded-md border border-border px-4 py-2.5 text-left transition-colors hover:border-[--primary] hover:bg-[--primary-light]"
                     >
-                      <span className="block text-sm font-medium text-gray-900">{u.name}</span>
-                      <span className="block text-xs text-gray-500">{u.role}</span>
+                      <span className="block text-sm font-medium text-text-1">{u.name}</span>
+                      <span className="block text-xs text-text-2">{u.role}</span>
                     </button>
                   </form>
                 </li>
@@ -63,14 +58,14 @@ export default async function SignInPage() {
             </ul>
           </div>
         ) : (
-          <p className="mt-6 text-sm text-gray-600">
+          <p className="mt-6 text-sm text-text-2">
             Sign in with your university account via your institution&apos;s SSO portal.
           </p>
         )}
       </div>
       <div className="mt-8 flex flex-col items-center gap-1.5">
-        <TenureWordmark size={14} textClassName="text-white/80" />
-        <p className="text-xs text-white/50">
+        <TenureWordmark size={14} textClassName="text-text-3" />
+        <p className="text-xs text-text-3">
           © {new Date().getFullYear()} Tenure. All rights reserved.
         </p>
       </div>

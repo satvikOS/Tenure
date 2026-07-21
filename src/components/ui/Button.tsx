@@ -14,7 +14,7 @@ const button = cva(
     variants: {
       variant: {
         primary: [
-          "bg-[--primary] text-white shadow-xs",
+          "bg-[--primary] text-[--primary-text] shadow-xs",
           "data-[hovered]:bg-[--primary-hover]",
           "data-[pressed]:bg-[--primary-press]",
         ],

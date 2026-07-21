@@ -37,3 +37,6 @@ next-env.d.ts
 
 # prisma
 /prisma/*.db
+
+# local e2e/dev server log
+.server.log

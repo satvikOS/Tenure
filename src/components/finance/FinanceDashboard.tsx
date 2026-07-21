@@ -1,8 +1,12 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Save, RotateCcw, Trash2, TrendingDown, TrendingUp } from "lucide-react"
+// Closest available aliases from the single icon source (no direct Save/Reset/
+// Trend glyphs exist; see notes). Direction on the variance card is carried by
+// tone colour, not the icon.
+import { CheckCircle, RotateCw, Trash2, BarChart3, type IconType } from "@/components/ui/icons"
 import { Card, CardHeader } from "@/components/ui/Card"
+import { DonutChart, slotColor, STATUS, REFERENCE } from "@/components/charts"
 import { formatCents, parseMoneyToCents } from "@/lib/finance"
 import { BudgetBarChart, type ChartRow } from "./BudgetBarChart"
 import { BudgetUpload } from "./BudgetUpload"
@@ -83,31 +87,52 @@ export function FinanceDashboard({
 
   const savings = totals.variance >= 0
 
+  // Budget utilization donut — spent against total budget (actuals, not the live
+  // projection). Turns red once spend exceeds the plan.
+  const overSpent = totals.actual > totals.budgeted
+  const utilPct =
+    totals.budgeted > 0 ? Math.round((totals.actual / totals.budgeted) * 100) : 0
+  const utilData = [
+    { label: "Spent", value: totals.actual, color: overSpent ? STATUS.error : slotColor(0) },
+    { label: "Remaining", value: Math.max(0, totals.remaining), color: REFERENCE },
+  ]
+
   return (
     <div className="space-y-4">
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <SummaryCard label="Total budget" value={formatCents(totals.budgeted)} />
-        <SummaryCard
-          label="Spent to date"
-          value={formatCents(totals.actual)}
-          hint={
-            totals.budgeted > 0
-              ? `${Math.round((totals.actual / totals.budgeted) * 100)}% of budget`
-              : undefined
-          }
-        />
-        <SummaryCard
-          label="Remaining"
-          value={formatCents(totals.remaining)}
-          tone={totals.remaining < 0 ? "bad" : "neutral"}
-        />
-        <SummaryCard
-          label={savings ? "Projected savings" : "Projected overspend"}
-          value={formatCents(Math.abs(totals.variance))}
-          tone={savings ? "good" : "bad"}
-          icon={savings ? TrendingDown : TrendingUp}
-        />
+      {/* Summary tiles with a compact utilization donut alongside */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 lg:col-span-2">
+          <SummaryCard label="Total budget" value={formatCents(totals.budgeted)} />
+          <SummaryCard
+            label="Spent to date"
+            value={formatCents(totals.actual)}
+            hint={
+              totals.budgeted > 0
+                ? `${Math.round((totals.actual / totals.budgeted) * 100)}% of budget`
+                : undefined
+            }
+          />
+          <SummaryCard
+            label="Remaining"
+            value={formatCents(totals.remaining)}
+            tone={totals.remaining < 0 ? "bad" : "neutral"}
+          />
+          <SummaryCard
+            label={savings ? "Projected savings" : "Projected overspend"}
+            value={formatCents(Math.abs(totals.variance))}
+            tone={savings ? "good" : "bad"}
+            icon={BarChart3}
+          />
+        </div>
+        <Card>
+          <CardHeader title="Budget utilization" subtitle="Portion of the allocation used" />
+          <DonutChart
+            data={utilData}
+            centerValue={`${utilPct}%`}
+            centerLabel="utilized"
+            formatValue={formatCents}
+          />
+        </Card>
       </div>
 
       {/* Chart */}
@@ -235,13 +260,13 @@ export function FinanceDashboard({
                   }
                   className="inline-flex items-center gap-1.5 rounded border border-border px-3 py-1.5 text-xs text-text-2 hover:bg-base"
                 >
-                  <RotateCcw size={13} /> Reset
+                  <RotateCw size={13} /> Reset
                 </button>
                 <button
                   type="submit"
                   className="inline-flex items-center gap-1.5 rounded bg-[--primary] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
                 >
-                  <Save size={13} /> Save forecast
+                  <CheckCircle size={13} /> Save forecast
                 </button>
               </div>
             </div>
@@ -306,7 +331,7 @@ function SummaryCard({
   value: string
   hint?: string
   tone?: "neutral" | "good" | "bad"
-  icon?: typeof TrendingUp
+  icon?: IconType
 }) {
   const color =
     tone === "good" ? "text-[--primary]" : tone === "bad" ? "text-[--error]" : "text-text-1"

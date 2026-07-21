@@ -10,8 +10,8 @@ export function Footer() {
   return (
     <footer className="fixed bottom-0 left-0 right-0 z-30 h-footer border-t border-border bg-surface">
       <div
-        className="flex h-full items-center justify-between gap-3 px-4 sm:px-6"
-        style={{ marginLeft: "var(--sidenav-width)" }}
+        className="flex h-full items-center justify-between gap-3 px-4 transition-[margin] duration-200 ease-out sm:px-6"
+        style={{ marginLeft: "var(--sidenav-current-width)" }}
       >
         <TenureWordmark size={12} textClassName="text-text-3" />
         <p className="text-[11px] text-text-3">

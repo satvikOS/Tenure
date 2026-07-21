@@ -26,8 +26,11 @@ export const metadata: Metadata = {
   description: "Institutional knowledge that survives every leadership transition.",
 }
 
-// Applied before hydration so the page never flashes the wrong theme.
-const themeInit = `(function(){try{var t=localStorage.getItem("tenure-theme")||"system";var d=t==="dark"||(t==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})()`
+// Applied before hydration so the page never flashes the wrong theme or the
+// wrong side-nav width. Reads localStorage "tenure-theme" (light/dark/system)
+// and "tenure-nav" (collapsed/expanded) and stamps the matching classes on
+// <html> before first paint.
+const themeInit = `(function(){try{var t=localStorage.getItem("tenure-theme")||"system";var d=t==="dark"||(t==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);var n=localStorage.getItem("tenure-nav");document.documentElement.classList.toggle("nav-collapsed",n==="collapsed")}catch(e){}})()`
 
 export default function RootLayout({
   children,

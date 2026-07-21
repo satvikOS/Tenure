@@ -12,18 +12,25 @@ import { db } from "@/lib/db"
  */
 export const dynamic = "force-dynamic"
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth()
   if (!session?.user?.id) {
     return NextResponse.json({ unread: 0, items: [] }, { status: 401 })
   }
   const userId = session.user.id
 
+  // Optional ?limit — the dropdown uses the default 12, the full-history
+  // overlay asks for up to 100. Clamp to a sane range regardless of input.
+  const limitParam = Number(new URL(request.url).searchParams.get("limit"))
+  const take = Number.isFinite(limitParam)
+    ? Math.min(100, Math.max(1, Math.trunc(limitParam)))
+    : 12
+
   const [items, unread] = await Promise.all([
     db.notification.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
-      take: 12,
+      take,
       select: { id: true, title: true, body: true, href: true, readAt: true, createdAt: true },
     }),
     db.notification.count({ where: { userId, readAt: null } }),

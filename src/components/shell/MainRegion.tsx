@@ -12,10 +12,10 @@ export function MainRegion({ children }: { children: React.ReactNode }) {
   const { open } = useAI()
   return (
     <main
-      className={`min-h-screen bg-base transition-[padding] duration-300 ${open ? "lg:pr-[26rem]" : ""}`}
+      className={`min-h-screen bg-base transition-[padding] duration-200 ease-out ${open ? "lg:pr-[26rem]" : ""}`}
       style={{
         paddingTop: "var(--shell-height)",
-        paddingLeft: "var(--sidenav-width)",
+        paddingLeft: "var(--sidenav-current-width)",
         paddingBottom: "var(--footer-height)",
       }}
     >

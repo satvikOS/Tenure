@@ -43,7 +43,7 @@ export function ShellHeader({
         href="/dashboard"
         className="flex shrink-0 items-center gap-2.5 text-[--shell-text] no-underline"
       >
-        <TenureLogo size={26} color="#25a96d" />
+        <TenureLogo size={26} color="var(--primary)" />
         <span className="font-display text-lg font-bold tracking-tight">Tenure</span>
       </Link>
 
@@ -69,7 +69,7 @@ export function ShellHeader({
           <button
             type="button"
             onClick={openPanel}
-            className="hidden h-10 items-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-colors md:inline-flex"
+            className="hidden h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-colors md:inline-flex"
             style={{
               color: "var(--primary)",
               background: "var(--primary-light)",
@@ -77,7 +77,7 @@ export function ShellHeader({
             }}
             aria-label="Ask Tenure AI"
           >
-            <TenureAIMark size={17} color="#2fbf7d" />
+            <TenureAIMark size={17} color="var(--primary)" />
             Tenure AI
           </button>
 

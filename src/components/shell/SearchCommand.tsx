@@ -99,9 +99,9 @@ export function SearchCommand() {
           }}
         >
           <div
-            className="flex h-10 items-center gap-2 rounded-lg px-3 text-sm transition-colors focus-within:ring-2 focus-within:ring-[--primary]"
+            className="flex h-10 items-center gap-2 rounded-full px-4 text-sm transition-colors focus-within:ring-2 focus-within:ring-[--primary]"
             style={{
-              background: "var(--shell-item-hover)",
+              background: "transparent",
               border: "1px solid var(--shell-border)",
               color: "var(--shell-text-secondary)",
             }}

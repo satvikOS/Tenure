@@ -11,6 +11,16 @@ export function storageConfigured(): boolean {
   return !!documentsBucket
 }
 
+/**
+ * Fetch a stored object's raw bytes, reusing the shared S3 client (callers
+ * should never construct their own). Access must be permission-checked first.
+ */
+export async function getDocumentBytes(key: string): Promise<Buffer> {
+  if (!documentsBucket) throw new Error("Document storage is not configured")
+  const obj = await s3.send(new GetObjectCommand({ Bucket: documentsBucket, Key: key }))
+  return Buffer.from(await obj.Body!.transformToByteArray())
+}
+
 export async function uploadDocument(key: string, body: Buffer, contentType: string) {
   if (!documentsBucket) throw new Error("Document storage is not configured")
   await s3.send(

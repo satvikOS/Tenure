@@ -44,6 +44,18 @@ const config: Config = {
           error: "var(--error)",
           info: "var(--info)",
         },
+        chart: {
+          1: "var(--chart-1)",
+          2: "var(--chart-2)",
+          3: "var(--chart-3)",
+          4: "var(--chart-4)",
+          5: "var(--chart-5)",
+          6: "var(--chart-6)",
+          7: "var(--chart-7)",
+          8: "var(--chart-8)",
+          grid: "var(--chart-grid)",
+          axis: "var(--chart-axis)",
+        },
       },
       height: {
         shell: "var(--shell-height)",
@@ -52,6 +64,7 @@ const config: Config = {
       width: {
         sidenav: "var(--sidenav-width)",
         "sidenav-collapsed": "var(--sidenav-width-collapsed)",
+        "sidenav-current": "var(--sidenav-current-width)",
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
