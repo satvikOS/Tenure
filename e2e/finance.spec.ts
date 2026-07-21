@@ -21,7 +21,8 @@ test.describe("finance dashboard", () => {
     await expect(
       page.getByRole("img", { name: /Budget versus actual spending/ })
     ).toBeVisible()
-    await expect(page.getByText("Catering & Food")).toBeVisible()
+    // Rendered in both the chart and the table
+    await expect(page.getByText("Catering & Food").first()).toBeVisible()
   })
 
   test("editing a projected value updates savings live, without saving", async ({ page }) => {
@@ -62,7 +63,8 @@ test.describe("finance dashboard", () => {
     await page.getByLabel("Spent so far").fill("120")
     await page.getByRole("button", { name: "Add line" }).click()
 
-    await expect(page.getByText(unique)).toBeVisible()
+    // Appears in both the chart and the table
+    await expect(page.getByText(unique).first()).toBeVisible()
   })
 
   test("uploading a spreadsheet turns it into the dashboard", async ({ page }) => {
@@ -88,8 +90,8 @@ test.describe("finance dashboard", () => {
 
     await page.getByRole("button", { name: /Replace imported lines/ }).click()
 
-    // The imported categories now appear in the live dashboard table
-    await expect(page.getByText("Workshop Series")).toBeVisible()
-    await expect(page.getByText("Networking Night")).toBeVisible()
+    // The imported categories now appear in the live dashboard (chart + table)
+    await expect(page.getByText("Workshop Series").first()).toBeVisible()
+    await expect(page.getByText("Networking Night").first()).toBeVisible()
   })
 })
