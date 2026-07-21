@@ -143,6 +143,7 @@ model Organization {
   memoryRecords  MemoryRecord[]
   feedPosts      FeedPost[]
   collabInterests CollabInterest[]
+  budgetLines    BudgetLine[]
 
   @@index([institutionId, status])
 }
@@ -652,6 +653,34 @@ model Transaction {
   createdAt   DateTime        @default(now())
 
   @@index([budgetId, occurredAt])
+}
+
+/// A category line in a club's budget — the unit the finance dashboard plots.
+///
+/// Budgeted vs actual per category is how a VP of Finance already tracks in a
+/// spreadsheet, so this is what an uploaded Excel maps onto and what the
+/// actual-vs-budget chart reads. `forecastCents` holds a saved projection
+/// (null = none), keeping a what-if separate from the real actual.
+model BudgetLine {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  academicYear   String       // "2026-2027"
+  category       String
+  budgetedCents  Int          @default(0)
+  actualCents    Int          @default(0)
+  /// Saved forecast projection for cost-savings planning; null when unset
+  forecastCents  Int?
+  currency       String       @default("USD")
+  note           String?
+  sortOrder      Int          @default(0)
+  /// "manual" | "import" — where the line came from
+  source         String       @default("manual")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, academicYear, category])
+  @@index([organizationId, academicYear])
 }
 
 model Vendor {

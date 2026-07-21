@@ -112,3 +112,36 @@ export function canContribute(
   if (isOse(ctx, org.institutionId)) return true
   return orgRolesFor(ctx, org.id).some((r) => r.status === "ACTIVE")
 }
+
+/** True if a seat name is a finance role (VP of Finance, treasurer, CFO/COO). */
+export function isFinanceRole(roleName: string): boolean {
+  return /financ|treasur|\bcfo\b|chief financ|chief operating|\bcoo\b/i.test(roleName)
+}
+
+/**
+ * See the club's finance dashboard. Anyone who can view the org: the finance
+ * data is not more sensitive than the roster, and presidents and OSE need it.
+ */
+export function canViewFinance(
+  ctx: UserContext,
+  org: { id: string; institutionId: string }
+): boolean {
+  return canViewOrg(ctx, org)
+}
+
+/**
+ * Edit budget lines, upload a tracker, save a forecast. The people accountable
+ * for the money: the club's ACTIVE VP of Finance (or equivalent), the ACTIVE
+ * President, or the OSE Director. SHADOW holders preview but cannot write.
+ */
+export function canManageFinance(
+  ctx: UserContext,
+  org: { id: string; institutionId: string }
+): boolean {
+  if (isOseDirector(ctx, org.institutionId)) return true
+  return orgRolesFor(ctx, org.id).some(
+    (r) =>
+      r.status === "ACTIVE" &&
+      (r.scope === "PRESIDENT" || isFinanceRole(r.roleName))
+  )
+}

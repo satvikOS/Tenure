@@ -270,6 +270,39 @@ async function main() {
   })
   await assign(president.id, (await findRole(swib.id, "President")).id, "ACTIVE")
 
+  // ── Demo budget lines for the consulting club finance dashboard ────────────
+  const demoBudget = [
+    { category: "Catering & Food", budgetedCents: 250000, actualCents: 187500 },
+    { category: "Venue & Space", budgetedCents: 120000, actualCents: 135000 },
+    { category: "Speaker Honoraria", budgetedCents: 180000, actualCents: 90000 },
+    { category: "Marketing & Print", budgetedCents: 60000, actualCents: 42000 },
+    { category: "Travel (Career Treks)", budgetedCents: 200000, actualCents: 0, forecastCents: 175000 },
+    { category: "Club Swag", budgetedCents: 80000, actualCents: 88000 },
+    { category: "Software & Tools", budgetedCents: 45000, actualCents: 45000 },
+  ]
+  for (const [i, line] of demoBudget.entries()) {
+    await db.budgetLine.upsert({
+      where: {
+        organizationId_academicYear_category: {
+          organizationId: consulting.id,
+          academicYear: "2026-2027",
+          category: line.category,
+        },
+      },
+      update: {},
+      create: {
+        organizationId: consulting.id,
+        academicYear: "2026-2027",
+        category: line.category,
+        budgetedCents: line.budgetedCents,
+        actualCents: line.actualCents,
+        forecastCents: line.forecastCents ?? null,
+        sortOrder: i,
+        source: "manual",
+      },
+    })
+  }
+
   const counts = {
     clubs: ROSTER.length,
     seats: await db.role.count(),
