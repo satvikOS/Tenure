@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return Response.json({ error: "unauthorized" }, { status: 401 })
   if (!aiConfigured()) return Response.json({ error: "ai_disabled" }, { status: 503 })
 
-  const { kind, instruction } = (await req.json()) as {
+  const { kind, instruction } = (await req.json().catch(() => ({}))) as {
     kind?: string
     instruction?: string
   }

@@ -84,7 +84,7 @@ test.describe("reports", () => {
     // …and direct access 404s
     await page.goto("/reports")
     await expect(
-      page.getByRole("heading", { name: "This page could not be found." })
+      page.getByRole("heading", { name: /find that page/ })
     ).toBeVisible()
   })
 })

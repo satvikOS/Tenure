@@ -38,6 +38,27 @@ function seatCode(clubName: string, seatName: string): string {
   return `${c}-${suffix}`
 }
 
+/**
+ * `Role.positionCode` is GLOBALLY @unique, but `seatCode` is derived from a
+ * club's initials — so two clubs with the same initials (e.g. "Consulting
+ * Club" and "Chess Club" both → "CC") generate identical codes and the second
+ * charter would hit a P2002 and could never be chartered. Resolve collisions
+ * by suffixing a counter (CC-PRES, CC-PRES-2, CC-PRES-3, …) until the code is
+ * free. Runs inside the charter transaction so it sees every committed code.
+ */
+export async function uniquePositionCode(
+  tx: Prisma.TransactionClient,
+  base: string
+): Promise<string> {
+  let code = base
+  let n = 2
+  while (await tx.role.findUnique({ where: { positionCode: code }, select: { id: true } })) {
+    code = `${base}-${n}`
+    n++
+  }
+  return code
+}
+
 const STARTER_SEATS: { name: string; scope: "PRESIDENT" | "FUNCTIONAL" | "MEMBER" }[] = [
   { name: "President", scope: "PRESIDENT" },
   { name: "VP Finance & Operations", scope: "FUNCTIONAL" },
@@ -75,12 +96,13 @@ export async function chartClub(
       },
     })
     for (const seat of STARTER_SEATS) {
+      const positionCode = await uniquePositionCode(tx, seatCode(name, seat.name))
       await tx.role.create({
         data: {
           organizationId: club.id,
           name: seat.name,
           scope: seat.scope,
-          positionCode: seatCode(name, seat.name),
+          positionCode,
         },
       })
     }

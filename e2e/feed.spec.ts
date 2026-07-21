@@ -62,7 +62,7 @@ test.describe("community feed", () => {
     await signIn(page, "Dana Whitfield")
     await page.goto("/notifications")
     await expect(
-      page.getByText(/Collaboration approval needed: Simon Women in Business/).first()
+      page.getByText(/Simon Women in Business.*wants to collaborate with/).first()
     ).toBeVisible()
     await page.goto("/feed")
     await expect(page.getByText("Your approvals")).toBeVisible()
@@ -79,7 +79,7 @@ test.describe("community feed", () => {
     await signIn(page, "Priya Raman")
     await page.goto("/notifications")
     await expect(
-      page.getByText(/Collaboration approved: Simon Women in Business/).first()
+      page.getByText(/Simon Women in Business.*are approved to collaborate/).first()
     ).toBeVisible()
   })
 

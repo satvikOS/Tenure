@@ -6,6 +6,7 @@ import { db } from "@/lib/db"
 import { getUserContext, isOseDirector } from "@/lib/rbac"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
+import { ConfirmInlineSubmit } from "@/components/ui/ConfirmInlineSubmit"
 import {
   addFeedComment,
   createFeedPost,
@@ -375,14 +376,17 @@ export default async function FeedPage() {
                           >
                             Approve
                           </button>
-                          <button
+                          <ConfirmInlineSubmit
                             name="decision"
                             value="DECLINED"
-                            className="h-8 rounded border border-border px-3 text-xs font-medium hover:bg-base"
-                            style={{ color: "var(--error)" }}
+                            title="Decline this collaboration?"
+                            description={`${i.organization.name}'s request to collaborate with ${i.hostClub} is declined. The requesting club, the host club's board, and the OSE staff are all notified, and the decision is final — they'd have to submit a new request. Your note, if any, is included.`}
+                            confirmLabel="Decline collaboration"
+                            variant="danger"
+                            triggerClassName="h-8 rounded border border-border px-3 text-xs font-medium text-[--error] hover:bg-base"
                           >
                             Decline
-                          </button>
+                          </ConfirmInlineSubmit>
                         </div>
                       </form>
                     </li>

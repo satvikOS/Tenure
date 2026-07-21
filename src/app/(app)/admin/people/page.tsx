@@ -8,17 +8,20 @@ import { Badge } from "@/components/ui/Badge"
 import { Avatar } from "@/components/ui/Avatar"
 import { Select } from "@/components/ui/Select"
 import { EmailLink } from "@/components/EmailLink"
+import { ConfirmSubmit } from "@/components/ui/ConfirmDialog"
+import { RoleTransferPanel, type TransferView } from "@/components/admin/RoleTransferPanel"
 import { adminGrantInstitutionRole, adminRevokeInstitutionRole, adminAddDirectoryPerson } from "../actions"
 
 export const metadata: Metadata = { title: "Admin · Directory & Access" }
 export const dynamic = "force-dynamic"
 
 export default async function AdminPeoplePage() {
-  const { ctx, institutionId } = await requireAdminContext()
+  const { userId, ctx, institutionId } = await requireAdminContext()
   const canGrant = hasCapability(ctx, "institution.grantRole", institutionId)
   const canDirectory = hasCapability(ctx, "directory.manage", institutionId)
+  const canTransfer = hasCapability(ctx, "institution.transferRole", institutionId)
 
-  const [memberships, people, peopleCount] = await Promise.all([
+  const [memberships, people, peopleCount, incomingTransfers, outgoingTransfers] = await Promise.all([
     db.institutionMembership.findMany({
       where: { institutionId },
       orderBy: { role: "asc" },
@@ -26,7 +29,40 @@ export default async function AdminPeoplePage() {
     }),
     db.directoryPerson.findMany({ orderBy: { name: "asc" }, take: 60 }),
     db.directoryPerson.count(),
+    db.roleTransfer.findMany({
+      where: { institutionId, toUserId: userId, status: "PENDING" },
+      include: {
+        fromUser: { select: { name: true, email: true } },
+        toUser: { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.roleTransfer.findMany({
+      where: {
+        institutionId,
+        status: "PENDING",
+        OR: [{ fromUserId: userId }, { initiatedById: userId }],
+      },
+      include: {
+        fromUser: { select: { name: true, email: true } },
+        toUser: { select: { name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
   ])
+
+  const toView = (t: (typeof incomingTransfers)[number]): TransferView => ({
+    id: t.id,
+    fromName: t.fromUser.name ?? t.fromUser.email ?? "The outgoing Director",
+    fromEmail: t.fromUser.email,
+    toName: t.toUser.name ?? t.toUser.email ?? "your successor",
+    toEmail: t.toUser.email,
+    note: t.note,
+    stepDownRole: t.stepDownRole ? "OSE_STAFF" : null,
+    createdAt: t.createdAt.toISOString(),
+  })
+  const incoming = incomingTransfers.map(toView)
+  const outgoing = outgoingTransfers.map(toView)
 
   return (
     <div className="w-full space-y-6">
@@ -52,15 +88,23 @@ export default async function AdminPeoplePage() {
               </div>
               <Badge variant="accent">OSE {roleLabel(m.role)}</Badge>
               {canGrant && (
-                <form action={adminRevokeInstitutionRole}>
-                  <input type="hidden" name="membershipId" value={m.id} />
-                  <button
-                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[13px] font-medium text-text-3 hover:bg-base hover:text-[--error]"
-                    aria-label={`Revoke access for ${m.user.name ?? m.user.email}`}
-                  >
-                    <X size={15} /> Revoke
-                  </button>
-                </form>
+                <ConfirmSubmit
+                  action={adminRevokeInstitutionRole}
+                  hiddenFields={{ membershipId: m.id }}
+                  title="Remove OSE access?"
+                  description={`Remove ${m.user.name ?? m.user.email}'s OSE access? They'll lose the Admin console immediately. Their audit history is kept.`}
+                  details={
+                    m.role === "OSE_DIRECTOR"
+                      ? "This person is an OSE Director. If they're the last Director, use “Transfer Director role” instead — the institution must always keep at least one Director."
+                      : undefined
+                  }
+                  confirmLabel="Remove access"
+                  variant="danger"
+                  triggerClassName="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[13px] font-medium text-text-3 hover:bg-base hover:text-[--error]"
+                  triggerAriaLabel={`Revoke access for ${m.user.name ?? m.user.email}`}
+                >
+                  <X size={15} /> Revoke
+                </ConfirmSubmit>
               )}
             </li>
           ))}
@@ -95,6 +139,9 @@ export default async function AdminPeoplePage() {
           </form>
         )}
       </Card>
+
+      {/* Director transfer pipeline */}
+      <RoleTransferPanel incoming={incoming} outgoing={outgoing} canInitiate={canTransfer} />
 
       {/* Directory */}
       <Card padding="none">

@@ -163,6 +163,8 @@ test.describe("approvals: full state machine", () => {
     await page.goto("/approvals")
     await page.getByText(title).first().click()
     await page.getByRole("button", { name: "Approve", exact: true }).click()
+    // Final OSE-gate approval is terminal + publishes — it now asks to confirm.
+    await page.getByRole("button", { name: "Approve request" }).click()
     await expect(page.getByText("Approved", { exact: true })).toBeVisible()
 
     // History shows the full decision trail

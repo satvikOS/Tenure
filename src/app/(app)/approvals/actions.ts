@@ -29,8 +29,11 @@ async function notifyGate(
       ? await orgPresidentIds(approval.organizationId)
       : await oseMemberIds(approval.institutionId)
   await notifyUsers(gateUsers, {
-    title: `Approval needed: ${approval.title}`,
-    body: target === "PENDING_PRESIDENT" ? "Awaiting your club-level decision." : "Awaiting an OSE decision.",
+    title: `${approval.title} needs your approval`,
+    body:
+      target === "PENDING_PRESIDENT"
+        ? "It's now with you for a club-level decision."
+        : "It's now with the OSE team for a final decision.",
     href: `/approvals/${approval.id}`,
     excludeUserId: actorId,
   })
@@ -234,18 +237,18 @@ export async function actOnApproval(approvalId: string, formData: FormData) {
   // ── Notifications (BP: notification system across all RBAC flows) ────────
   const label =
     action === "approve" && target === "APPROVED"
-      ? "was approved"
+      ? "is approved"
       : action === "approve"
-        ? "cleared the president gate"
+        ? "passed the president's review"
         : action === "reject"
-          ? "was rejected"
+          ? "was declined"
           : action === "request_changes"
-            ? "needs changes"
+            ? "needs a few changes"
             : action === "cancel"
               ? "was cancelled"
               : "moved forward"
   await notifyUsers([approval.submittedById], {
-    title: `“${approval.title}” ${label}`,
+    title: `Your request “${approval.title}” ${label}`,
     body: reason ?? undefined,
     href: `/approvals/${approval.id}`,
     excludeUserId: userId,
@@ -255,7 +258,7 @@ export async function actOnApproval(approvalId: string, formData: FormData) {
   }
   if (linkedEvent && target === "APPROVED") {
     await notifyUsers(await orgCurrentMemberIds(approval.organizationId), {
-      title: `Event published: ${linkedEvent.title}`,
+      title: `${linkedEvent.title} is approved and now on the calendar`,
       href: `/calendar/${linkedEvent.id}`,
       excludeUserId: userId,
     })

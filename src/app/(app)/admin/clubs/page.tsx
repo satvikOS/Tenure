@@ -8,7 +8,11 @@ import { Card, CardHeader } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Avatar } from "@/components/ui/Avatar"
 import { Select } from "@/components/ui/Select"
+import { ConfirmSubmit } from "@/components/ui/ConfirmDialog"
 import { adminCharterClub, adminSetOrgStatus } from "../actions"
+
+const rowArchiveBtn =
+  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium text-text-3 transition-colors hover:bg-base hover:text-text-1"
 
 const CATEGORY_OPTIONS = [
   { value: "PROFESSIONAL", label: "Professional" },
@@ -71,19 +75,29 @@ export default async function AdminClubsPage() {
           </p>
         </div>
         {club.status === "PENDING" && <Badge variant="warning">pending</Badge>}
-        {canArchive && (
-          <form action={adminSetOrgStatus}>
-            <input type="hidden" name="organizationId" value={club.id} />
-            <input type="hidden" name="status" value={club.status === "ARCHIVED" ? "ACTIVE" : "ARCHIVED"} />
-            <button
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium text-text-3 transition-colors hover:bg-base hover:text-text-1"
-              aria-label={club.status === "ARCHIVED" ? `Reactivate ${club.name}` : `Archive ${club.name}`}
+        {canArchive &&
+          (club.status === "ARCHIVED" ? (
+            <form action={adminSetOrgStatus}>
+              <input type="hidden" name="organizationId" value={club.id} />
+              <input type="hidden" name="status" value="ACTIVE" />
+              <button className={rowArchiveBtn} aria-label={`Reactivate ${club.name}`}>
+                <ArchiveRestore size={14} /> Reactivate
+              </button>
+            </form>
+          ) : (
+            <ConfirmSubmit
+              action={adminSetOrgStatus}
+              hiddenFields={{ organizationId: club.id, status: "ARCHIVED" }}
+              title={`Archive ${club.name}?`}
+              description={`${club.name} moves to the archived list and drops out of active views for the whole institution. Nothing is deleted and its history stays intact — you can reactivate it here whenever you like.`}
+              confirmLabel="Archive club"
+              variant="danger"
+              triggerClassName={rowArchiveBtn}
+              triggerAriaLabel={`Archive ${club.name}`}
             >
-              {club.status === "ARCHIVED" ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-              {club.status === "ARCHIVED" ? "Reactivate" : "Archive"}
-            </button>
-          </form>
-        )}
+              <Archive size={14} /> Archive
+            </ConfirmSubmit>
+          ))}
         <Link
           href={`/admin/clubs/${club.slug}`}
           className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[13px] font-semibold text-[--accent] no-underline hover:bg-[--accent-light]"

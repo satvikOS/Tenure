@@ -1,11 +1,12 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useTransition } from "react"
 // Closest available aliases from the single icon source (no direct Save/Reset/
 // Trend glyphs exist; see notes). Direction on the variance card is carried by
 // tone colour, not the icon.
 import { CheckCircle, RotateCw, Trash2, BarChart3, type IconType } from "@/components/ui/icons"
 import { Card, CardHeader } from "@/components/ui/Card"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { DonutChart, slotColor, STATUS, REFERENCE } from "@/components/charts"
 import { formatCents, parseMoneyToCents } from "@/lib/finance"
 import { BudgetBarChart, type ChartRow } from "./BudgetBarChart"
@@ -48,6 +49,10 @@ export function FinanceDashboard({
   const [projected, setProjected] = useState<Record<string, string>>(() =>
     Object.fromEntries(lines.map((l) => [l.id, dollars(projectedDefault(l))]))
   )
+
+  // Deleting a line is a hard, unrecoverable delete — gate it behind a confirm.
+  const [deleteTarget, setDeleteTarget] = useState<DashboardLine | null>(null)
+  const [deleting, startDelete] = useTransition()
 
   const projectedCentsFor = (l: DashboardLine) =>
     parseMoneyToCents(projected[l.id]) ?? 0
@@ -226,9 +231,8 @@ export function FinanceDashboard({
                       {canManage && (
                         <td className="px-3 py-2.5 text-right">
                           <button
-                            formAction={deleteForSlug}
-                            name="id"
-                            value={l.id}
+                            type="button"
+                            onClick={() => setDeleteTarget(l)}
                             className="text-text-3 hover:text-[--error]"
                             aria-label={`Delete ${l.category}`}
                           >
@@ -316,6 +320,36 @@ export function FinanceDashboard({
           <BudgetUpload slug={slug} />
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null)
+        }}
+        title={deleteTarget ? `Delete the “${deleteTarget.category}” line?` : ""}
+        description={
+          deleteTarget
+            ? `This permanently deletes the “${deleteTarget.category}” budget line (${formatCents(
+                deleteTarget.budgetedCents
+              )} budgeted, ${formatCents(
+                deleteTarget.actualCents
+              )} spent). It can't be recovered — you'd re-enter it by hand.`
+            : ""
+        }
+        confirmLabel="Delete line"
+        variant="danger"
+        busy={deleting}
+        onConfirm={() => {
+          const target = deleteTarget
+          if (!target) return
+          startDelete(async () => {
+            const fd = new FormData()
+            fd.set("id", target.id)
+            await deleteForSlug(fd)
+            setDeleteTarget(null)
+          })
+        }}
+      />
     </div>
   )
 }

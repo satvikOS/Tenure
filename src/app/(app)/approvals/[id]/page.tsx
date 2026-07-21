@@ -7,6 +7,7 @@ import Link from "next/link"
 import { Card, CardHeader, Attribute } from "@/components/ui/Card"
 import { BackButton } from "@/components/BackButton"
 import { ApprovalBadge, SeverityBadge } from "@/components/ui/Badge"
+import { ConfirmInlineSubmit } from "@/components/ui/ConfirmInlineSubmit"
 import { actOnApproval } from "../actions"
 import { openApprovalThread } from "../../messages/actions"
 
@@ -143,23 +144,71 @@ export default async function ApprovalDetailPage({
                 className="w-full rounded border border-border px-3 py-2 text-sm text-text-1"
               />
               <div className="flex flex-wrap gap-2">
-                {actions.map((a) => (
-                  <button
-                    key={a}
-                    type="submit"
-                    name="action"
-                    value={a}
-                    className={
-                      a === "approve" || a === "submit" || a === "resubmit"
-                        ? "h-9 rounded bg-[--primary] px-4 text-sm font-medium text-white hover:opacity-90"
-                        : a === "reject"
-                          ? "h-9 rounded bg-[--error] px-4 text-sm font-medium text-white hover:opacity-90"
-                          : "h-9 rounded border border-border px-4 text-sm font-medium text-text-2 hover:bg-base"
-                    }
-                  >
-                    {ACTION_LABELS[a]}
-                  </button>
-                ))}
+                {actions.map((a) => {
+                  const cls =
+                    a === "approve" || a === "submit" || a === "resubmit"
+                      ? "h-9 rounded bg-[--primary] px-4 text-sm font-medium text-white hover:opacity-90"
+                      : a === "reject"
+                        ? "h-9 rounded bg-[--error] px-4 text-sm font-medium text-white hover:opacity-90"
+                        : "h-9 rounded border border-border px-4 text-sm font-medium text-text-2 hover:bg-base"
+
+                  // Final OSE approval is terminal + publishes the linked event;
+                  // reject and cancel are terminal. Those get a confirm. Every
+                  // other step just advances the flow, so it stays one click.
+                  const finalApprove = a === "approve" && approval.status === "PENDING_OSE"
+                  const needsConfirm = a === "reject" || a === "cancel" || finalApprove
+
+                  if (!needsConfirm) {
+                    return (
+                      <button
+                        key={a}
+                        type="submit"
+                        name="action"
+                        value={a}
+                        className={cls}
+                      >
+                        {ACTION_LABELS[a]}
+                      </button>
+                    )
+                  }
+
+                  const copy =
+                    a === "reject"
+                      ? {
+                          title: "Reject this request?",
+                          description:
+                            "The requester is notified and this decision is final — the request can't be reopened, and any linked event is cancelled. Add a reason above first if you want to explain why.",
+                          confirmLabel: "Reject request",
+                        }
+                      : a === "cancel"
+                        ? {
+                            title: "Cancel this request?",
+                            description:
+                              "This withdraws the request for good — it moves to Cancelled and can't be resubmitted. Any linked event is cancelled, and the history keeps a permanent record.",
+                            confirmLabel: "Cancel request",
+                          }
+                        : {
+                            title: "Give final approval?",
+                            description:
+                              "This is the final OSE approval. The request is approved for good, any linked event is published to the shared calendar, and the requester is notified. It can't be reopened.",
+                            confirmLabel: "Approve request",
+                          }
+
+                  return (
+                    <ConfirmInlineSubmit
+                      key={a}
+                      name="action"
+                      value={a}
+                      title={copy.title}
+                      description={copy.description}
+                      confirmLabel={copy.confirmLabel}
+                      variant={a === "approve" ? "primary" : "danger"}
+                      triggerClassName={cls}
+                    >
+                      {ACTION_LABELS[a]}
+                    </ConfirmInlineSubmit>
+                  )
+                })}
               </div>
             </form>
           </Card>

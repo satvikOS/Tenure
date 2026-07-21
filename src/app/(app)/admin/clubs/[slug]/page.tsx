@@ -12,6 +12,8 @@ import { Avatar } from "@/components/ui/Avatar"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { DirectoryPicker } from "@/components/admin/DirectoryPicker"
 import { ClubImageEditor } from "@/components/ClubImageEditor"
+import { ConfirmSubmit } from "@/components/ui/ConfirmDialog"
+import { ConfirmInlineSubmit } from "@/components/ui/ConfirmInlineSubmit"
 import {
   adminEditClub,
   adminAssignSeat,
@@ -151,15 +153,20 @@ export default async function AdminClubDetailPage({
                 <div className="flex items-center gap-2">
                   <Badge variant="info">{role.scope.toLowerCase()}</Badge>
                   {can.seat && deletable && (
-                    <form action={adminDeleteSeat}>
-                      <input type="hidden" name="roleId" value={role.id} />
-                      <button
-                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[13px] font-medium text-[--error] hover:bg-[--error-light]"
-                        aria-label={`Delete ${role.name} seat`}
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
-                    </form>
+                    <ConfirmSubmit
+                      action={adminDeleteSeat}
+                      hiddenFields={{ roleId: role.id }}
+                      title={`Delete the ${role.name} seat?`}
+                      description={`This permanently removes the ${role.name} seat from ${org.name}. It carries no assignments, holders, or memory, so no history is lost — but the seat and its position ID are gone for good and can't be recreated with the same ID.`}
+                      details={`Type the seat name to confirm you mean this exact seat.`}
+                      requireText={role.name}
+                      confirmLabel="Delete seat"
+                      variant="danger"
+                      triggerClassName="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[13px] font-medium text-[--error] hover:bg-[--error-light]"
+                      triggerAriaLabel={`Delete ${role.name} seat`}
+                    >
+                      <Trash2 size={14} /> Delete
+                    </ConfirmSubmit>
                   )}
                 </div>
               </div>
@@ -194,15 +201,18 @@ export default async function AdminClubDetailPage({
                       </div>
                       <AssignmentBadge status={a.status} />
                       {can.remove && (
-                        <form action={adminRemoveAssignment}>
-                          <input type="hidden" name="assignmentId" value={a.id} />
-                          <button
-                            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[13px] font-medium text-text-3 hover:bg-base hover:text-[--error]"
-                            aria-label={`Remove ${a.user.name ?? a.user.email} from ${role.name}`}
-                          >
-                            <X size={15} /> Remove
-                          </button>
-                        </form>
+                        <ConfirmSubmit
+                          action={adminRemoveAssignment}
+                          hiddenFields={{ assignmentId: a.id }}
+                          title="Remove this person from the seat?"
+                          description={`${a.user.name ?? a.user.email} is moved to alumni for ${role.name} and loses access to ${org.name} immediately. They're notified that the role has ended. To restore access you'd assign them again.`}
+                          confirmLabel="Remove from seat"
+                          variant="danger"
+                          triggerClassName="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[13px] font-medium text-text-3 hover:bg-base hover:text-[--error]"
+                          triggerAriaLabel={`Remove ${a.user.name ?? a.user.email} from ${role.name}`}
+                        >
+                          <X size={15} /> Remove
+                        </ConfirmSubmit>
                       )}
                     </li>
                   ))}
@@ -237,12 +247,18 @@ export default async function AdminClubDetailPage({
                       </button>
                     )}
                     {can.transfer && holders.length + role.assignments.length > 0 && (
-                      <button
+                      <ConfirmInlineSubmit
                         formAction={adminTransferSeat}
-                        className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border-strong bg-surface px-3.5 text-[13px] font-medium text-text-1 hover:bg-base"
+                        title={`Transfer the ${role.name} seat?`}
+                        description={`The current holder${
+                          holders.length + role.assignments.length > 1 ? "s" : ""
+                        } of ${role.name} become alumni immediately and lose access, and the person you selected is notified that they now hold the seat. There's no undo from here.`}
+                        confirmLabel="Transfer seat"
+                        variant="danger"
+                        triggerClassName="inline-flex h-9 items-center gap-1.5 rounded-md border border-border-strong bg-surface px-3.5 text-[13px] font-medium text-text-1 hover:bg-base"
                       >
                         <ArrowLeftRight size={15} /> Transfer to this person
-                      </button>
+                      </ConfirmInlineSubmit>
                     )}
                   </div>
                 </form>

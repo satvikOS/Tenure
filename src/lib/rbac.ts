@@ -26,6 +26,9 @@ export const getUserContext = cache(async (userId: string): Promise<UserContext>
     db.institutionMembership.findMany({
       where: { userId },
       select: { institutionId: true, role: true },
+      // Stable ordering so a multi-institution admin always resolves the same
+      // acting institution (requireCapability defaults to institutionRoles[0]).
+      orderBy: [{ institutionId: "asc" }],
     }),
     db.roleAssignment.findMany({
       where: { userId },

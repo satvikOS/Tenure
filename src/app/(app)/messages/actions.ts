@@ -190,7 +190,7 @@ export async function composeMessage(formData: FormData) {
 
   const sender = await db.user.findUnique({ where: { id: userId }, select: { name: true } })
   await notifyUsers(all, {
-    title: `New message from ${sender?.name ?? "a teammate"}: ${subject}`,
+    title: `${sender?.name ?? "A teammate"} sent you a message: “${subject}”`,
     href: `/messages/${convo.id}`,
     excludeUserId: userId,
   })

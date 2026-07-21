@@ -25,10 +25,10 @@ test.describe("notification system", () => {
     await signIn(page, "Priya Raman")
     await expect(page.getByRole("button", { name: /Notifications \(\d+ unread\)/ })).toBeVisible()
     await page.goto("/notifications")
-    await expect(page.getByText(`Approval needed: ${reqTitle}`).first()).toBeVisible()
+    await expect(page.getByText(`${reqTitle} needs your approval`).first()).toBeVisible()
 
     // Following it lands on the request; approving notifies the requester
-    await page.getByText(`Approval needed: ${reqTitle}`).first().click()
+    await page.getByText(`${reqTitle} needs your approval`).first().click()
     await expect(page).toHaveURL(/\/approvals\/[a-z0-9]+/)
     await page.getByRole("button", { name: "Approve", exact: true }).click()
     await expect(page.getByText("Pending OSE", { exact: true })).toBeVisible()
@@ -36,13 +36,13 @@ test.describe("notification system", () => {
     await signIn(page, "Victor Chen")
     await page.goto("/notifications")
     await expect(
-      page.getByText(`“${reqTitle}” cleared the president gate`).first()
+      page.getByText(new RegExp(`${reqTitle}.*passed the president`)).first()
     ).toBeVisible()
 
     // OSE gate was notified too
     await signIn(page, "Dana Whitfield")
     await page.goto("/notifications")
-    await expect(page.getByText(`Approval needed: ${reqTitle}`).first()).toBeVisible()
+    await expect(page.getByText(`${reqTitle} needs your approval`).first()).toBeVisible()
   })
 
   test("roster changes notify the person involved", async ({ page }) => {

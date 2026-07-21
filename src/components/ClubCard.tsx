@@ -3,7 +3,11 @@ import { Users, Archive, ArchiveRestore } from "@/components/ui/icons"
 import type { OrgStatus, OrgCategory } from "@prisma/client"
 import { Badge } from "@/components/ui/Badge"
 import { Avatar } from "@/components/ui/Avatar"
+import { ConfirmSubmit } from "@/components/ui/ConfirmDialog"
 import { setClubStatus } from "@/app/(app)/orgs/actions"
+
+const clubActionBtn =
+  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium text-text-3 outline-none transition-colors hover:bg-base hover:text-text-1 focus-visible:ring-2 focus-visible:ring-[--primary]"
 
 const CATEGORY_LABEL: Record<OrgCategory, string> = {
   ORGANIZATION: "Organization",
@@ -93,19 +97,29 @@ export function ClubCard({
       {/* Footer action row — above the stretched link, so no overlap */}
       <div className="relative z-10 flex items-center justify-between gap-2 border-t border-border px-5 py-3">
         <span className="text-[13px] font-medium text-text-link">View roster →</span>
-        {canArchive && (
-          <form action={setClubStatus}>
-            <input type="hidden" name="organizationId" value={org.id} />
-            <input type="hidden" name="status" value={org.status === "ARCHIVED" ? "ACTIVE" : "ARCHIVED"} />
-            <button
-              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium text-text-3 outline-none transition-colors hover:bg-base hover:text-text-1 focus-visible:ring-2 focus-visible:ring-[--primary]"
-              aria-label={org.status === "ARCHIVED" ? `Reactivate ${org.name}` : `Archive ${org.name}`}
+        {canArchive &&
+          (org.status === "ARCHIVED" ? (
+            <form action={setClubStatus}>
+              <input type="hidden" name="organizationId" value={org.id} />
+              <input type="hidden" name="status" value="ACTIVE" />
+              <button className={clubActionBtn} aria-label={`Reactivate ${org.name}`}>
+                <ArchiveRestore size={14} /> Reactivate
+              </button>
+            </form>
+          ) : (
+            <ConfirmSubmit
+              action={setClubStatus}
+              hiddenFields={{ organizationId: org.id, status: "ARCHIVED" }}
+              title={`Archive ${org.name}?`}
+              description={`${org.name} disappears from the active clubs list and stops surfacing in day-to-day views. Nothing is deleted and its full history stays intact — you can reactivate it here whenever you like.`}
+              confirmLabel="Archive club"
+              variant="danger"
+              triggerClassName={clubActionBtn}
+              triggerAriaLabel={`Archive ${org.name}`}
             >
-              {org.status === "ARCHIVED" ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-              {org.status === "ARCHIVED" ? "Reactivate" : "Archive"}
-            </button>
-          </form>
-        )}
+              <Archive size={14} /> Archive
+            </ConfirmSubmit>
+          ))}
       </div>
     </article>
   )

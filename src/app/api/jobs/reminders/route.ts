@@ -79,8 +79,8 @@ export async function POST(request: Request) {
       })
 
       await notifyUsers(recipients, {
-        title: `Due tomorrow: ${deliverable.title}`,
-        body: `${deliverable.description ?? ""} Due ${dueLabel}.`.trim(),
+        title: `Reminder: ${deliverable.title}`,
+        body: `Due tomorrow, ${dueLabel}.${deliverable.description ? ` ${deliverable.description}` : ""}`,
         href: "/calendar",
       })
 

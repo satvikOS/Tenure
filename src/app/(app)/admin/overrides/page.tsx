@@ -9,6 +9,7 @@ import { hasCapability } from "@/lib/admin/capabilities"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { EventBadge, Badge } from "@/components/ui/Badge"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { ConfirmSubmit } from "@/components/ui/ConfirmDialog"
 import {
   adminSetEventStatus,
   adminSetMemoryArchived,
@@ -89,13 +90,17 @@ export default async function AdminOverridesPage() {
                       </button>
                     </form>
                   )}
-                  <form action={adminSetEventStatus}>
-                    <input type="hidden" name="eventId" value={e.id} />
-                    <input type="hidden" name="status" value="CANCELLED" />
-                    <button className="inline-flex items-center gap-1.5 rounded-md border border-border-strong px-3 py-1.5 text-[13px] font-medium text-[--error] hover:bg-[--error-light]">
-                      <X size={14} /> Cancel
-                    </button>
-                  </form>
+                  <ConfirmSubmit
+                    action={adminSetEventStatus}
+                    hiddenFields={{ eventId: e.id, status: "CANCELLED" }}
+                    title={`Cancel “${e.title}”?`}
+                    description={`Cancelling pulls ${e.organization.name}'s event off calendars across the institution. Because cancelled events drop off this override list, you won't be able to re-publish it from here.`}
+                    confirmLabel="Cancel event"
+                    variant="danger"
+                    triggerClassName="inline-flex items-center gap-1.5 rounded-md border border-border-strong px-3 py-1.5 text-[13px] font-medium text-[--error] hover:bg-[--error-light]"
+                  >
+                    <X size={14} /> Cancel
+                  </ConfirmSubmit>
                 </li>
               ))}
             </ul>
@@ -107,6 +112,7 @@ export default async function AdminOverridesPage() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <ContentCard
             title="Memory records"
+            noun="memory record"
             icon={BookOpen}
             items={memory.map((m) => ({ id: m.id, title: m.title, org: m.organization.name, archived: m.isArchived }))}
             action={adminSetMemoryArchived}
@@ -114,6 +120,7 @@ export default async function AdminOverridesPage() {
           />
           <ContentCard
             title="Documents"
+            noun="document"
             icon={FileText}
             items={documents.map((d) => ({ id: d.id, title: d.title, org: d.organization.name, archived: d.isArchived }))}
             action={adminSetDocumentArchived}
@@ -127,12 +134,14 @@ export default async function AdminOverridesPage() {
 
 function ContentCard({
   title,
+  noun,
   icon: Icon,
   items,
   action,
   idField,
 }: {
   title: string
+  noun: string
   icon: typeof BookOpen
   items: { id: string; title: string; org: string; archived: boolean }[]
   action: (formData: FormData) => Promise<void>
@@ -155,14 +164,27 @@ function ContentCard({
                 <p className="text-[13px] text-text-3">{it.org}</p>
               </div>
               {it.archived && <Badge variant="default">archived</Badge>}
-              <form action={action}>
-                <input type="hidden" name={idField} value={it.id} />
-                <input type="hidden" name="archived" value={it.archived ? "false" : "true"} />
-                <button className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium text-text-3 transition-colors hover:bg-base hover:text-text-1">
-                  {it.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-                  {it.archived ? "Restore" : "Archive"}
-                </button>
-              </form>
+              {it.archived ? (
+                <form action={action}>
+                  <input type="hidden" name={idField} value={it.id} />
+                  <input type="hidden" name="archived" value="false" />
+                  <button className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium text-text-3 transition-colors hover:bg-base hover:text-text-1">
+                    <ArchiveRestore size={14} /> Restore
+                  </button>
+                </form>
+              ) : (
+                <ConfirmSubmit
+                  action={action}
+                  hiddenFields={{ [idField]: it.id, archived: "true" }}
+                  title={`Archive this ${noun}?`}
+                  description={`“${it.title}” (${it.org}) is hidden from members across the institution. It's fully reversible — restore it from this same list whenever you need to.`}
+                  confirmLabel={`Archive ${noun}`}
+                  variant="danger"
+                  triggerClassName="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[13px] font-medium text-text-3 transition-colors hover:bg-base hover:text-text-1"
+                >
+                  <Archive size={14} /> Archive
+                </ConfirmSubmit>
+              )}
             </li>
           ))}
         </ul>

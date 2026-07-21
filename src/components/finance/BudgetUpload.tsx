@@ -6,6 +6,7 @@ import * as XLSX from "xlsx"
 // closest existing FileText/CheckCircle (see notes).
 import { Upload, FileText as FileSpreadsheet, AlertCircle, CheckCircle as Check } from "@/components/ui/icons"
 import { Card, CardHeader } from "@/components/ui/Card"
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 import { formatCents, parseBudgetSheet, type ImportResult } from "@/lib/finance"
 import { importBudget } from "@/app/(app)/orgs/[slug]/finance/actions"
 
@@ -22,6 +23,7 @@ export function BudgetUpload({ slug }: { slug: string }) {
   const [fileName, setFileName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+  const [confirmReplace, setConfirmReplace] = useState(false)
   const [pending, startTransition] = useTransition()
 
   async function handleFile(file: File) {
@@ -62,6 +64,8 @@ export function BudgetUpload({ slug }: { slug: string }) {
         if (inputRef.current) inputRef.current.value = ""
       } catch (e) {
         setError(e instanceof Error ? e.message : "Import failed")
+      } finally {
+        setConfirmReplace(false)
       }
     })
   }
@@ -170,7 +174,8 @@ export function BudgetUpload({ slug }: { slug: string }) {
 
           <div className="mt-3 flex flex-wrap gap-2">
             <button
-              onClick={() => doImport("replace")}
+              type="button"
+              onClick={() => setConfirmReplace(true)}
               disabled={pending}
               className="rounded bg-[--primary] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50"
             >
@@ -195,6 +200,19 @@ export function BudgetUpload({ slug }: { slug: string }) {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmReplace}
+        onOpenChange={setConfirmReplace}
+        title="Replace all imported budget lines?"
+        description={`This deletes the club's previously imported budget lines for the current year and replaces them with the ${
+          preview?.rows.length ?? 0
+        } row${preview?.rows.length === 1 ? "" : "s"} from this file. Lines you added by hand are kept, but replaced imported data can't be recovered.`}
+        confirmLabel="Replace lines"
+        variant="danger"
+        busy={pending}
+        onConfirm={() => doImport("replace")}
+      />
     </Card>
   )
 }

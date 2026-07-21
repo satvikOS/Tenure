@@ -47,11 +47,13 @@ test.describe("admin console", () => {
     await page.getByPlaceholder(SEARCH).first().fill("esquivel")
     await page.getByRole("button", { name: /esquivel/i }).first().click()
     await page.getByRole("button", { name: /Transfer to this person/ }).first().click()
+    await page.getByRole("dialog").getByRole("button", { name: "Transfer seat" }).click()
     await expect(page.getByRole("button", { name: /Remove Jaime Esquivel/ })).toBeVisible()
     await expect(page.getByRole("button", { name: /Remove Arjun Prashant Moghe/ })).toHaveCount(0)
 
     // Remove the current holder.
     await page.getByRole("button", { name: /Remove Jaime Esquivel/ }).first().click()
+    await page.getByRole("dialog").getByRole("button", { name: "Remove from seat" }).click()
     await expect(page.getByRole("button", { name: /Remove Jaime Esquivel/ })).toHaveCount(0)
   })
 
@@ -69,6 +71,7 @@ test.describe("admin console", () => {
     await page.goto("/admin/approvals")
     const row = page.locator("li").filter({ hasText: title })
     await row.getByRole("button", { name: "Force approve" }).click()
+    await page.getByRole("dialog").getByRole("button", { name: "Force approve" }).click()
     await expect(row.getByText("Approved")).toBeVisible()
     await expect(row.getByRole("button", { name: "Force approve" })).toHaveCount(0)
   })
@@ -91,6 +94,7 @@ test.describe("admin console", () => {
     await page.goto("/admin/overrides")
     const row = page.locator("li").filter({ hasText: title })
     await row.getByRole("button", { name: "Archive" }).click()
+    await page.getByRole("dialog").getByRole("button", { name: "Archive memory record" }).click()
     await expect(row.getByText("archived")).toBeVisible()
   })
 })

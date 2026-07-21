@@ -27,6 +27,7 @@ export type CapabilityId =
   | "seat.manage"
   | "directory.manage"
   | "institution.grantRole"
+  | "institution.transferRole"
   | "approval.override"
   | "event.override"
   | "content.override"
@@ -106,6 +107,12 @@ export const CAPABILITIES: Record<CapabilityId, Capability> = {
     id: "institution.grantRole",
     label: "Grant OSE access",
     description: "Grant or revoke Director / Staff / Advisor access.",
+    minRole: "OSE_DIRECTOR",
+  },
+  "institution.transferRole": {
+    id: "institution.transferRole",
+    label: "Transfer OSE Director role",
+    description: "Start an atomic, two-party handoff of the Director role to a successor.",
     minRole: "OSE_DIRECTOR",
   },
   "approval.override": {

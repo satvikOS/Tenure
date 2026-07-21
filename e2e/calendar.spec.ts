@@ -71,6 +71,7 @@ test.describe("calendar + conflicts + publishing", () => {
     await page.goto("/approvals")
     await page.getByText(firstTitle).first().click()
     await page.getByRole("button", { name: "Approve", exact: true }).click()
+    await page.getByRole("button", { name: "Approve request" }).click()
     await expect(page.getByText("Approved", { exact: true })).toBeVisible()
 
     // The event is on the month grid — open its day in the inspector panel
@@ -85,6 +86,7 @@ test.describe("calendar + conflicts + publishing", () => {
     await page.getByText(clashTitle).first().click()
     await page.getByPlaceholder(/Optional note/).fill("Venue is double-booked — pick another slot.")
     await page.getByRole("button", { name: "Reject", exact: true }).click()
+    await page.getByRole("button", { name: "Reject request" }).click()
     await expect(page.getByText("Rejected", { exact: true })).toBeVisible()
 
     // Cancelled events drop off the shared calendar (day panel too)

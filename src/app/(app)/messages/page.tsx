@@ -7,6 +7,7 @@ import { getUserContext } from "@/lib/rbac"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { Avatar } from "@/components/ui/Avatar"
 import { SeeAllSection } from "@/components/ui/SeeAllSection"
+import { ConfirmInlineSubmit } from "@/components/ui/ConfirmInlineSubmit"
 import { openBoardChannel, sendBroadcast } from "./actions"
 
 function ago(d: Date): string {
@@ -204,9 +205,15 @@ export default async function MessagesPage() {
                 placeholder="Message to all clubs…"
                 className="w-full rounded border border-border px-3 py-2 text-sm text-text-1"
               />
-              <button className="h-9 rounded bg-[--primary] px-4 text-sm font-medium text-white hover:opacity-90">
+              <ConfirmInlineSubmit
+                title="Send this to everyone?"
+                description="Every current member and OSE staff member at the institution receives this as an announcement. It's delivered immediately and can't be unsent."
+                confirmLabel="Send broadcast"
+                variant="primary"
+                triggerClassName="h-9 rounded bg-[--primary] px-4 text-sm font-medium text-white hover:opacity-90"
+              >
                 Send broadcast
-              </button>
+              </ConfirmInlineSubmit>
             </form>
           </Card>
         )}

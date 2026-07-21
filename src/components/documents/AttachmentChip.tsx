@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
-import { Download, Paperclip } from "@/components/ui/icons"
+import { useCallback, useState } from "react"
+import { Download, Loader2, Paperclip } from "@/components/ui/icons"
 import { Overlay } from "@/components/ui/Overlay"
 import { DocContentView } from "@/components/documents/DocContentView"
+import type { AttachmentContentResponse, DocContent } from "@/components/documents/types"
 
 function formatBytes(n: number | null): string {
   if (!n) return ""
@@ -15,15 +16,26 @@ function formatBytes(n: number | null): string {
 const chipClass =
   "inline-flex items-center gap-2 rounded-md border border-border bg-base px-3 py-1.5 text-[13px] text-text-1 no-underline transition-colors hover:border-[--primary]"
 
+/** Mimes the unified viewer can render — everything else stays a plain download. */
+function isPreviewable(mime: string): boolean {
+  return (
+    mime.startsWith("image/") ||
+    mime === "application/pdf" ||
+    mime.startsWith("text/") ||
+    mime === "application/json" ||
+    mime === "application/xml" ||
+    mime === "application/csv" ||
+    mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    mime === "application/vnd.ms-excel" ||
+    mime === "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  )
+}
+
 /**
- * A single message-attachment chip.
- *
- * Images preview in the shared overlay: the `<img>` loads through the
- * ACL-protected `/api/attachment/[id]` route and renders regardless of that
- * route's attachment `Content-Disposition`. Every other type keeps the plain
- * signed-URL download link — there is no attachment content API, and an
- * attachment-disposition URL can't be framed (pdf) or cross-origin-fetched
- * (text/json/xml) reliably, so those degrade to a download. Attachments are
+ * A single message-attachment chip. Previewable types (pdf, images, text,
+ * spreadsheets, slides) open in the shared read-only viewer overlay, fetching
+ * parsed content from the ACL-protected `/api/attachment/[id]/content` route.
+ * Everything else keeps the plain signed-URL download link. Attachments are
  * never editable.
  */
 export function AttachmentChip({
@@ -38,8 +50,26 @@ export function AttachmentChip({
   sizeBytes: number | null
 }) {
   const [open, setOpen] = useState(false)
+  const [content, setContent] = useState<DocContent | null>(null)
+  const [failed, setFailed] = useState(false)
   const size = formatBytes(sizeBytes)
   const href = `/api/attachment/${id}`
+
+  const load = useCallback(async () => {
+    setContent(null)
+    setFailed(false)
+    try {
+      const res = await fetch(`/api/attachment/${id}/content`, { cache: "no-store" })
+      if (!res.ok) {
+        setFailed(true)
+        return
+      }
+      const data = (await res.json()) as AttachmentContentResponse
+      setContent(data.content)
+    } catch {
+      setFailed(true)
+    }
+  }, [id])
 
   const inner = (
     <>
@@ -49,7 +79,7 @@ export function AttachmentChip({
     </>
   )
 
-  if (!mimeType.startsWith("image/")) {
+  if (!isPreviewable(mimeType)) {
     return (
       <a href={href} className={chipClass}>
         {inner}
@@ -62,7 +92,10 @@ export function AttachmentChip({
       <button
         type="button"
         data-testid="attachment-preview"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true)
+          load()
+        }}
         className={chipClass}
       >
         {inner}
@@ -76,7 +109,17 @@ export function AttachmentChip({
         description={[mimeType, size].filter(Boolean).join(" · ")}
       >
         <div className="space-y-3">
-          <DocContentView content={{ kind: "image", url: href }} title={fileName} />
+          {failed ? (
+            <p className="rounded-lg border border-border bg-base px-4 py-6 text-center text-sm text-text-2">
+              This attachment couldn&apos;t be previewed. Download it to open it.
+            </p>
+          ) : content ? (
+            <DocContentView content={content} title={fileName} />
+          ) : (
+            <div className="flex items-center justify-center gap-2 py-12 text-sm text-text-3">
+              <Loader2 size={16} className="animate-spin" /> Loading preview…
+            </div>
+          )}
           <a
             href={href}
             className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-text-2 no-underline hover:bg-base"

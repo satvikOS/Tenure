@@ -29,6 +29,7 @@ test.describe("club cards", () => {
     const card = page.locator("article").filter({ hasText: name })
     await expect(card).toBeVisible()
     await card.getByRole("button", { name: `Archive ${name}` }).click()
+    await page.getByRole("dialog").getByRole("button", { name: "Archive club" }).click()
 
     // Now it lives under the Archived section with a Reactivate control, and no
     // longer offers an Archive action in the active grid.

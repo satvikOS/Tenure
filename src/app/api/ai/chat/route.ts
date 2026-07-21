@@ -38,9 +38,13 @@ export async function POST(req: Request) {
     const sourceBlock = scored
       .map((s, i) => `[${i + 1}] (${s.kind} · ${s.context}) ${s.title}\n${s.body.slice(0, 1000)}`)
       .join("\n\n")
-    const priorTurns = (body.history ?? [])
+    // `history` is client-supplied — guard that it is actually an array (and
+    // that each turn is an object) before slicing/mapping, so a malformed
+    // body like {"history":"abc"} can't throw a 500.
+    const history = Array.isArray(body.history) ? body.history : []
+    const priorTurns = history
       .slice(-6)
-      .map((m) => `${m.role === "user" ? "User" : "Tenure AI"}: ${m.content}`)
+      .map((m) => `${m?.role === "user" ? "User" : "Tenure AI"}: ${m?.content ?? ""}`)
       .join("\n")
     answer = await aiComplete(
       "You are Tenure AI, the copilot inside Tenure (an operating system for student organizations). " +

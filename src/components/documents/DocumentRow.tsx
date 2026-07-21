@@ -13,6 +13,7 @@ import {
   DocumentViewerOverlay,
   type ViewerInitialMeta,
 } from "@/components/documents/DocumentViewerOverlay"
+import { ConfirmSubmit } from "@/components/ui/ConfirmDialog"
 
 const rowActionBtn =
   "inline-flex items-center gap-1.5 h-8 rounded-md border border-border px-3 text-xs font-medium text-text-2 hover:bg-base transition-colors no-underline"
@@ -91,17 +92,18 @@ export function DocumentRow({
           </button>
         </form>
         {canDelete && (
-          <form action={deleteAction}>
-            <input type="hidden" name="documentId" value={docId} />
-            <button
-              type="submit"
-              className={`${rowActionBtn}`}
-              style={{ color: "var(--error)" }}
-              aria-label={`Delete ${title}`}
-            >
-              <Trash2 size={13} /> Delete
-            </button>
-          </form>
+          <ConfirmSubmit
+            action={deleteAction}
+            hiddenFields={{ documentId: docId }}
+            title="Delete this document?"
+            description={`“${title}” is removed from this club's document library. An OSE admin can still restore it, and the deletion is recorded in the audit log.`}
+            confirmLabel="Delete document"
+            variant="danger"
+            triggerClassName={`${rowActionBtn} text-[--error]`}
+            triggerAriaLabel={`Delete ${title}`}
+          >
+            <Trash2 size={13} /> Delete
+          </ConfirmSubmit>
         )}
       </div>
 

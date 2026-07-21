@@ -81,9 +81,17 @@ export default async function CalendarPage({
 
   // ── Week / Day views — Outlook-style hourly grid ─────────────────────────────
   if (currentView === "week" || currentView === "day") {
-    const base = /^\d{4}-\d{2}-\d{2}$/.test(d ?? "")
-      ? new Date(`${d}T00:00:00.000Z`)
-      : new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`)
+    // `d` may be absent, a repeated param (string[]), or a well-formed-but-
+    // out-of-range date like 2026-13-40 that passes the regex yet yields an
+    // Invalid Date. Validate the parsed time and fall back to today so a
+    // crafted/shared URL can never crash the page.
+    const candidate =
+      typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d)
+        ? new Date(`${d}T00:00:00.000Z`)
+        : new Date(NaN)
+    const base = isNaN(candidate.getTime())
+      ? new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`)
+      : candidate
 
     const spanDays = currentView === "week" ? 7 : 1
     const gridStart =

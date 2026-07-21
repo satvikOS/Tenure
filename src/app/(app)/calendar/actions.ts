@@ -75,8 +75,8 @@ export async function createEvent(formData: FormData) {
         type: "EVENT",
         title,
         description:
-          `Event proposal for ${startAt.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}` +
-          (venue ? ` in ${venue}` : "") +
+          `Proposed for ${startAt.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}` +
+          (venue ? ` at ${venue}` : "") +
           (description ? `\n\n${description}` : ""),
         submittedById: userId,
         status: submitTarget,
@@ -144,11 +144,11 @@ export async function createEvent(formData: FormData) {
       ? await orgPresidentIds(organizationId)
       : await oseMemberIds(org.institutionId)
   await notifyUsers(gateUsers, {
-    title: `Event proposal: ${title}`,
+    title: `New event “${title}” needs your approval`,
     body:
       conflicts.length > 0
-        ? `${conflicts.length} schedule conflict${conflicts.length === 1 ? "" : "s"} detected — review before deciding.`
-        : "No schedule conflicts detected.",
+        ? `Heads up — it overlaps with ${conflicts.length} other event${conflicts.length === 1 ? "" : "s"}. Please review before deciding.`
+        : "No scheduling conflicts — you're clear to decide.",
     href: `/calendar/${event.id}`,
     excludeUserId: userId,
   })

@@ -128,6 +128,7 @@ test.describe("messaging", () => {
     await page.getByPlaceholder("Subject").fill(subject)
     await page.getByPlaceholder("Message to all clubs…").fill("Budget submissions close Oct 15.")
     await page.getByRole("button", { name: "Send broadcast" }).click()
+    await page.getByRole("dialog").getByRole("button", { name: "Send broadcast" }).click()
     await page.waitForURL(/\/messages\/[a-z0-9]+/)
     await expect(page.getByText("Budget submissions close Oct 15.")).toBeVisible()
 

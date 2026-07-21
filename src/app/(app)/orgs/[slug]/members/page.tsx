@@ -9,6 +9,7 @@ import { Avatar } from "@/components/ui/Avatar"
 import { OrgTabs } from "@/components/OrgTabs"
 import { EmailLink } from "@/components/EmailLink"
 import { ClubImageEditor } from "@/components/ClubImageEditor"
+import { ConfirmSubmit } from "@/components/ui/ConfirmDialog"
 import { assignMember, transitionAssignment } from "./actions"
 
 export const dynamic = "force-dynamic"
@@ -216,13 +217,18 @@ export default async function MembersPage({
                         </form>
                       )}
                       {canManage && a.status === "ACTIVE" && (
-                        <form action={transitionWithSlug}>
-                          <input type="hidden" name="assignmentId" value={a.id} />
-                          <input type="hidden" name="to" value="ALUMNI" />
-                          <button className="text-xs font-medium text-text-3 hover:underline">
-                            End term
-                          </button>
-                        </form>
+                        <ConfirmSubmit
+                          action={transitionWithSlug}
+                          hiddenFields={{ assignmentId: a.id, to: "ALUMNI" }}
+                          title="End this term?"
+                          description={`${a.user.name ?? a.user.email} becomes an alum of the ${role.name} seat. Their access to ${org.name} is revoked immediately and they're notified. The seat's history is kept, but there's no undo — restoring access means adding them back as a new assignment.`}
+                          confirmLabel="End term"
+                          variant="danger"
+                          triggerClassName="text-xs font-medium text-text-3 hover:underline hover:text-[--error]"
+                          triggerAriaLabel={`End term for ${a.user.name ?? a.user.email}`}
+                        >
+                          End term
+                        </ConfirmSubmit>
                       )}
                     </div>
                   </li>

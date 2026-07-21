@@ -8,6 +8,7 @@ import { hasCapability } from "@/lib/admin/capabilities"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { ApprovalBadge } from "@/components/ui/Badge"
 import { EmptyState } from "@/components/ui/EmptyState"
+import { ConfirmSubmit } from "@/components/ui/ConfirmDialog"
 import { adminDecideApproval } from "../actions"
 
 export const metadata: Metadata = { title: "Admin · Approvals" }
@@ -44,20 +45,28 @@ export default async function AdminApprovalsPage() {
       <ApprovalBadge status={r.status} />
       {canDecide && (
         <div className="flex items-center gap-2">
-          <form action={adminDecideApproval}>
-            <input type="hidden" name="approvalId" value={r.id} />
-            <input type="hidden" name="decision" value="APPROVED" />
-            <button className="inline-flex items-center gap-1.5 rounded-md bg-[--primary] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[--primary-hover]">
-              <CheckCircle size={14} /> Force approve
-            </button>
-          </form>
-          <form action={adminDecideApproval}>
-            <input type="hidden" name="approvalId" value={r.id} />
-            <input type="hidden" name="decision" value="REJECTED" />
-            <button className="inline-flex items-center gap-1.5 rounded-md border border-border-strong px-3 py-1.5 text-[13px] font-medium text-[--error] hover:bg-[--error-light]">
-              <X size={14} /> Force reject
-            </button>
-          </form>
+          <ConfirmSubmit
+            action={adminDecideApproval}
+            hiddenFields={{ approvalId: r.id, decision: "APPROVED" }}
+            title="Force-approve this request?"
+            description={`This approves “${r.title}” right now, bypassing the President and OSE gates. The requester is notified, any linked event is published, and the override is written to the audit trail. It can't be reopened.`}
+            confirmLabel="Force approve"
+            variant="primary"
+            triggerClassName="inline-flex items-center gap-1.5 rounded-md bg-[--primary] px-3 py-1.5 text-[13px] font-medium text-white hover:bg-[--primary-hover]"
+          >
+            <CheckCircle size={14} /> Force approve
+          </ConfirmSubmit>
+          <ConfirmSubmit
+            action={adminDecideApproval}
+            hiddenFields={{ approvalId: r.id, decision: "REJECTED" }}
+            title="Force-reject this request?"
+            description={`This rejects “${r.title}” right now, bypassing both approval gates. The requester is notified, any linked event is cancelled, and the decision is final — it can't be reopened.`}
+            confirmLabel="Force reject"
+            variant="danger"
+            triggerClassName="inline-flex items-center gap-1.5 rounded-md border border-border-strong px-3 py-1.5 text-[13px] font-medium text-[--error] hover:bg-[--error-light]"
+          >
+            <X size={14} /> Force reject
+          </ConfirmSubmit>
         </div>
       )}
     </li>

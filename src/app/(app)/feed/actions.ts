@@ -68,7 +68,7 @@ export async function addFeedComment(formData: FormData) {
 
   // Light ping to the post author
   await notifyUsers([post.authorId], {
-    title: `New comment on “${post.title}”`,
+    title: `New comment on your post “${post.title}”`,
     href: "/feed",
     excludeUserId: userId,
   })
@@ -127,14 +127,14 @@ export async function requestCollab(formData: FormData) {
     select: { userId: true },
   })
   await notifyUsers(directors.map((d) => d.userId), {
-    title: `Collaboration approval needed: ${seat.role.organization.name} ↔ ${post.organization.name}`,
-    body: `On “${post.title}”${note ? ` — “${note}”` : ""}`,
+    title: `${seat.role.organization.name} wants to collaborate with ${post.organization.name}`,
+    body: `It's on “${post.title}” and needs your approval.${note ? ` They said: “${note}”` : ""}`,
     href: "/feed",
     excludeUserId: userId,
   })
   await notifyUsers([post.authorId, ...(await orgPresidentIds(post.organizationId))], {
     title: `${seat.role.organization.name} wants to collaborate on “${post.title}”`,
-    body: "Pending OSE Director approval.",
+    body: "It's now with the OSE Director for approval.",
     href: "/feed",
     excludeUserId: userId,
   })
@@ -196,15 +196,18 @@ export async function decideCollab(formData: FormData) {
   await notifyUsers(audience, {
     title:
       decision === "APPROVED"
-        ? `Collaboration approved: ${interest.organization.name} ↔ ${interest.post.organization.name}`
-        : `Collaboration declined: ${interest.organization.name} ↔ ${interest.post.organization.name}`,
+        ? `${interest.organization.name} and ${interest.post.organization.name} are approved to collaborate 🎉`
+        : `${interest.organization.name} and ${interest.post.organization.name} won't be collaborating this time`,
     body: decisionNote ?? undefined,
     href: "/feed",
     excludeUserId: userId,
   })
   // Keep other OSE staff in the loop
   await notifyUsers(await oseMemberIds(interest.post.institutionId), {
-    title: `Collab ${decision.toLowerCase()}: ${interest.organization.name} ↔ ${interest.post.organization.name}`,
+    title:
+      decision === "APPROVED"
+        ? `${interest.organization.name} and ${interest.post.organization.name} are now collaborating`
+        : `The collaboration between ${interest.organization.name} and ${interest.post.organization.name} was declined`,
     href: "/feed",
     excludeUserId: userId,
   })

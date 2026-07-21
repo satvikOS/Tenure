@@ -68,6 +68,7 @@ model Institution {
   memberships   InstitutionMembership[]
   auditEvents   AuditEvent[]
   deliverables  Deliverable[]
+  roleTransfers RoleTransfer[]
 }
 
 enum InstitutionRole {
@@ -108,6 +109,9 @@ model User {
   sessions              Session[]
   institutionMembership InstitutionMembership[]
   roleAssignments       RoleAssignment[]
+  roleTransfersFrom      RoleTransfer[] @relation("RoleTransferFrom")
+  roleTransfersTo        RoleTransfer[] @relation("RoleTransferTo")
+  roleTransfersInitiated RoleTransfer[] @relation("RoleTransferInitiator")
   messagesSent          Message[]
   participants          Participant[]
   notifications         Notification[]
@@ -826,4 +830,41 @@ model AuditEvent {
   @@index([institutionId, occurredAt])
   @@index([actorId, occurredAt])
   @@index([resourceType, resourceId])
+}
+
+// ─── Institution role transfers ───────────────────────────────────────────────
+
+// The two-party handoff of an OSE administration role (Director / Staff / Advisor).
+// The outgoing holder KEEPS their role until the successor accepts, so coverage
+// is never interrupted. On acceptance the grant + step-down happen atomically.
+enum RoleTransferStatus {
+  PENDING    // awaiting the successor's decision
+  COMPLETED  // successor accepted; role handed over
+  DECLINED   // successor declined
+  CANCELLED  // initiator withdrew before it was decided
+}
+
+model RoleTransfer {
+  id            String             @id @default(cuid())
+  institutionId String
+  institution   Institution        @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  // The person handing the role off — keeps it until COMPLETED.
+  fromUserId    String
+  fromUser      User               @relation("RoleTransferFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  // The successor who must accept.
+  toUserId      String
+  toUser        User               @relation("RoleTransferTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  // The institution role being transferred (e.g. OSE_DIRECTOR).
+  role          InstitutionRole
+  status        RoleTransferStatus @default(PENDING)
+  note          String?
+  // Where the initiator lands on completion. Null = fully revoke their access.
+  stepDownRole  InstitutionRole?
+  initiatedById String
+  initiatedBy   User               @relation("RoleTransferInitiator", fields: [initiatedById], references: [id], onDelete: Cascade)
+  createdAt     DateTime           @default(now())
+  resolvedAt    DateTime?
+
+  @@index([institutionId, status])
+  @@index([toUserId, status])
 }

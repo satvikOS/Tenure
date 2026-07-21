@@ -1,5 +1,5 @@
 import "server-only"
-import type { InstitutionRole } from "@prisma/client"
+import type { InstitutionRole, Prisma } from "@prisma/client"
 import { notFound, redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
@@ -44,6 +44,10 @@ export async function requireCapability(
     resourceType?: string
     resourceId?: string
     reason?: string
+    /** Target identity / before-after detail — recorded on the audit row so
+     *  every privileged action says WHO was affected and HOW, not just that
+     *  "some" grant/revoke/transfer happened. */
+    metadata?: Prisma.InputJsonValue
   }
 ): Promise<CapabilityContext> {
   const session = await auth()
@@ -67,6 +71,7 @@ export async function requireCapability(
       organizationId: opts?.organizationId,
       outcome: allowed ? "ALLOW" : "DENY",
       reason: opts?.reason,
+      ...(opts?.metadata !== undefined ? { metadata: opts.metadata } : {}),
     },
   })
 
