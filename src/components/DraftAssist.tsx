@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Sparkles, Loader2 } from "lucide-react"
+import { Sparkles, Loader2 } from "@/components/ui/icons"
 
 /**
  * Tenure AI drafting assist: describe what you need, the draft lands in the

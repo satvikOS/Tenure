@@ -2,9 +2,12 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
+import { storageConfigured } from "@/lib/s3"
 import { Card, CardHeader, Attribute } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
+import { PageHeader } from "@/components/ui/PageHeader"
 import { ThemeSwitcher } from "@/components/ThemeSwitcher"
+import { ProfileImageEditor } from "@/components/ProfileImageEditor"
 import { updateProfile } from "./actions"
 
 export const dynamic = "force-dynamic"
@@ -27,14 +30,24 @@ export default async function SettingsPage() {
 
   return (
     <div className="max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-text-1">Settings</h1>
-        <p className="text-sm text-text-2 mt-1">
-          Your profile, appearance, and access at a glance.
-        </p>
-      </div>
+      <PageHeader
+        title="Settings"
+        subtitle="Your profile, appearance, and access at a glance."
+      />
 
-      <div className="space-y-4">
+      <div className="space-y-5">
+        <Card>
+          <CardHeader
+            title="Profile picture"
+            subtitle="Shown in the header, messages, and wherever you appear."
+          />
+          <ProfileImageEditor
+            name={user.name ?? user.email ?? "You"}
+            image={user.image}
+            canUpload={storageConfigured()}
+          />
+        </Card>
+
         <Card>
           <CardHeader
             title="Appearance"

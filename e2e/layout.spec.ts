@@ -29,8 +29,14 @@ test.describe("responsive layout", () => {
       expect(box.width).toBeGreaterThan(1500)
 
       // Centered in the area beside the side nav: the gap on the right must
-      // not dwarf the gap on the left (the old bug left ~1000px dead)
-      const navWidth = 240
+      // not dwarf the gap on the left (the old bug left ~1000px dead).
+      // Read the real side-nav width from the design token so this stays
+      // correct as the shell is resized.
+      const navWidth = await page.evaluate(() =>
+        parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue("--sidenav-width")
+        )
+      )
       const leftGap = box.x - navWidth
       const rightGap = 2560 - (box.x + box.width)
       expect(Math.abs(leftGap - rightGap)).toBeLessThan(60)

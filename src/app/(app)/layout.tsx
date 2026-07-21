@@ -5,6 +5,9 @@ import { getUserContext } from "@/lib/rbac"
 import { ShellHeader } from "@/components/shell/ShellHeader"
 import { SideNav } from "@/components/shell/SideNav"
 import { Footer } from "@/components/shell/Footer"
+import { MainRegion } from "@/components/shell/MainRegion"
+import { AIProvider } from "@/components/ai/AIProvider"
+import { TenureAIPanel } from "@/components/ai/TenureAIPanel"
 import { signOutAction } from "./actions"
 
 export default async function AppLayout({
@@ -15,34 +18,33 @@ export default async function AppLayout({
   const session = await auth()
   if (!session?.user) redirect("/signin")
 
-  const [ctx, unreadNotifications] = await Promise.all([
+  const [ctx, unreadNotifications, me] = await Promise.all([
     getUserContext(session.user.id),
     db.notification.count({ where: { userId: session.user.id, readAt: null } }),
+    // Fresh image (JWT sessions don't refresh it when the user changes it).
+    db.user.findUnique({ where: { id: session.user.id }, select: { image: true } }),
   ])
 
   return (
-    <>
+    <AIProvider>
       <ShellHeader
         userName={session.user.name ?? session.user.email ?? "User"}
         userEmail={session.user.email ?? undefined}
+        userImage={me?.image ?? undefined}
         unreadNotifications={unreadNotifications}
         onSignOut={signOutAction}
       />
-      <SideNav showReports={ctx.institutionRoles.length > 0} />
-      <main
-        className="min-h-screen bg-base flex flex-col"
-        style={{
-          paddingTop: "var(--shell-height)",
-          paddingLeft: "var(--sidenav-width)",
-        }}
-      >
-        {/* Width and gutters live here, not on every page, so the whole app
-            responds to the viewport consistently. */}
-        <div className="page-shell flex-1 pt-6">{children}</div>
-        <div className="page-shell">
-          <Footer />
-        </div>
-      </main>
-    </>
+      <SideNav
+        showReports={ctx.institutionRoles.length > 0}
+        showAdmin={ctx.institutionRoles.length > 0}
+      />
+      {/* Width and gutters live inside MainRegion, which also squeezes the
+          content in when the Tenure AI panel opens. */}
+      <MainRegion>{children}</MainRegion>
+      {/* Hardened frame: header + side nav + footer stay put; only this main
+          content region scrolls. */}
+      <Footer />
+      <TenureAIPanel />
+    </AIProvider>
   )
 }

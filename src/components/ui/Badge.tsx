@@ -12,6 +12,7 @@ type BadgeVariant =
   | "error"
   | "info"
   | "draft"
+  | "accent"
 
 const variantStyles: Record<BadgeVariant, string> = {
   default: "bg-[--badge-draft-bg] text-[--badge-draft-text]",
@@ -20,6 +21,7 @@ const variantStyles: Record<BadgeVariant, string> = {
   warning: "bg-[--badge-pending-bg] text-[--badge-pending-text]",
   error:   "bg-[--badge-rejected-bg] text-[--badge-rejected-text]",
   info:    "bg-[--primary-light] text-[--primary]",
+  accent:  "bg-[--badge-accent-bg] text-[--badge-accent-text]",
 }
 
 export function Badge({
@@ -34,7 +36,7 @@ export function Badge({
   return (
     <span
       className={`
-        inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium
+        inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[13px] font-semibold leading-none
         ${variantStyles[variant]} ${className ?? ""}
       `}
     >

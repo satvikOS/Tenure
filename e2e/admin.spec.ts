@@ -30,20 +30,23 @@ test.describe("real clubs + permanent position IDs", () => {
     await expect(page.getByText("Position ID SCC-VP-CASI", { exact: false })).toBeVisible()
   })
 
-  test("OSE director charters a club with standard seats", async ({ page }) => {
+  test("OSE director charters a club with standard seats from the admin console", async ({ page }) => {
     await signIn(page, "Dana Whitfield")
-    await page.goto("/orgs")
+    await page.goto("/admin/clubs")
     await page.getByPlaceholder("Simon Real Estate Club").fill(`E2E Chess Club ${stamp}`)
     await page.getByRole("button", { name: "Charter club" }).click()
-    await page.waitForURL(/\/members$/)
+    await page.waitForURL(/\/admin\/clubs\/[a-z0-9-]+$/)
     await expect(page.getByRole("heading", { name: `E2E Chess Club ${stamp}` })).toBeVisible()
     await expect(page.getByText("President", { exact: true }).first()).toBeVisible()
     await expect(page.getByText(/Position ID /).first()).toBeVisible()
   })
 
-  test("club members cannot charter clubs", async ({ page }) => {
+  test("club members cannot reach the admin console", async ({ page }) => {
     await signIn(page, "Priya Raman")
+    await page.goto("/admin/clubs")
+    await expect(page.getByText("Administration Console")).toHaveCount(0)
+    // The charter form is admin-only and no longer on the public clubs page.
     await page.goto("/orgs")
-    await expect(page.getByText("Charter a new club")).not.toBeVisible()
+    await expect(page.getByText("Charter a new club")).toHaveCount(0)
   })
 })

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { AlertTriangle, CalendarDays, MapPin, X } from "lucide-react"
+import { AlertTriangle, CalendarDays, MapPin, X } from "@/components/ui/icons"
 
 export interface GridEvent {
   id: string

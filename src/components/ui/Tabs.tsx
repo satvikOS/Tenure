@@ -37,12 +37,12 @@ export function TabItem({ children, ...props }: TabProps) {
     <Tab
       {...props}
       className={`
-        relative px-4 h-10 text-sm font-medium text-text-2 cursor-default
+        relative px-4 h-12 text-[15px] font-medium text-text-2 cursor-default
         outline-none transition-colors
         data-[selected]:text-[--primary]
         data-[hovered]:text-text-1
         data-[selected]:after:absolute data-[selected]:after:bottom-0 data-[selected]:after:left-0
-        data-[selected]:after:right-0 data-[selected]:after:h-0.5 data-[selected]:after:bg-[--primary]
+        data-[selected]:after:right-0 data-[selected]:after:h-[2.5px] data-[selected]:after:rounded-full data-[selected]:after:bg-[--primary]
         data-[focus-visible]:ring-2 data-[focus-visible]:ring-[--primary] data-[focus-visible]:ring-inset
       `}
     >

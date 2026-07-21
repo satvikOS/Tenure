@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3"
-import { Sparkles } from "lucide-react"
+import { Sparkles } from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canViewOrg, getUserContext } from "@/lib/rbac"

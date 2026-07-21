@@ -30,9 +30,11 @@ test.describe("messaging", () => {
     await page.getByRole("button", { name: "Send", exact: true }).click()
     // Must actually leave /messages/compose for a thread page
     await page.waitForURL(/\/messages\/(?!compose)[a-z0-9]+$/)
-    await expect(page.getByText("From: Victor Chen")).toBeVisible()
-    await expect(page.getByText("To: Priya Raman")).toBeVisible()
-    await expect(page.getByText("Cc: Maya Johnson")).toBeVisible()
+    // Recipients render with avatars: From Victor, To Priya, Cc Maya.
+    await expect(page.getByText("From", { exact: true })).toBeVisible()
+    await expect(page.getByText("Victor Chen").first()).toBeVisible()
+    await expect(page.getByText("Priya Raman").first()).toBeVisible()
+    await expect(page.getByText("Maya Johnson").first()).toBeVisible()
 
     // Priya replies in the thread
     await signIn(page, "Priya Raman")

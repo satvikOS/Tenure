@@ -20,9 +20,10 @@ test.describe("notification system", () => {
     await page.getByRole("button", { name: "Submit for approval" }).click()
     await page.waitForURL(/\/approvals\/(?!new)[a-z0-9]+$/)
 
-    // Priya (president gate) has an unread notification
+    // Priya (president gate) has an unread notification — the live header bell
+    // reflects the unread count in its accessible name.
     await signIn(page, "Priya Raman")
-    await expect(page.getByRole("link", { name: /Notifications \(\d+ unread\)/ })).toBeVisible()
+    await expect(page.getByRole("button", { name: /Notifications \(\d+ unread\)/ })).toBeVisible()
     await page.goto("/notifications")
     await expect(page.getByText(`Approval needed: ${reqTitle}`).first()).toBeVisible()
 
@@ -52,6 +53,16 @@ test.describe("notification system", () => {
     await page.getByRole("button", { name: "Add", exact: true }).click()
     await expect(page.getByText(email)).toBeVisible()
     // (The new user has a notification waiting for their first sign-in.)
+  })
+
+  test("the header bell opens a live notifications dropdown", async ({ page }) => {
+    await signIn(page, "Priya Raman")
+    // The bell is an interactive button (not just a link to the page).
+    await page.getByRole("button", { name: /Notifications/ }).click()
+    // The dropdown surfaces recent items and a route to the full page.
+    await expect(page.getByRole("link", { name: "See all notifications" })).toBeVisible()
+    await page.getByRole("link", { name: "See all notifications" }).click()
+    await expect(page).toHaveURL(/\/notifications/)
   })
 })
 

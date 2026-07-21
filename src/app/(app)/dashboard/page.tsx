@@ -8,13 +8,16 @@ import {
   Users,
   ArrowRight,
   Clock,
-} from "lucide-react"
+} from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
 import { QuickLinks } from "@/components/QuickLinks"
 import { seatKeysForRole, type SeatKey } from "@/lib/resources"
-import { Card, CardHeader } from "@/components/ui/Card"
+import { Card } from "@/components/ui/Card"
+import { StatGrid, StatTile } from "@/components/ui/Bento"
+import { SeeAllSection } from "@/components/ui/SeeAllSection"
+import { Avatar } from "@/components/ui/Avatar"
 
 export const metadata: Metadata = { title: "Dashboard" }
 export const dynamic = "force-dynamic"
@@ -77,7 +80,7 @@ export default async function DashboardPage() {
       db.auditEvent.findMany({
         where: { organizationId: { in: orgIds } },
         orderBy: { occurredAt: "desc" },
-        take: 6,
+        take: 24,
         include: { institution: { select: { name: true } } },
       }),
     ])
@@ -154,190 +157,173 @@ export default async function DashboardPage() {
     ]),
   ]
 
+  // Shared list renderers — the same markup drives the capped preview and the
+  // full "See all" overlay, so nothing overflows a panel to a different height.
+  const activityList = (items: typeof recentAudit) => (
+    <ul className="divide-y divide-border">
+      {items.map((item) => (
+        <li key={item.id} className="flex items-start gap-3 py-3">
+          <Clock size={15} className="mt-0.5 shrink-0 text-text-3" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-text-1">
+              <span className="font-medium">
+                {item.actorId ? actorNames.get(item.actorId) ?? "System" : "System"}
+              </span>{" "}
+              <span className="text-text-2">
+                {item.organizationId ? orgNames.get(item.organizationId) ?? "" : item.institution.name}
+              </span>
+              {" — "}
+              {item.action}
+              {item.outcome === "DENY" && " (denied)"}
+            </p>
+            <p className="mt-0.5 text-meta text-text-3">
+              {item.occurredAt.toLocaleString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+
+  const seatsList = (items: typeof mySeats) => (
+    <ul className="divide-y divide-border">
+      {items.map((s) => {
+        const isPres = s.role.scope === "PRESIDENT" && s.status === "ACTIVE"
+        return (
+          <li key={s.id} className="py-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate text-sm font-medium text-text-1">
+                {s.role.name} · {s.role.organization.name}
+              </p>
+              {s.status === "SHADOW" && (
+                <span className="shrink-0 text-[13px]" style={{ color: "var(--info)" }}>
+                  incoming
+                </span>
+              )}
+            </div>
+            {s.role.positionCode && <p className="mt-0.5 text-meta text-text-3">{s.role.positionCode}</p>}
+            <div className="mt-1.5 flex gap-3 text-[13px]">
+              <Link href={`/orgs/${s.role.organization.slug}/memory`} className="text-[--primary] no-underline hover:underline">
+                Seat memory
+              </Link>
+              {isPres ? (
+                <Link href="/approvals" className="text-[--primary] no-underline hover:underline">
+                  Review requests
+                </Link>
+              ) : s.status === "ACTIVE" ? (
+                <Link href="/approvals/new" className="text-[--primary] no-underline hover:underline">
+                  New request
+                </Link>
+              ) : null}
+            </div>
+          </li>
+        )
+      })}
+    </ul>
+  )
+
+  const clubsList = (items: typeof orgs) => (
+    <ul className="divide-y divide-border">
+      {items.map((club) => (
+        <li key={club.id}>
+          <Link
+            href={`/orgs/${club.slug}/members`}
+            className="flex items-center gap-3 py-2.5 no-underline transition-colors hover:bg-base"
+          >
+            <Avatar name={club.name} size="sm" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-text-1">{club.name}</p>
+              <p className="text-meta text-text-3">
+                {orgMemberCount.get(club.id) ?? 0} active member
+                {(orgMemberCount.get(club.id) ?? 0) === 1 ? "" : "s"}
+              </p>
+            </div>
+            <ArrowRight size={15} className="shrink-0 text-text-3" />
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
+
   return (
     <div className="w-full">
-      <div className="mb-6">
-        <h1 className="text-text-1">
-          {isOse ? "OSE Dashboard" : "Dashboard"}
-        </h1>
-        <p className="text-sm text-text-2 mt-0.5">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-text-1">{isOse ? "OSE Dashboard" : "Dashboard"}</h1>
+        <p className="mt-1 text-lead text-text-2">
           Welcome back, {session.user.name ?? session.user.email}
         </p>
       </div>
 
-      {/* KPI tiles — live counts scoped to what this user can see */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {kpis.map((kpi) => (
-          <Link key={kpi.label} href={kpi.href} className="block no-underline">
-            <Card className="hover:shadow transition-shadow cursor-pointer h-full">
-              <div
-                className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: kpi.bg }}
-              >
-                <kpi.icon size={18} style={{ color: kpi.color }} strokeWidth={2} />
-              </div>
-              <p
-                className="mt-3 text-2xl font-bold"
-                style={{ color: "var(--text-1)", letterSpacing: "-0.02em" }}
-              >
-                {kpi.value}
-              </p>
-              <p className="text-xs text-text-2 mt-0.5">{kpi.label}</p>
-              <p className="text-xs text-text-3 mt-1">{kpi.hint}</p>
-            </Card>
-          </Link>
-        ))}
-      </div>
-
-      {/* The links board members open constantly, scoped to their seats */}
+      {/* KPI tiles — uniform bento stat tiles, live counts scoped to this user */}
       <div className="mb-6">
-        <QuickLinks seats={quickLinkSeats} />
+        <StatGrid>
+          {kpis.map((kpi) => (
+            <StatTile
+              key={kpi.label}
+              label={kpi.label}
+              value={kpi.value}
+              hint={kpi.hint}
+              icon={kpi.icon}
+              href={kpi.href}
+            />
+          ))}
+        </StatGrid>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Recent activity — real audit trail */}
-        <div className="lg:col-span-2">
-          <Card padding="none">
-            <div className="p-5 border-b border-border">
-              <CardHeader title="Recent Activity" subtitle="From the audit log" />
-            </div>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        {/* Recent activity — capped preview, full list in a See-all overlay */}
+        <Card className="lg:col-span-2">
+          <SeeAllSection
+            title="Recent activity"
+            count={recentAudit.length}
+            overlayTitle="Recent activity"
+            overlayDescription="From the institution audit log."
+            full={recentAudit.length > 6 ? activityList(recentAudit) : undefined}
+          >
             {recentAudit.length === 0 ? (
-              <p className="px-5 py-8 text-sm text-text-3 text-center">
+              <p className="py-8 text-center text-sm text-text-3">
                 No activity yet — actions like roster changes will appear here.
               </p>
             ) : (
-              <ul className="divide-y divide-border">
-                {recentAudit.map((item) => (
-                  <li key={item.id} className="flex items-start gap-3 px-5 py-3.5">
-                    <Clock size={14} className="text-text-3 mt-0.5 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-text-1">
-                        <span className="font-medium">
-                          {item.actorId ? actorNames.get(item.actorId) ?? "System" : "System"}
-                        </span>{" "}
-                        <span className="text-text-2">
-                          {item.organizationId
-                            ? orgNames.get(item.organizationId) ?? ""
-                            : item.institution.name}
-                        </span>
-                        {" — "}
-                        {item.action}
-                        {item.outcome === "DENY" && " (denied)"}
-                      </p>
-                      <p className="text-xs text-text-3 mt-0.5">
-                        {item.occurredAt.toLocaleString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              activityList(recentAudit.slice(0, 6))
             )}
-          </Card>
-        </div>
+          </SeeAllSection>
+        </Card>
 
-        {/* Club list — real orgs in scope */}
-        <div className="space-y-4">
+        {/* Right rail — the compact cards stack evenly beside recent activity */}
+        <div className="space-y-5">
+          <QuickLinks seats={quickLinkSeats} />
           {mySeats.length > 0 && (
-            <Card padding="none">
-              <div className="p-5 border-b border-border">
-                <CardHeader
-                  title="My seats"
-                  subtitle="Your positions — knowledge stays with the job"
-                />
-              </div>
-              <ul className="divide-y divide-border">
-                {mySeats.map((s) => {
-                  const isPres = s.role.scope === "PRESIDENT" && s.status === "ACTIVE"
-                  return (
-                    <li key={s.id} className="px-5 py-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-text-1 truncate">
-                          {s.role.name} · {s.role.organization.name}
-                        </p>
-                        {s.status === "SHADOW" && (
-                          <span className="text-xs shrink-0" style={{ color: "var(--info)" }}>
-                            incoming
-                          </span>
-                        )}
-                      </div>
-                      {s.role.positionCode && (
-                        <p className="text-xs text-text-3 mt-0.5">{s.role.positionCode}</p>
-                      )}
-                      <div className="flex gap-3 mt-1.5 text-xs">
-                        <Link
-                          href={`/orgs/${s.role.organization.slug}/memory`}
-                          className="text-[--primary] hover:underline no-underline"
-                        >
-                          Seat memory
-                        </Link>
-                        {isPres ? (
-                          <Link
-                            href="/approvals"
-                            className="text-[--primary] hover:underline no-underline"
-                          >
-                            Review requests
-                          </Link>
-                        ) : s.status === "ACTIVE" ? (
-                          <Link
-                            href="/approvals/new"
-                            className="text-[--primary] hover:underline no-underline"
-                          >
-                            New request
-                          </Link>
-                        ) : null}
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
+            <Card>
+              <SeeAllSection
+                title="My seats"
+                count={mySeats.length}
+                overlayTitle="My seats"
+                full={mySeats.length > 4 ? seatsList(mySeats) : undefined}
+              >
+                {seatsList(mySeats.slice(0, 4))}
+              </SeeAllSection>
             </Card>
           )}
 
-          <Card padding="none">
-            <div className="p-5 border-b border-border">
-              <CardHeader
-                title={isOse ? "Enrolled Clubs" : "My Clubs"}
-                subtitle="Fall 2026 pilot cohort"
-              />
-            </div>
-            {orgs.length === 0 ? (
-              <p className="px-5 py-8 text-sm text-text-3 text-center">
-                No clubs yet.
-              </p>
-            ) : (
-              <ul className="divide-y divide-border">
-                {orgs.map((club) => (
-                  <li key={club.id}>
-                    <Link
-                      href={`/orgs/${club.slug}/members`}
-                      className="flex items-center gap-3 px-5 py-3 hover:bg-base transition-colors no-underline"
-                    >
-                      <div
-                        className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold text-white shrink-0"
-                        style={{ background: "var(--primary)" }}
-                      >
-                        {club.name[0]}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-text-1 truncate">
-                          {club.name}
-                        </p>
-                        <p className="text-xs text-text-3">
-                          {orgMemberCount.get(club.id) ?? 0} active member
-                          {(orgMemberCount.get(club.id) ?? 0) === 1 ? "" : "s"}
-                        </p>
-                      </div>
-                      <ArrowRight size={14} className="text-text-3 shrink-0" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <Card>
+            <SeeAllSection
+              title={isOse ? "Enrolled Clubs" : "My Clubs"}
+              count={orgs.length}
+              overlayTitle={isOse ? "Enrolled Clubs" : "My Clubs"}
+              full={orgs.length > 6 ? clubsList(orgs) : undefined}
+            >
+              {orgs.length === 0 ? (
+                <p className="py-6 text-center text-sm text-text-3">No clubs yet.</p>
+              ) : (
+                clubsList(orgs.slice(0, 6))
+              )}
+            </SeeAllSection>
           </Card>
         </div>
       </div>

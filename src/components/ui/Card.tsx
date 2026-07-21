@@ -8,9 +8,9 @@ interface CardProps {
 
 const paddingMap = {
   none: "",
-  sm: "p-4",
-  md: "p-5",
-  lg: "p-6",
+  sm: "p-4 sm:p-5",
+  md: "p-5 sm:p-6",
+  lg: "p-6 sm:p-8",
 }
 
 export function Card({ children, className, padding = "md" }: CardProps) {
@@ -32,22 +32,22 @@ export function CardHeader({
   subtitle,
   action,
 }: {
-  title: string
-  subtitle?: string
+  title: ReactNode
+  subtitle?: ReactNode
   action?: ReactNode
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 mb-4">
-      <div>
-        <h2 className="text-sm font-semibold text-text-1">{title}</h2>
-        {subtitle && <p className="text-xs text-text-2 mt-0.5">{subtitle}</p>}
+    <div className="flex items-start justify-between gap-4 mb-5">
+      <div className="min-w-0">
+        <h2 className="text-base font-display font-semibold text-text-1">{title}</h2>
+        {subtitle && <p className="text-sm text-text-2 mt-1">{subtitle}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>
   )
 }
 
-// SAP Fiori "Object Attribute" — label / value pair
+// Object attribute — label / value pair
 export function Attribute({
   label,
   value,
@@ -56,8 +56,8 @@ export function Attribute({
   value: ReactNode
 }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-text-3 uppercase tracking-wide">{label}</span>
+    <div className="flex flex-col gap-1">
+      <span className="text-meta text-text-3 uppercase tracking-wide">{label}</span>
       <span className="text-sm text-text-1">{value ?? "—"}</span>
     </div>
   )

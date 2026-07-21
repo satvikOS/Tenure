@@ -2,8 +2,11 @@ import { notFound, redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
+import { Building2, Users, CheckCircle, CalendarCheck } from "@/components/ui/icons"
 import { Card, CardHeader, Attribute } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
+import { PageHeader } from "@/components/ui/PageHeader"
+import { StatGrid, StatTile } from "@/components/ui/Bento"
 
 export const dynamic = "force-dynamic"
 
@@ -96,38 +99,36 @@ export default async function ReportsPage() {
 
   return (
     <div className="w-full">
+      <PageHeader
+        title="Reports"
+        subtitle="Institution-wide operational picture — live from the system of record."
+      />
+
       <div className="mb-6">
-        <h1 className="text-text-1">Reports</h1>
-        <p className="text-sm text-text-2 mt-1">
-          Institution-wide operational picture — live from the system of record.
-        </p>
+        <StatGrid>
+          <StatTile label="Active clubs" value={orgs} icon={Building2} />
+          <StatTile
+            label="Filled seats"
+            value={activeSeats}
+            hint={`${shadowSeats} incoming (shadow)`}
+            icon={Users}
+          />
+          <StatTile
+            label="Approvals awaiting decision"
+            value={pending}
+            hint={`median time to decision ${medianLabel}`}
+            icon={CheckCircle}
+          />
+          <StatTile
+            label="Published events"
+            value={publishedEvents}
+            hint={`${hardConflicts} unresolved hard conflict${hardConflicts === 1 ? "" : "s"}`}
+            icon={CalendarCheck}
+          />
+        </StatGrid>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <p className="text-2xl font-bold text-text-1">{orgs}</p>
-          <p className="text-xs text-text-2 mt-0.5">Active clubs</p>
-        </Card>
-        <Card>
-          <p className="text-2xl font-bold text-text-1">{activeSeats}</p>
-          <p className="text-xs text-text-2 mt-0.5">Filled seats</p>
-          <p className="text-xs text-text-3 mt-1">{shadowSeats} incoming (shadow)</p>
-        </Card>
-        <Card>
-          <p className="text-2xl font-bold text-text-1">{pending}</p>
-          <p className="text-xs text-text-2 mt-0.5">Approvals awaiting decision</p>
-          <p className="text-xs text-text-3 mt-1">median time to decision {medianLabel}</p>
-        </Card>
-        <Card>
-          <p className="text-2xl font-bold text-text-1">{publishedEvents}</p>
-          <p className="text-xs text-text-2 mt-0.5">Published events</p>
-          <p className="text-xs text-text-3 mt-1">
-            {hardConflicts} unresolved hard conflict{hardConflicts === 1 ? "" : "s"}
-          </p>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card>
           <CardHeader
             title="Approval pipeline"

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import Link from "next/link"
-import { AlertTriangle, RotateCw } from "lucide-react"
+import { AlertTriangle, RotateCw } from "@/components/ui/icons"
 
 /**
  * Route-level error boundary. Without this, an exception in any server

@@ -7,6 +7,30 @@ import { db } from "@/lib/db"
 import { getUserContext, isOse } from "@/lib/rbac"
 import { canPostToConversation, messagingTier } from "@/lib/messaging"
 import { notifyUsers } from "@/lib/notify"
+import { storageConfigured, uploadDocument } from "@/lib/s3"
+
+/** Store any files attached to a message. No-op without object storage. */
+async function saveAttachments(messageId: string, formData: FormData) {
+  const files = formData
+    .getAll("attachments")
+    .filter((f): f is File => f instanceof File && f.size > 0)
+  if (files.length === 0 || !storageConfigured()) return
+  for (const file of files.slice(0, 10)) {
+    if (file.size > 25 * 1024 * 1024) continue // 25 MB per file
+    const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-80)
+    const key = `message-attachments/${messageId}/${Date.now()}-${safe}`
+    await uploadDocument(key, Buffer.from(await file.arrayBuffer()), file.type || "application/octet-stream")
+    await db.attachment.create({
+      data: {
+        messageId,
+        fileName: file.name.slice(0, 200),
+        mimeType: file.type || "application/octet-stream",
+        objectKey: key,
+        sizeBytes: file.size,
+      },
+    })
+  }
+}
 
 async function requireUserId() {
   const session = await auth()
@@ -346,7 +370,10 @@ export async function sendBroadcast(formData: FormData) {
 export async function sendMessage(conversationId: string, formData: FormData) {
   const userId = await requireUserId()
   const body = String(formData.get("body") ?? "").trim()
-  if (!body) return
+  const hasFiles = formData
+    .getAll("attachments")
+    .some((f) => f instanceof File && f.size > 0)
+  if (!body && !hasFiles) return
 
   const convo = await db.conversation.findUnique({
     where: { id: conversationId },
@@ -366,7 +393,7 @@ export async function sendMessage(conversationId: string, formData: FormData) {
   await ensureParticipant(conversationId, userId)
   const participants = await db.participant.findMany({ where: { conversationId } })
 
-  await db.$transaction(async (tx) => {
+  const message = await db.$transaction(async (tx) => {
     const m = await tx.message.create({
       data: { conversationId, senderId: userId, body },
     })
@@ -379,7 +406,10 @@ export async function sendMessage(conversationId: string, formData: FormData) {
       where: { id: conversationId },
       data: { updatedAt: new Date() },
     })
+    return m
   })
+
+  await saveAttachments(message.id, formData)
 
   revalidatePath(`/messages/${conversationId}`)
   revalidatePath("/messages")

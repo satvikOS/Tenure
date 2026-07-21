@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation"
-import { AlertCircle, FileText, Mail } from "lucide-react"
+import { AlertCircle, FileText, Mail } from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"

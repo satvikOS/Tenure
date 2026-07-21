@@ -8,20 +8,21 @@ import {
   Calendar,
   MessageSquare,
   Newspaper,
-  Search,
   Settings,
   Building2,
   BarChart3,
   Bell,
   BookOpen,
-  type LucideIcon,
-} from "lucide-react"
+  ShieldCheck,
+  type IconType,
+} from "@/components/ui/icons"
 import { TenureAIMark } from "@/components/brand/TenureLogo"
+import { useAI } from "@/components/ai/AIProvider"
 
 interface NavItem {
   label: string
   href: string
-  icon: LucideIcon | typeof TenureAIMark
+  icon: IconType | typeof TenureAIMark
   ai?: boolean
 }
 
@@ -30,8 +31,16 @@ interface NavSection {
   items: NavItem[]
 }
 
-function buildNav(showReports?: boolean): NavSection[] {
+function buildNav(showReports?: boolean, showAdmin?: boolean): NavSection[] {
   return [
+    ...(showAdmin
+      ? [
+          {
+            label: "Administration",
+            items: [{ label: "Admin Console", href: "/admin", icon: ShieldCheck }],
+          },
+        ]
+      : []),
     {
       label: "Overview",
       items: [
@@ -59,7 +68,6 @@ function buildNav(showReports?: boolean): NavSection[] {
       label: "Knowledge",
       items: [
         { label: "Resources", href: "/resources", icon: BookOpen },
-        { label: "Search", href: "/search", icon: Search },
         { label: "Tenure AI", href: "/search", icon: TenureAIMark, ai: true },
       ],
     },
@@ -68,36 +76,45 @@ function buildNav(showReports?: boolean): NavSection[] {
 
 interface SideNavProps {
   showReports?: boolean
+  showAdmin?: boolean
 }
 
 function ItemLink({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon
-  return (
-    <Link
-      href={item.href}
-      className={`
-        flex items-center gap-3 mx-2 px-3 h-9 rounded text-sm transition-colors no-underline
-        ${
-          active
-            ? "bg-[--primary-light] text-[--primary] font-medium"
-            : "text-text-2 hover:bg-base hover:text-text-1"
-        }
-      `}
-      aria-current={active ? "page" : undefined}
-    >
-      <Icon
-        size={16}
-        {...(item.ai ? {} : { strokeWidth: active ? 2.5 : 2 })}
-        className={active ? "text-[--primary]" : "text-text-3"}
-      />
+  const { openPanel } = useAI()
+  const className = `
+    mx-2.5 flex h-11 items-center gap-3 rounded-lg px-3 text-[15px] no-underline transition-colors
+    ${
+      active
+        ? "bg-[--primary-light] font-semibold text-[--primary]"
+        : "text-text-2 hover:bg-base hover:text-text-1"
+    }
+  `
+  const inner = (
+    <>
+      <Icon size={19} className={active ? "text-[--primary]" : "text-text-3"} />
       <span className="truncate">{item.label}</span>
+    </>
+  )
+
+  // Tenure AI opens the right-side assistant panel instead of navigating.
+  if (item.ai) {
+    return (
+      <button type="button" onClick={openPanel} className={`w-[calc(100%-1.25rem)] ${className}`}>
+        {inner}
+      </button>
+    )
+  }
+  return (
+    <Link href={item.href} className={className} aria-current={active ? "page" : undefined}>
+      {inner}
     </Link>
   )
 }
 
-export function SideNav({ showReports }: SideNavProps) {
+export function SideNav({ showReports, showAdmin }: SideNavProps) {
   const pathname = usePathname()
-  const sections = buildNav(showReports)
+  const sections = buildNav(showReports, showAdmin)
   const isActive = (href: string, label: string) =>
     label === "Tenure AI"
       ? false // Search entry owns the highlight for /search
@@ -105,15 +122,15 @@ export function SideNav({ showReports }: SideNavProps) {
 
   return (
     <nav
-      className="fixed left-0 z-40 flex flex-col w-sidenav border-r border-border bg-surface"
-      style={{ top: "var(--shell-height)", bottom: 0 }}
+      className="fixed left-0 z-40 flex w-sidenav flex-col border-r border-border bg-surface"
+      style={{ top: "var(--shell-height)", bottom: "var(--footer-height)" }}
       aria-label="Primary navigation"
     >
-      <div className="flex-1 overflow-y-auto py-3">
+      <div className="flex-1 overflow-y-auto py-4">
         {sections.map((section, si) => (
-          <div key={si} className="mb-3">
+          <div key={si} className="mb-4">
             {section.label && (
-              <p className="px-4 mb-1 text-xs font-semibold text-text-3 uppercase tracking-wider">
+              <p className="mb-1.5 px-4 text-meta font-semibold uppercase tracking-wider text-text-3">
                 {section.label}
               </p>
             )}
@@ -129,7 +146,7 @@ export function SideNav({ showReports }: SideNavProps) {
       </div>
 
       {/* Settings pinned at the bottom */}
-      <div className="border-t border-border py-2 shrink-0">
+      <div className="shrink-0 border-t border-border py-2.5">
         <ItemLink
           item={{ label: "Settings", href: "/settings", icon: Settings }}
           active={pathname.startsWith("/settings")}

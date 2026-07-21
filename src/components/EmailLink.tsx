@@ -1,4 +1,4 @@
-import { Mail } from "lucide-react"
+import { Mail } from "@/components/ui/icons"
 
 /**
  * A contact address that is actually contactable — one click opens a compose

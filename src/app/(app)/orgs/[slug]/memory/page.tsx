@@ -8,7 +8,7 @@ import {
   ListTodo,
   Store,
   Timer,
-} from "lucide-react"
+} from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canContribute, canViewOrg, getUserContext } from "@/lib/rbac"

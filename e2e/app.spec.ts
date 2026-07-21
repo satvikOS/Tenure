@@ -66,6 +66,15 @@ test.describe("dashboard + navigation", () => {
     await expect(page.getByText("Enrolled Clubs")).toBeVisible()
   })
 
+  test("long panels cap their list behind a See-all overlay", async ({ page }) => {
+    await signIn(page, "Dana Whitfield") // OSE sees every club — well over the preview cap
+    const clubsPanel = page.locator("section", { hasText: "Enrolled Clubs" })
+    await clubsPanel.getByRole("button", { name: /See all \(\d+\)/ }).click()
+    const dialog = page.getByRole("dialog")
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByText("Simon Consulting Club (SCC)")).toBeVisible()
+  })
+
   test("module placeholders render for calendar, messages, settings", async ({ page }) => {
     await signIn(page, "Dana Whitfield")
     await page.goto("/calendar")

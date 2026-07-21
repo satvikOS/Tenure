@@ -18,8 +18,15 @@ const config: Config = {
           hover: "var(--primary-hover)",
           light: "var(--primary-light)",
         },
+        accent: {
+          DEFAULT: "var(--accent)",
+          hover: "var(--accent-hover)",
+          light: "var(--accent-light)",
+          strong: "var(--accent-strong)",
+        },
         surface: "var(--bg-surface)",
         base: "var(--bg-base)",
+        subtle: "var(--bg-subtle)",
         border: {
           DEFAULT: "var(--border)",
           strong: "var(--border-strong)",
@@ -40,6 +47,7 @@ const config: Config = {
       },
       height: {
         shell: "var(--shell-height)",
+        footer: "var(--footer-height)",
       },
       width: {
         sidenav: "var(--sidenav-width)",
@@ -47,15 +55,24 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        display: ["var(--font-display-face)", "var(--font-inter)", "system-ui", "sans-serif"],
+      },
+      fontSize: {
+        meta: "var(--step-00)",
+        lead: "var(--step-1)",
       },
       borderRadius: {
         sm: "var(--radius-sm)",
         DEFAULT: "var(--radius-md)",
+        md: "var(--radius-md)",
         lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
       },
       boxShadow: {
+        xs: "var(--shadow-xs)",
         sm: "var(--shadow-sm)",
         DEFAULT: "var(--shadow-md)",
+        md: "var(--shadow-md)",
         lg: "var(--shadow-lg)",
       },
     },

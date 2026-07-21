@@ -115,4 +115,36 @@ test.describe("calendar + conflicts + publishing", () => {
     await expect(page.locator("html")).not.toHaveClass(/dark/)
     await expect(page.getByText("Your seats")).toBeVisible()
   })
+
+  test("week and day views render an hourly grid", async ({ page }) => {
+    await signIn(page, "Priya Raman")
+
+    await page.goto("/calendar?view=week")
+    await expect(page.getByRole("link", { name: "Next week" })).toBeVisible()
+    await expect(page.getByText("7am").first()).toBeVisible()
+
+    await page.goto("/calendar?view=day")
+    await expect(page.getByRole("link", { name: "Next day" })).toBeVisible()
+    await expect(page.getByText("7am").first()).toBeVisible()
+  })
+
+  test("agenda view, Outlook subscription and the ICS feed", async ({ page }) => {
+    await signIn(page, "Dana Whitfield")
+    await page.goto("/calendar")
+
+    // Agenda view is a second view alongside the month grid.
+    await page.getByRole("link", { name: "Agenda" }).click()
+    await expect(page).toHaveURL(/view=agenda/)
+
+    // Subscribe surfaces the per-user ICS feed URL.
+    await page.getByRole("button", { name: "Subscribe" }).click()
+    const url = await page.locator("input[readonly]").inputValue()
+    expect(url).toContain("/api/calendar/ics/")
+
+    // The feed serves a real calendar that Outlook can subscribe to.
+    const res = await page.request.get(url)
+    expect(res.status()).toBe(200)
+    expect(res.headers()["content-type"]).toContain("text/calendar")
+    expect(await res.text()).toContain("BEGIN:VCALENDAR")
+  })
 })
