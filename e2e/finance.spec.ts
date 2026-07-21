@@ -86,6 +86,46 @@ test.describe("finance dashboard", () => {
     await expect(page.getByText(unique).first()).toBeVisible()
   })
 
+  test("budget template downloads and round-trips through the importer", async ({ page }) => {
+    await signIn(page, "Victor Chen")
+
+    // Download via the real route, with the session cookie
+    const res = await page.request.get("/api/templates/budget")
+    expect(res.status()).toBe(200)
+    expect(res.headers()["content-type"]).toContain("spreadsheetml")
+    expect(res.headers()["content-disposition"]).toContain("Budget Template")
+
+    // The template must survive its own importer: fill in two rows the way a
+    // club would, upload, and expect a clean parse of exactly those rows.
+    const XLSX = await import("xlsx")
+    const wb = XLSX.read(await res.body(), { type: "buffer" })
+    const sheet = wb.Sheets[wb.SheetNames[0]]
+    expect(wb.SheetNames[0]).toBe("Club Budget")
+    XLSX.utils.sheet_add_aoa(sheet, [[1500, 900]], { origin: "B2" }) // Catering row
+    const filled = XLSX.write(wb, { type: "buffer", bookType: "xlsx" })
+
+    await page.goto(FINANCE_URL)
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "Tenure Club Budget Template.xlsx",
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      buffer: filled,
+    })
+
+    // Exactly one category read (the one with numbers); Total row skipped
+    await expect(page.getByText(/Read 1 category\b/)).toBeVisible()
+    await expect(page.getByText("Catering & Food").first()).toBeVisible()
+  })
+
+  test("template is linked from the resources hub", async ({ page }) => {
+    await signIn(page, "Victor Chen")
+    await page.goto("/resources")
+
+    const link = page.getByRole("link", { name: /Club Budget Template/ }).first()
+    await expect(link).toBeVisible()
+    await expect(link).toHaveAttribute("href", "/api/templates/budget")
+  })
+
   test("uploading a spreadsheet turns it into the dashboard", async ({ page }) => {
     await signIn(page, "Victor Chen")
     await page.goto(FINANCE_URL)

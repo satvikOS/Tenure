@@ -74,6 +74,18 @@ export function BudgetUpload({ slug }: { slug: string }) {
         subtitle="Excel or CSV with a category column and budget / actual columns."
       />
 
+      <p className="mb-3 text-xs text-text-2">
+        Starting fresh?{" "}
+        <a
+          href="/api/templates/budget"
+          download
+          className="font-medium text-[--text-link] hover:underline"
+        >
+          Download the standard club budget template
+        </a>{" "}
+        — fill it in and upload it here.
+      </p>
+
       <label
         className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border border-dashed border-border px-4 py-6 text-center hover:border-[--primary]"
       >

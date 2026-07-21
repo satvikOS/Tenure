@@ -180,6 +180,18 @@ export const RESOURCES: Resource[] = [
 
   // ── VP Finance & Operations ────────────────────────────────────────────────
   {
+    id: "budget-template",
+    title: "Club Budget Template (Excel)",
+    description:
+      "The standardized budget spreadsheet for every club — fill it in, then upload it on your club's Finance tab to turn it into a live dashboard.",
+    href: "/api/templates/budget",
+    external: false,
+    ready: true,
+    kind: "form",
+    seats: ["ALL", "VP_FINANCE", "PRESIDENT"],
+    rule: "One row per category. The Total row is calculated for you and ignored on upload.",
+  },
+  {
     id: "finance-handbook",
     title: "Club Finance Handbook",
     description:

@@ -67,6 +67,11 @@ export function QuickLinksRotator({ links }: { links: QuickLink[] }) {
                 <a href={r.href} target="_blank" rel="noopener noreferrer" className={className}>
                   {content}
                 </a>
+              ) : r.href.startsWith("/api/") ? (
+                // Downloads need a real anchor, not a router navigation
+                <a href={r.href} download className={className}>
+                  {content}
+                </a>
               ) : (
                 <Link href={r.href} className={className}>
                   {content}

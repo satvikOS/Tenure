@@ -78,11 +78,23 @@ function ResourceCard({ resource, mine }: { resource: Resource; mine: boolean })
       </div>
     )
   }
-  return resource.external ? (
-    <a href={resource.href} target="_blank" rel="noopener noreferrer" className={className}>
-      {inner}
-    </a>
-  ) : (
+  if (resource.external) {
+    return (
+      <a href={resource.href} target="_blank" rel="noopener noreferrer" className={className}>
+        {inner}
+      </a>
+    )
+  }
+  // File downloads (API routes) need a plain anchor: the client router would
+  // try to soft-navigate to the route instead of saving the attachment.
+  if (resource.href.startsWith("/api/")) {
+    return (
+      <a href={resource.href} download className={className}>
+        {inner}
+      </a>
+    )
+  }
+  return (
     <Link href={resource.href} className={className}>
       {inner}
     </Link>
