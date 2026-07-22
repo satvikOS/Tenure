@@ -6,6 +6,7 @@ import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
 import { Card } from "@/components/ui/Card"
 import { ApprovalBadge } from "@/components/ui/Badge"
+import { approvalSla, slaColor } from "@/lib/approvals-sla"
 
 export const dynamic = "force-dynamic"
 
@@ -53,6 +54,7 @@ export default async function ApprovalsPage() {
   )
 
   const canCreate = ctx.orgRoles.some((r) => r.status === "ACTIVE")
+  const now = new Date()
 
   return (
     <div className="w-full">
@@ -83,27 +85,46 @@ export default async function ApprovalsPage() {
       ) : (
         <Card padding="none">
           <ul className="divide-y divide-border">
-            {approvals.map((a) => (
-              <li key={a.id}>
-                <Link
-                  href={`/approvals/${a.id}`}
-                  className="flex items-center gap-4 px-5 py-3.5 hover:bg-base transition-colors no-underline"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-text-1 truncate">{a.title}</p>
-                    <p className="text-xs text-text-3 mt-0.5">
-                      {TYPE_LABELS[a.type]} · {a.organization.name} ·{" "}
-                      {submitters.get(a.submittedById)} ·{" "}
-                      {a.updatedAt.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
-                  </div>
-                  <ApprovalBadge status={a.status} />
-                </Link>
-              </li>
-            ))}
+            {approvals.map((a) => {
+              const sla = approvalSla(a.status, a.updatedAt, now)
+              return (
+                <li key={a.id}>
+                  <Link
+                    href={`/approvals/${a.id}`}
+                    className="flex items-center gap-4 px-5 py-3.5 hover:bg-base transition-colors no-underline"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-text-1 truncate">{a.title}</p>
+                      <p className="text-xs text-text-3 mt-0.5">
+                        {TYPE_LABELS[a.type]} · {a.organization.name} ·{" "}
+                        {submitters.get(a.submittedById)} ·{" "}
+                        {a.updatedAt.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </p>
+                    </div>
+                    {sla.level !== "none" && (
+                      <span
+                        className="hidden shrink-0 items-center gap-1.5 text-[12px] tabular-nums sm:inline-flex"
+                        style={{ color: slaColor(sla.level) }}
+                        title={`This request has been in its current stage for ${sla.days} day${sla.days === 1 ? "" : "s"}`}
+                      >
+                        {sla.level !== "ok" && (
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${sla.level === "overdue" ? "live-dot" : ""}`}
+                            style={{ background: slaColor(sla.level) }}
+                            aria-hidden
+                          />
+                        )}
+                        {sla.label}
+                      </span>
+                    )}
+                    <ApprovalBadge status={a.status} />
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         </Card>
       )}

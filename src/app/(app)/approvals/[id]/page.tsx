@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { canViewOrg, getUserContext } from "@/lib/rbac"
 import { availableActions, ACTION_LABELS } from "@/lib/approvals"
 import { formatCents } from "@/lib/finance"
+import { approvalSla, slaColor } from "@/lib/approvals-sla"
 import Link from "next/link"
 import { Card, CardHeader, Attribute } from "@/components/ui/Card"
 import { BackButton } from "@/components/BackButton"
@@ -80,6 +81,26 @@ export default async function ApprovalDetailPage({
         <div>
           <h1 className="text-text-1">{approval.title}</h1>
           <p className="text-sm text-text-2 mt-1">{approval.organization.name}</p>
+          {(() => {
+            const sla = approvalSla(approval.status, approval.updatedAt)
+            if (sla.level === "none") return null
+            return (
+              <p
+                className="mt-1.5 inline-flex items-center gap-1.5 text-[13px] font-medium"
+                style={{ color: slaColor(sla.level) }}
+              >
+                {sla.level !== "ok" && (
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ background: slaColor(sla.level) }}
+                    aria-hidden
+                  />
+                )}
+                {sla.level === "overdue" ? "Overdue — " : sla.level === "attention" ? "Aging — " : ""}
+                {sla.label}
+              </p>
+            )
+          })()}
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <form action={openApprovalThread}>
