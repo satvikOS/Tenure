@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { canManageFinance, canViewFinance, getUserContext } from "@/lib/rbac"
 import { OrgTabs } from "@/components/OrgTabs"
 import { FinanceDashboard } from "@/components/finance/FinanceDashboard"
+import { ReimbursementForm } from "@/components/finance/ReimbursementForm"
 import { type LedgerEntryRow } from "@/components/finance/LedgerDrawer"
 import { type LedgerKindName } from "@/lib/finance"
 
@@ -103,6 +104,10 @@ export default async function FinancePage({
         ledgerByLine={ledgerByLine}
         sources={{ approvals, vendors, documents }}
       />
+
+      <div className="mt-4">
+        <ReimbursementForm slug={slug} lines={lines.map((l) => ({ id: l.id, category: l.category }))} />
+      </div>
     </div>
   )
 }

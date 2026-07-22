@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canViewOrg, getUserContext } from "@/lib/rbac"
 import { availableActions, ACTION_LABELS } from "@/lib/approvals"
+import { formatCents } from "@/lib/finance"
 import Link from "next/link"
 import { Card, CardHeader, Attribute } from "@/components/ui/Card"
 import { BackButton } from "@/components/BackButton"
@@ -53,7 +54,24 @@ export default async function ApprovalDetailPage({
     ).map((u) => [u.id, u.name ?? u.email ?? "Unknown"])
   )
 
-  const meta = approval.metadata as { amount?: string }
+  const meta = approval.metadata as {
+    amount?: string
+    reimbursement?: {
+      budgetLineId?: string
+      amountCents?: number
+      documentId?: string | null
+      category?: string
+    }
+  }
+  const reimb = meta.reimbursement
+  let lineRemaining: number | null = null
+  if (reimb?.budgetLineId) {
+    const bl = await db.budgetLine.findUnique({
+      where: { id: reimb.budgetLineId },
+      select: { budgetedCents: true, actualCents: true },
+    })
+    if (bl) lineRemaining = bl.budgetedCents - bl.actualCents
+  }
 
   return (
     <div className="max-w-3xl">
@@ -96,6 +114,47 @@ export default async function ApprovalDetailPage({
             </p>
           )}
         </Card>
+
+        {reimb && (
+          <Card>
+            <CardHeader
+              title="Reimbursement"
+              subtitle="Posts to the club ledger as a spend on final approval — request ↔ approval ↔ receipt"
+            />
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <Attribute label="Budget line" value={reimb.category ?? "—"} />
+              <Attribute
+                label="Amount"
+                value={typeof reimb.amountCents === "number" ? formatCents(reimb.amountCents) : "—"}
+              />
+              {lineRemaining !== null && (
+                <Attribute label="Line remaining" value={formatCents(lineRemaining)} />
+              )}
+              <Attribute
+                label="Receipt"
+                value={
+                  reimb.documentId ? (
+                    <Link
+                      href={`/orgs/${approval.organization.slug}/documents/${reimb.documentId}/view`}
+                      className="text-[--primary] hover:underline"
+                    >
+                      View receipt
+                    </Link>
+                  ) : (
+                    "—"
+                  )
+                }
+              />
+            </div>
+            {typeof reimb.amountCents === "number" &&
+              lineRemaining !== null &&
+              reimb.amountCents > lineRemaining && (
+                <p className="mt-3 text-[13px] text-[--warning]">
+                  Heads up — this exceeds the line&apos;s remaining budget of {formatCents(lineRemaining)}.
+                </p>
+              )}
+          </Card>
+        )}
 
         {approval.event && (
           <Card padding="none">

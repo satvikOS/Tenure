@@ -2,10 +2,11 @@
 
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import type { ApprovalType } from "@prisma/client"
+import type { ApprovalType, Prisma } from "@prisma/client"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
+import { ledgerSignedCents } from "@/lib/finance"
 import {
   availableActions,
   nextStatus,
@@ -203,8 +204,63 @@ export async function actOnApproval(approvalId: string, formData: FormData) {
           ? [db.event.update({ where: { id: linkedEvent.id }, data: { status: "CANCELLED" } })]
           : []
 
+  // Reimbursement auto-post: on FINAL approval, post the club spend to the ledger
+  // — linking this approval + the receipt document — and recompute the budget
+  // line's actual (three-way match: request ↔ approval ↔ receipt). A member
+  // reimbursement is real club outflow, so it posts as kind SPEND (+), NOT the
+  // REIMBURSEMENT kind (which is money the club RECOVERS). Idempotent: never
+  // post twice for one request. Authority is the approval gate, not finance
+  // manager rights — so the OSE approver can post without canManageFinance.
+  const reimb = (
+    approval.metadata as {
+      reimbursement?: { budgetLineId?: string; amountCents?: number; documentId?: string | null }
+    } | null
+  )?.reimbursement
+  let reimbursementOps: Prisma.PrismaPromise<unknown>[] = []
+  if (
+    target === "APPROVED" &&
+    reimb?.budgetLineId &&
+    typeof reimb.amountCents === "number" &&
+    reimb.amountCents > 0
+  ) {
+    const [already, line] = await Promise.all([
+      db.ledgerEntry.findFirst({ where: { approvalId: approval.id }, select: { id: true } }),
+      db.budgetLine.findFirst({
+        where: { id: reimb.budgetLineId, organizationId: approval.organizationId },
+        select: { id: true, academicYear: true },
+      }),
+    ])
+    if (!already && line) {
+      const signed = ledgerSignedCents("SPEND", reimb.amountCents)
+      const agg = await db.ledgerEntry.aggregate({
+        where: { budgetLineId: line.id },
+        _sum: { amountCents: true },
+      })
+      reimbursementOps = [
+        db.ledgerEntry.create({
+          data: {
+            organizationId: approval.organizationId,
+            budgetLineId: line.id,
+            academicYear: line.academicYear,
+            kind: "SPEND",
+            amountCents: signed,
+            description: approval.title.replace(/^Reimbursement:\s*/i, "").slice(0, 140) || "Reimbursement",
+            approvalId: approval.id,
+            documentId: reimb.documentId ?? null,
+            postedById: userId,
+          },
+        }),
+        db.budgetLine.update({
+          where: { id: line.id },
+          data: { actualCents: (agg._sum.amountCents ?? 0) + signed },
+        }),
+      ]
+    }
+  }
+
   await db.$transaction([
     ...eventUpdates,
+    ...reimbursementOps,
     db.approvalRequest.update({
       where: { id: approval.id },
       data: { status: target },

@@ -1,12 +1,17 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canManageFinance, getUserContext } from "@/lib/rbac"
+import { nextStatus } from "@/lib/approvals"
+import { uploadDocument, storageConfigured } from "@/lib/s3"
+import { notifyUsers, orgPresidentIds, oseMemberIds } from "@/lib/notify"
 import {
   parseMoneyToCents,
   ledgerSignedCents,
+  formatCents,
   LEDGER_KINDS,
   type LedgerKindName,
   type ParsedBudgetRow,
@@ -286,4 +291,139 @@ export async function deleteLedgerEntry(slug: string, formData: FormData) {
   })
 
   revalidatePath(`/orgs/${slug}/finance`)
+}
+
+/**
+ * A member files a reimbursement: pick a budget line, an amount, and (in prod) a
+ * receipt. It rides the normal approval chain as an EXCEPTION request carrying a
+ * `reimbursement` metadata payload; on final APPROVAL the approval engine
+ * auto-posts a SPEND ledger entry linked to this request + receipt (three-way
+ * match). The submitter needs only canContribute — they are NOT a finance
+ * manager (that is the point: members request, approvers post).
+ */
+export async function submitReimbursement(slug: string, formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Not signed in")
+  const userId = session.user.id
+
+  const org = await db.organization.findUnique({ where: { slug } })
+  if (!org) throw new Error("Organization not found")
+
+  // Must hold an ACTIVE seat in THIS club to file (not OSE) — a requester then
+  // never sits on their own approval gate, closing the self-approval path.
+  const seat = await db.roleAssignment.findFirst({
+    where: { userId, status: "ACTIVE", role: { organizationId: org.id } },
+    include: { role: true },
+  })
+  if (!seat) throw new Error("You need an active role in this club to request a reimbursement")
+
+  const budgetLineId = String(formData.get("budgetLineId") ?? "")
+  const line = await db.budgetLine.findFirst({
+    where: { id: budgetLineId, organizationId: org.id, academicYear: CURRENT_YEAR },
+    select: { id: true, category: true },
+  })
+  if (!line) throw new Error("Pick a budget line")
+
+  const amountCents = parseMoneyToCents(formData.get("amount"))
+  if (amountCents == null || amountCents <= 0) throw new Error("Enter a positive amount")
+
+  const description = String(formData.get("description") ?? "").trim()
+  if (!description) throw new Error("Describe what this reimburses")
+
+  // Receipt is required once storage is configured (production); optional when
+  // it is not (local / CI have no S3) so the flow stays end-to-end testable.
+  let documentId: string | null = null
+  const file = formData.get("receipt")
+  const hasFile = file instanceof File && file.size > 0
+  if (storageConfigured() && !hasFile) throw new Error("Attach a receipt")
+  if (hasFile && storageConfigured()) {
+    const f = file as File
+    if (f.size > 15 * 1024 * 1024) throw new Error("Receipt is larger than the 15 MB limit")
+    const safeName = f.name.replace(/[^\w.\-]+/g, "_")
+    const objectKey = `${org.institutionId}/${org.id}/${Date.now()}-${safeName}`
+    await uploadDocument(objectKey, Buffer.from(await f.arrayBuffer()), f.type || "application/octet-stream")
+    const doc = await db.document.create({
+      data: {
+        institutionId: org.institutionId,
+        organizationId: org.id,
+        title: `Receipt — ${description}`.slice(0, 200),
+        objectKey,
+        mimeType: f.type || "application/octet-stream",
+        sizeBytes: f.size,
+        createdById: userId,
+      },
+    })
+    documentId = doc.id
+  }
+
+  const isPresident =
+    seat.role.scope === "PRESIDENT" ||
+    (await db.roleAssignment.findFirst({
+      where: { userId, status: "ACTIVE", role: { organizationId: org.id, scope: "PRESIDENT" } },
+      select: { id: true },
+    })) != null
+  const target =
+    nextStatus("submit", "DRAFT", { requesterIsPresident: isPresident }) ?? "PENDING_PRESIDENT"
+  const title = `Reimbursement: ${description}`.slice(0, 200)
+
+  const approval = await db.$transaction(async (tx) => {
+    const a = await tx.approvalRequest.create({
+      data: {
+        institutionId: org.institutionId,
+        organizationId: org.id,
+        type: "EXCEPTION",
+        title,
+        description: `Reimbursement against "${line.category}" for ${formatCents(amountCents)}.`,
+        submittedById: userId,
+        status: target,
+        metadata: {
+          reimbursement: {
+            budgetLineId: line.id,
+            amountCents,
+            documentId,
+            category: line.category,
+            academicYear: CURRENT_YEAR,
+          },
+        },
+      },
+    })
+    await tx.approvalStep.create({
+      data: {
+        approvalId: a.id,
+        fromStatus: "DRAFT",
+        toStatus: target,
+        actorId: userId,
+        actorRoleContext: seat?.role.name ?? "Requester",
+        policySnapshot: { requesterIsPresident: isPresident, reimbursement: true },
+      },
+    })
+    await tx.auditEvent.create({
+      data: {
+        institutionId: org.institutionId,
+        organizationId: org.id,
+        actorId: userId,
+        actorRole: seat?.role.name ?? null,
+        action: "Reimbursement.Submitted",
+        resourceType: "ApprovalRequest",
+        resourceId: a.id,
+        outcome: "ALLOW",
+        metadata: { amountCents, budgetLineId: line.id },
+      },
+    })
+    return a
+  })
+
+  const gateUsers =
+    target === "PENDING_PRESIDENT"
+      ? await orgPresidentIds(org.id)
+      : await oseMemberIds(org.institutionId)
+  await notifyUsers(gateUsers, {
+    title: `Reimbursement request: ${description}`,
+    body: `${formatCents(amountCents)} against ${line.category} needs your approval.`,
+    href: `/approvals/${approval.id}`,
+    excludeUserId: userId,
+  })
+
+  revalidatePath(`/orgs/${slug}/finance`)
+  redirect(`/approvals/${approval.id}`)
 }

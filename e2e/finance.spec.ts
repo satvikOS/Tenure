@@ -105,7 +105,7 @@ test.describe("finance dashboard", () => {
     const filled = XLSX.write(wb, { type: "buffer", bookType: "xlsx" })
 
     await page.goto(FINANCE_URL)
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"]').first().setInputFiles({
       name: "Tenure Club Budget Template.xlsx",
       mimeType:
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -137,7 +137,7 @@ test.describe("finance dashboard", () => {
       "Total,2300,1550",
     ].join("\n")
 
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"]').first().setInputFiles({
       name: "budget.csv",
       mimeType: "text/csv",
       buffer: Buffer.from(csv),
