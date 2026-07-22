@@ -44,7 +44,9 @@ export function ShellHeader({
         className="flex shrink-0 items-center gap-2.5 text-[--shell-text] no-underline"
       >
         <TenureLogo size={22} color="var(--primary)" />
-        <span className="font-display text-base font-bold tracking-tight">Tenure</span>
+        {/* NB: not `text-base` — a custom Tailwind colour named `base` makes that
+            class also emit `color: var(--bg-base)`, which hides the wordmark. */}
+        <span className="font-display text-[17px] font-bold tracking-tight">Tenure</span>
       </Link>
 
       {orgName && (
