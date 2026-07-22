@@ -137,13 +137,16 @@ export function isFinanceRole(roleName: string): boolean {
 }
 
 /**
- * See the club's finance dashboard. Read access is open to any signed-in user —
- * club budgets are transparent by design. Editing stays locked down to the
- * people accountable for the money (canManageFinance). The page itself still
- * requires an authenticated session; this predicate governs visibility only.
+ * See the club's finance dashboard. Read access is scoped to the club's own
+ * members (SHADOW/ACTIVE seat holders) plus OSE oversight — same as every other
+ * club tab. Editing stays locked to the people accountable for the money
+ * (canManageFinance): VP of Finance, ACTIVE President, or OSE Director.
  */
-export function canViewFinance(): boolean {
-  return true
+export function canViewFinance(
+  ctx: UserContext,
+  org: { id: string; institutionId: string }
+): boolean {
+  return canViewOrg(ctx, org)
 }
 
 /**
