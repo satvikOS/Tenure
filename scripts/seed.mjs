@@ -303,6 +303,17 @@ async function main() {
     })
   }
 
+  // Remove budget lines left over from prior e2e runs (e.g. "Test Line …" from
+  // the add-line test, or imported rows) so a fresh seed is a clean slate;
+  // otherwise they accumulate locally and skew the club's totals.
+  await db.budgetLine.deleteMany({
+    where: {
+      organizationId: consulting.id,
+      academicYear: "2026-2027",
+      category: { notIn: demoBudget.map((l) => l.category) },
+    },
+  })
+
   // ── Demo general ledger — the transactions behind two lines' actuals, so the
   //    drill-down shows real source detail and "actual = Σ ledger" holds. ──────
   const cateringLine = await db.budgetLine.findFirst({
@@ -351,6 +362,44 @@ async function main() {
     for (const lineId of [cateringLine.id, venueLine.id]) {
       const agg = await db.ledgerEntry.aggregate({ where: { budgetLineId: lineId }, _sum: { amountCents: true } })
       await db.budgetLine.update({ where: { id: lineId }, data: { actualCents: agg._sum.amountCents ?? 0 } })
+    }
+  }
+
+  // Lightweight budgets for a few more clubs so the OSE finance portfolio
+  // roll-up has real breadth (not just the consulting club).
+  const otherClubs = await db.organization.findMany({
+    where: { institutionId: consulting.institutionId, status: "ACTIVE", slug: { not: "simon-consulting-club" } },
+    take: 4,
+    orderBy: { name: "asc" },
+  })
+  const budgetTemplates = [
+    [["Events & Programming", 300000, 214000], ["Marketing", 80000, 52000], ["Operations", 120000, 61000]],
+    [["Conference & Travel", 250000, 188000], ["Workshops", 150000, 96000]],
+    [["Socials", 180000, 141000], ["Supplies", 60000, 47000], ["Guest Speakers", 100000, 72000]],
+    [["Community Outreach", 90000, 28000], ["Print & Materials", 70000, 66000]],
+  ]
+  for (const [ci, club] of otherClubs.entries()) {
+    const tmpl = budgetTemplates[ci % budgetTemplates.length]
+    for (const [si, [category, budgetedCents, actualCents]] of tmpl.entries()) {
+      await db.budgetLine.upsert({
+        where: {
+          organizationId_academicYear_category: {
+            organizationId: club.id,
+            academicYear: "2026-2027",
+            category,
+          },
+        },
+        update: {},
+        create: {
+          organizationId: club.id,
+          academicYear: "2026-2027",
+          category,
+          budgetedCents,
+          actualCents,
+          sortOrder: si,
+          source: "manual",
+        },
+      })
     }
   }
 

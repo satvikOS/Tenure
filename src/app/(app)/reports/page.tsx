@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation"
+import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
-import { Building2, Users, CheckCircle, CalendarCheck } from "@/components/ui/icons"
+import { Building2, Users, CheckCircle, CalendarCheck, DollarSign } from "@/components/ui/icons"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { PageHeader } from "@/components/ui/PageHeader"
@@ -142,6 +143,14 @@ export default async function ReportsPage() {
       <PageHeader
         title="Reports"
         subtitle="Institution-wide operational picture — live from the system of record."
+        actions={
+          <Link
+            href="/reports/finance"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border px-3 text-sm font-medium text-text-2 no-underline transition-colors hover:bg-surface hover:text-text-1"
+          >
+            <DollarSign size={15} /> Finance portfolio
+          </Link>
+        }
       />
 
       <div className="mb-6">
