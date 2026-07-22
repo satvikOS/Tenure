@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { canManageFinance, canViewFinance, getUserContext } from "@/lib/rbac"
+import { canManageFinance, canViewOrg, getUserContext } from "@/lib/rbac"
 import { OrgTabs } from "@/components/OrgTabs"
 import { FinanceDashboard } from "@/components/finance/FinanceDashboard"
 
@@ -21,9 +21,10 @@ export default async function FinancePage({
   const org = await db.organization.findUnique({ where: { slug } })
   if (!org) notFound()
 
+  // Finance is readable by any signed-in user; editing stays restricted.
   const ctx = await getUserContext(session.user.id)
-  if (!canViewFinance(ctx, org)) notFound()
   const canManage = canManageFinance(ctx, org)
+  const isMember = canViewOrg(ctx, org)
 
   const lines = await db.budgetLine.findMany({
     where: { organizationId: org.id, academicYear: CURRENT_YEAR },
@@ -38,7 +39,7 @@ export default async function FinancePage({
           Finance — actual vs budget for {CURRENT_YEAR}, with editable forecasting.
         </p>
       </div>
-      <OrgTabs slug={slug} />
+      <OrgTabs slug={slug} canViewOrg={isMember} />
 
       <FinanceDashboard
         slug={slug}

@@ -76,7 +76,7 @@ export default async function MembersPage({
         <div className="min-w-0 flex-1">
           <h1 className="text-text-1">{org.name}</h1>
           <p className="mt-1 text-lead text-text-2">
-            Roster — role seats persist across leadership transitions.
+            Member list &amp; roster — every board seat, who holds it now, and who held it before.
           </p>
         </div>
         {canEditImage && (

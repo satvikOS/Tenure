@@ -3,6 +3,10 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
+// Finance is readable by anyone; the rest require org membership. When the
+// viewer isn't a member (canViewOrg false), show only the tabs they can open
+// so a finance-only viewer never lands on a 404.
+const MEMBER_ONLY = new Set(["members", "documents", "memory"])
 const TABS = [
   { segment: "members", label: "Members" },
   { segment: "finance", label: "Finance" },
@@ -10,11 +14,12 @@ const TABS = [
   { segment: "memory", label: "Memory" },
 ]
 
-export function OrgTabs({ slug }: { slug: string }) {
+export function OrgTabs({ slug, canViewOrg = true }: { slug: string; canViewOrg?: boolean }) {
   const pathname = usePathname()
+  const tabs = canViewOrg ? TABS : TABS.filter((t) => !MEMBER_ONLY.has(t.segment))
   return (
     <nav className="flex gap-1 border-b border-border mb-6" aria-label="Club sections">
-      {TABS.map((t) => {
+      {tabs.map((t) => {
         const href = `/orgs/${slug}/${t.segment}`
         const active = pathname.startsWith(href)
         return (

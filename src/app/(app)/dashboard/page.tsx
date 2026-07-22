@@ -306,7 +306,10 @@ export default async function DashboardPage() {
               )}
             </div>
             {s.role.positionCode && <p className="mt-0.5 text-meta text-text-3">{s.role.positionCode}</p>}
-            <div className="mt-1.5 flex gap-3 text-[13px]">
+            <div className="mt-1.5 flex flex-wrap gap-3 text-[13px]">
+              <Link href={`/orgs/${s.role.organization.slug}/members`} className="text-[--primary] no-underline hover:underline">
+                Members
+              </Link>
               <Link href={`/orgs/${s.role.organization.slug}/memory`} className="text-[--primary] no-underline hover:underline">
                 Seat memory
               </Link>

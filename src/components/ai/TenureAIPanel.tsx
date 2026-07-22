@@ -70,11 +70,18 @@ export function TenureAIPanel() {
         body: JSON.stringify({ question: q, history }),
       })
       const data = (await res.json()) as { answer: string | null; aiEnabled: boolean; sources: Source[] }
-      const content =
-        data.answer ??
-        (data.sources.length
-          ? "Answer generation isn't enabled here, but these are the most relevant items in your workspace:"
-          : "I couldn't find anything about that in your workspace.")
+      // Distinguish the two no-answer cases so the state is honest: the key is
+      // simply not set up here (aiEnabled false) vs. it is set up but the answer
+      // couldn't be generated right now (aiEnabled true — a transient model or
+      // billing issue). Either way we still surface the ranked sources.
+      const fallback = data.sources.length
+        ? data.aiEnabled
+          ? "Tenure AI couldn't generate an answer just now — here are the most relevant items in your workspace:"
+          : "AI answers aren't set up for this workspace yet, but these are the most relevant items:"
+        : data.aiEnabled
+          ? "Tenure AI couldn't generate an answer just now, and I didn't find anything matching in your workspace."
+          : "I couldn't find anything about that in your workspace."
+      const content = data.answer ?? fallback
       setMessages((m) => [...m, { role: "assistant", content, sources: data.sources, aiEnabled: data.aiEnabled }])
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: "Something went wrong reaching Tenure AI. Please try again." }])

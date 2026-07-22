@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
 import { canPostToConversation, canReadConversation } from "@/lib/messaging"
 import { storageConfigured } from "@/lib/s3"
-import { Paperclip } from "@/components/ui/icons"
+import { ArrowRight, Paperclip } from "@/components/ui/icons"
 import { Card } from "@/components/ui/Card"
 import { Avatar } from "@/components/ui/Avatar"
 import { BackButton } from "@/components/BackButton"
@@ -150,68 +150,97 @@ export default async function ConversationPage({
 
       <Card padding="none">
         {convo.messages.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-text-3 text-center">
+          <p className="px-5 py-10 text-sm text-text-3 text-center">
             No messages yet{canPost ? " — say hello below." : "."}
           </p>
         ) : (
-          <ul className="divide-y divide-border">
-            {convo.messages.map((m) => (
-              <li key={m.id} className="flex gap-3 px-5 py-4">
-                <Avatar name={m.sender.name ?? "?"} imageUrl={m.sender.image} size="md" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
-                    <p className="text-sm font-semibold text-text-1">
-                      {m.sender.name ?? "Unknown"}
-                    </p>
-                    <p className="text-[13px] text-text-3">
-                      {m.createdAt.toLocaleString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
-                    </p>
+          <ul className="flex flex-col gap-0.5 px-3 py-5 sm:px-4">
+            {convo.messages.map((m, i) => {
+              // Right-align the viewer's own messages (iMessage style); others
+              // sit left. Group a run of consecutive messages from one sender so
+              // the avatar + name only show on the first of the run.
+              const isOwn = m.senderId === userId
+              const startsRun = i === 0 || convo.messages[i - 1].senderId !== m.senderId
+              const showName = convo.type !== "DIRECT_MESSAGE" && !isOwn && startsRun
+              return (
+                <li
+                  key={m.id}
+                  className={`flex items-end gap-2 ${isOwn ? "flex-row-reverse" : "flex-row"} ${
+                    startsRun && i !== 0 ? "mt-2" : ""
+                  }`}
+                >
+                  {!isOwn &&
+                    (startsRun ? (
+                      <Avatar name={m.sender.name ?? "?"} imageUrl={m.sender.image} size="sm" />
+                    ) : (
+                      <div className="w-8 shrink-0" aria-hidden />
+                    ))}
+                  <div className={`flex min-w-0 max-w-[76%] flex-col ${isOwn ? "items-end" : "items-start"}`}>
+                    {showName && (
+                      <span className="mb-0.5 px-1 text-[12px] font-medium text-text-3">
+                        {m.sender.name ?? "Unknown"}
+                      </span>
+                    )}
+                    {m.body && (
+                      <div
+                        className={`w-fit break-words rounded-2xl px-3.5 py-2 text-[15px] leading-relaxed ${
+                          isOwn
+                            ? "rounded-br-md bg-[--primary] text-white"
+                            : "rounded-bl-md bg-subtle text-text-1"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap">{m.body}</p>
+                      </div>
+                    )}
+                    {m.attachments.length > 0 && (
+                      <div className={`mt-1 flex flex-wrap gap-2 ${isOwn ? "justify-end" : "justify-start"}`}>
+                        {m.attachments.map((a) => (
+                          <AttachmentChip
+                            key={a.id}
+                            id={a.id}
+                            fileName={a.fileName}
+                            mimeType={a.mimeType}
+                            sizeBytes={a.sizeBytes}
+                          />
+                        ))}
+                      </div>
+                    )}
+                    <span className="px-1 pt-0.5 text-[12px] text-text-3">
+                      {m.createdAt.toLocaleString("en-US", { hour: "numeric", minute: "2-digit" })}
+                    </span>
                   </div>
-                  {m.body && <p className="mt-1 whitespace-pre-wrap text-sm text-text-1">{m.body}</p>}
-                  {m.attachments.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {m.attachments.map((a) => (
-                        <AttachmentChip
-                          key={a.id}
-                          id={a.id}
-                          fileName={a.fileName}
-                          mimeType={a.mimeType}
-                          sizeBytes={a.sizeBytes}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </li>
-            ))}
+                </li>
+              )
+            })}
           </ul>
         )}
       </Card>
 
       {canPost ? (
-        <form action={sendWithId} encType="multipart/form-data" className="mt-4 space-y-2">
-          <div className="flex gap-2">
+        <form action={sendWithId} encType="multipart/form-data" className="mt-4">
+          <div className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-2 py-1.5 shadow-xs transition-colors focus-within:border-[--border-focus]">
+            {storageConfigured() && (
+              <label
+                className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-full text-text-3 transition-colors hover:bg-base hover:text-text-1"
+                title="Attach files"
+              >
+                <Paperclip size={17} />
+                <input type="file" name="attachments" multiple className="sr-only" aria-label="Attach files" />
+              </label>
+            )}
             <input
               name="body"
               autoComplete="off"
               placeholder="Write a message…"
-              className="h-10 flex-1 rounded-md border border-border px-3.5 text-[15px] text-text-1 outline-none focus:border-[--border-focus]"
+              className="h-9 flex-1 bg-transparent px-2 text-[15px] text-text-1 outline-none placeholder:text-text-3"
             />
-            <button className="h-10 rounded-md bg-[--primary] px-5 text-sm font-medium text-white hover:bg-[--primary-hover]">
-              Send
+            <button
+              aria-label="Send"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[--primary] text-white transition-colors hover:bg-[--primary-hover]"
+            >
+              <ArrowRight size={18} />
             </button>
           </div>
-          {storageConfigured() && (
-            <label className="inline-flex cursor-pointer items-center gap-2 text-[13px] text-text-3">
-              <Paperclip size={14} /> Attach files
-              <input type="file" name="attachments" multiple className="text-[13px] text-text-2" />
-            </label>
-          )}
         </form>
       ) : (
         <p className="mt-4 text-xs text-text-3">

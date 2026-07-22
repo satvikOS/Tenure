@@ -17,28 +17,50 @@ export async function aiComplete(
   maxTokens = 500
 ): Promise<string | null> {
   if (!aiConfigured()) return null
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001",
-        max_tokens: maxTokens,
-        system,
-        messages: [{ role: "user", content: user }],
-      }),
-      signal: AbortSignal.timeout(20_000),
-    })
-    if (!res.ok) return null
-    const data = (await res.json()) as { content?: { type: string; text?: string }[] }
-    return data.content?.find((b) => b.type === "text")?.text ?? null
-  } catch {
-    return null // Callers degrade gracefully — generation is best-effort
+
+  const model = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001"
+  const body = JSON.stringify({
+    model,
+    max_tokens: maxTokens,
+    system,
+    messages: [{ role: "user", content: user }],
+  })
+
+  // One retry for transient failures (rate limit / overload), then give up and
+  // degrade to sources-only. NEVER fail silently: log the real status + body so
+  // an invalid key, billing block, or model error is visible in the container
+  // logs (CloudWatch) instead of collapsing to an indistinguishable null.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY!,
+          "anthropic-version": "2023-06-01",
+        },
+        body,
+        signal: AbortSignal.timeout(20_000),
+      })
+      if (res.ok) {
+        const data = (await res.json()) as { content?: { type: string; text?: string }[] }
+        return data.content?.find((b) => b.type === "text")?.text ?? null
+      }
+      const detail = await res.text().catch(() => "")
+      console.error(
+        `[ai] Anthropic API ${res.status} (model=${model}, attempt=${attempt + 1}): ${detail.slice(0, 500)}`
+      )
+      // 429 (rate limit) and 529 (overloaded) are worth one retry; auth/model
+      // errors (401/400/404) will just fail again, so stop immediately.
+      if (res.status !== 429 && res.status !== 529) return null
+      await new Promise((r) => setTimeout(r, 600))
+    } catch (err) {
+      console.error(`[ai] Anthropic API request failed (model=${model}, attempt=${attempt + 1}):`, err)
+      if (attempt === 1) return null
+      await new Promise((r) => setTimeout(r, 600))
+    }
   }
+  return null // Callers degrade gracefully — generation is best-effort
 }
 
 export async function synthesizeAnswer(

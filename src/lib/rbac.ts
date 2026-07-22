@@ -137,14 +137,13 @@ export function isFinanceRole(roleName: string): boolean {
 }
 
 /**
- * See the club's finance dashboard. Anyone who can view the org: the finance
- * data is not more sensitive than the roster, and presidents and OSE need it.
+ * See the club's finance dashboard. Read access is open to any signed-in user —
+ * club budgets are transparent by design. Editing stays locked down to the
+ * people accountable for the money (canManageFinance). The page itself still
+ * requires an authenticated session; this predicate governs visibility only.
  */
-export function canViewFinance(
-  ctx: UserContext,
-  org: { id: string; institutionId: string }
-): boolean {
-  return canViewOrg(ctx, org)
+export function canViewFinance(): boolean {
+  return true
 }
 
 /**
