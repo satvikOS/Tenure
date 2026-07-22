@@ -8,16 +8,16 @@ interface CardProps {
 
 const paddingMap = {
   none: "",
-  sm: "p-4 sm:p-5",
-  md: "p-5 sm:p-6",
-  lg: "p-6 sm:p-8",
+  sm: "p-3.5 sm:p-4",
+  md: "p-4 sm:p-5",
+  lg: "p-5 sm:p-6",
 }
 
 export function Card({ children, className, padding = "md" }: CardProps) {
   return (
     <div
       className={`
-        bg-surface rounded-lg border border-border shadow-sm
+        bg-surface rounded-[10px] border border-border
         ${paddingMap[padding]}
         ${className ?? ""}
       `}
@@ -37,10 +37,10 @@ export function CardHeader({
   action?: ReactNode
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 mb-5">
+    <div className="mb-4 flex items-start justify-between gap-4">
       <div className="min-w-0">
-        <h2 className="micro-label">{title}</h2>
-        {subtitle && <p className="text-sm text-text-2 mt-1.5">{subtitle}</p>}
+        <h2 className="text-[15px] font-semibold leading-tight text-text-1">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-[13px] text-text-3">{subtitle}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}
     </div>

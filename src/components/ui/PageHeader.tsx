@@ -25,7 +25,7 @@ export function PageHeader({
   className?: string
 }) {
   return (
-    <header className={`mb-6 sm:mb-8 ${className ?? ""}`}>
+    <header className={`mb-5 sm:mb-6 ${className ?? ""}`}>
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav aria-label="Breadcrumb" className="mb-2 flex flex-wrap items-center gap-1 text-meta text-text-3">
           {breadcrumbs.map((c, i) => (

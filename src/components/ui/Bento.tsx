@@ -58,7 +58,7 @@ export function BentoGrid({
   className?: string
 }) {
   return (
-    <div className={`grid grid-cols-12 gap-4 sm:gap-5 ${className ?? ""}`}>
+    <div className={`grid grid-cols-12 gap-3 sm:gap-4 ${className ?? ""}`}>
       {children}
     </div>
   )
@@ -87,8 +87,8 @@ export function BentoTile({
     <div
       className={`
         ${SPAN[span] ?? SPAN[4]}
-        tile-float rounded-lg border ${toneClass}
-        ${padding ? "p-5 sm:p-6" : ""}
+        tile-float rounded-[10px] border ${toneClass}
+        ${padding ? "p-4 sm:p-5" : ""}
         ${className ?? ""}
       `}
     >
@@ -100,7 +100,7 @@ export function BentoTile({
 /** A uniform KPI row — the four-across summary stat pattern. */
 export function StatGrid({ children }: { children: ReactNode }) {
   return (
-    <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-4">{children}</div>
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">{children}</div>
   )
 }
 
@@ -128,16 +128,20 @@ export function StatTile({
   spark?: number[]
 }) {
   const inner = (
-    <div className="tile-float flex h-full flex-col rounded-lg border border-border bg-surface p-5 sm:p-6">
-      <div
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-lg"
-        style={{ background: bg }}
-      >
-        <Icon size={22} style={{ color }} weight="duotone" />
+    <div className="tile-float flex h-full flex-col rounded-[10px] border border-border bg-surface p-4">
+      {/* Label leads (ERP KPI convention); the icon recedes to the top-right. */}
+      <div className="flex items-start justify-between gap-2">
+        <p className="micro-label pt-0.5">{label}</p>
+        <div
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-md"
+          style={{ background: bg }}
+        >
+          <Icon size={16} style={{ color }} weight="duotone" />
+        </div>
       </div>
-      <div className="mt-4 flex items-baseline gap-2">
+      <div className="mt-2.5 flex items-baseline gap-2">
         <p
-          className="text-3xl font-bold tabular-nums"
+          className="text-[26px] font-bold leading-none tabular-nums"
           style={{ color: "var(--text-1)", letterSpacing: "-0.02em" }}
         >
           {value}
@@ -152,8 +156,7 @@ export function StatTile({
           </span>
         )}
       </div>
-      <p className="mt-1 text-sm font-medium text-text-1">{label}</p>
-      {hint && <p className="mt-0.5 text-meta text-text-3">{hint}</p>}
+      {hint && <p className="mt-1.5 text-meta text-text-3">{hint}</p>}
       {spark && spark.length > 1 && (
         <div data-testid="stat-spark" className="mt-auto pt-3">
           <Sparkline values={spark} />
