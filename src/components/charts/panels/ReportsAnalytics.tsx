@@ -6,6 +6,7 @@ import { LineAreaChart } from "../LineAreaChart"
 import { BarChart } from "../BarChart"
 import { HBarChart } from "../HBarChart"
 import { DonutChart } from "../DonutChart"
+import { SankeyChart } from "../SankeyChart"
 import { RangeFilter, type RangeOption } from "../RangeFilter"
 import { REFERENCE, slotColor } from "../palette"
 import { formatNumber } from "../format"
@@ -113,6 +114,21 @@ export function ReportsAnalytics({
     return { funnel, buckets, medianLabel, months, memoryData, memoryTotal }
   }, [range, approvals, decisions, eventDates, memory])
 
+  // Seat-allocation flow: each board-position category splits into filled and
+  // vacant seats — an honest two-layer Sankey straight from current roster data.
+  const sankey = useMemo(() => {
+    const nodes = [
+      ...roster.map((r) => ({ id: `cat:${r.category}`, label: r.category })),
+      { id: "filled", label: "Filled", color: slotColor(0) },
+      { id: "vacant", label: "Vacant", color: REFERENCE },
+    ]
+    const links = roster.flatMap((r) => [
+      ...(r.filled > 0 ? [{ source: `cat:${r.category}`, target: "filled", value: r.filled }] : []),
+      ...(r.vacant > 0 ? [{ source: `cat:${r.category}`, target: "vacant", value: r.vacant }] : []),
+    ])
+    return { nodes, links }
+  }, [roster])
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
@@ -175,6 +191,19 @@ export function ReportsAnalytics({
             formatValue={formatNumber}
             formatAxis={formatNumber}
             height={220}
+          />
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader
+            title="Seat allocation flow"
+            subtitle="How board seats split into filled and vacant across position categories"
+          />
+          <SankeyChart
+            nodes={sankey.nodes}
+            links={sankey.links}
+            height={Math.max(260, sankey.nodes.length * 30)}
+            formatValue={formatNumber}
           />
         </Card>
       </div>

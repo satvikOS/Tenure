@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge"
 import { PageHeader } from "@/components/ui/PageHeader"
 import { StatGrid, StatTile } from "@/components/ui/Bento"
 import { ReportsAnalytics } from "@/components/charts/panels/ReportsAnalytics"
+import { LiveStats } from "@/components/charts/LiveStats"
 
 export const dynamic = "force-dynamic"
 
@@ -165,6 +166,20 @@ export default async function ReportsPage() {
             icon={CalendarCheck}
           />
         </StatGrid>
+      </div>
+
+      <div className="mb-6 rounded-lg border border-border bg-surface p-4">
+        <LiveStats
+          endpoint="/api/reports/pulse"
+          intervalMs={15000}
+          initial={{ pending, publishedEvents, activeSeats, hardConflicts }}
+          items={[
+            { key: "pending", label: "Open approvals" },
+            { key: "activeSeats", label: "Seats filled" },
+            { key: "publishedEvents", label: "On the calendar" },
+            { key: "hardConflicts", label: "Hard conflicts", tone: "warn" },
+          ]}
+        />
       </div>
 
       <ReportsAnalytics

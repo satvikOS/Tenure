@@ -29,6 +29,7 @@ export function BarChart({
   categories,
   series,
   stacked = false,
+  overlayLine,
   height = 240,
   yMax: yMaxProp,
   formatValue = (n) => formatCompact(n),
@@ -38,6 +39,9 @@ export function BarChart({
   categories: string[]
   series: BarSeries[]
   stacked?: boolean
+  /** A trend line drawn on the SAME y-scale over the bars (cash-flow style).
+      Defaults to neutral ink so it reads as a trend, not another series. */
+  overlayLine?: { name: string; values: number[]; color?: string }
   height?: number
   yMax?: number
   formatValue?: (n: number) => string
@@ -60,26 +64,33 @@ export function BarChart({
   const plotH = Math.max(0, height - padTop - padBottom)
   const baseline = padTop + plotH
 
-  const rawMax = stacked
+  const barsMax = stacked
     ? Math.max(1, ...categories.map((_, i) => series.reduce((sum, s) => sum + (s.values[i] ?? 0), 0)))
     : Math.max(1, ...series.flatMap((s) => s.values))
+  const overlayMax = overlayLine ? Math.max(0, ...overlayLine.values.filter((v) => Number.isFinite(v))) : 0
+  const rawMax = Math.max(barsMax, overlayMax)
   const yMax = yMaxProp ?? niceMax(rawMax)
   const ticks = axisTicks(yMax, 4)
 
   const bandW = n > 0 ? plotW / n : plotW
   const hAt = (v: number) => (Math.max(0, v) / yMax) * plotH
 
-  const legend: LegendItem[] = series.map((s, i) => ({
-    label: s.name,
-    color: s.color ?? slotColor(multi ? i : 0),
-    shape: "rect",
-  }))
+  const legend: LegendItem[] = [
+    ...series.map((s, i) => ({
+      label: s.name,
+      color: s.color ?? slotColor(multi ? i : 0),
+      shape: "rect" as const,
+    })),
+    ...(overlayLine
+      ? [{ label: overlayLine.name, color: overlayLine.color ?? "var(--text-1)", shape: "line" as const }]
+      : []),
+  ]
 
   const labelEvery = Math.max(1, Math.ceil((n * 48) / Math.max(plotW, 1)))
 
   return (
     <div ref={ref} data-testid="chart-bar" className={className}>
-      {multi && <ChartLegend items={legend} className="mb-3" />}
+      {(multi || overlayLine) && <ChartLegend items={legend} className="mb-3" />}
       <div className="relative" style={{ height }}>
         {!hasData ? (
           <ChartEmpty height={height} />
@@ -156,6 +167,47 @@ export function BarChart({
                   )
                 })}
 
+                {/* Overlay trend line — same y-scale, drawn on top (cash-flow style). */}
+                {overlayLine &&
+                  (() => {
+                    const oc = overlayLine.color ?? "var(--text-1)"
+                    const pts = overlayLine.values.map(
+                      (v, i) => [padLeft + i * bandW + bandW / 2, baseline - hAt(v)] as const
+                    )
+                    if (pts.length === 0) return null
+                    const d = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(2)} ${p[1].toFixed(2)}`).join(" ")
+                    return (
+                      <g>
+                        <path
+                          d={d}
+                          fill="none"
+                          stroke={oc}
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          pathLength={1}
+                          style={{
+                            strokeDasharray: 1,
+                            strokeDashoffset: mounted ? 0 : 1,
+                            transition: "stroke-dashoffset 460ms ease-out 140ms",
+                          }}
+                        />
+                        {pts.map((p, i) => (
+                          <circle
+                            key={i}
+                            cx={p[0]}
+                            cy={p[1]}
+                            r={3}
+                            fill={oc}
+                            stroke="var(--bg-surface)"
+                            strokeWidth={1.5}
+                            style={{ opacity: mounted ? 1 : 0, transition: "opacity 200ms ease-out 360ms" }}
+                          />
+                        ))}
+                      </g>
+                    )
+                  })()}
+
                 {categories.map((c, i) =>
                   i % labelEvery === 0 ? (
                     <text key={`x${i}`} x={padLeft + i * bandW + bandW / 2} y={height - 8} fontSize={10}
@@ -190,6 +242,14 @@ export function BarChart({
                       <TooltipHeader>{categories[active.c]}</TooltipHeader>
                       <TooltipRow color={s.color ?? slotColor(multi ? active.s : 0)} name={s.name}
                         value={formatValue(v)} shape="rect" />
+                      {overlayLine && overlayLine.values[active.c] != null && (
+                        <TooltipRow
+                          color={overlayLine.color ?? "var(--text-1)"}
+                          name={overlayLine.name}
+                          value={formatValue(overlayLine.values[active.c])}
+                          shape="line"
+                        />
+                      )}
                     </ChartTooltip>
                   )
                 })()}

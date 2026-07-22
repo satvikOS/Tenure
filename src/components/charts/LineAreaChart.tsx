@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type PointerEvent } from "react"
+import { useId, useState, type PointerEvent } from "react"
 import { useMeasuredWidth, useMounted } from "./hooks"
 import { slotColor, CHART_GRID, CHART_AXIS, SURFACE } from "./palette"
 import { axisTicks, niceMax, formatCompact } from "./format"
@@ -39,6 +39,7 @@ export function LineAreaChart({
   const { ref, width } = useMeasuredWidth<HTMLDivElement>()
   const mounted = useMounted()
   const [active, setActive] = useState<number | null>(null)
+  const uid = useId().replace(/:/g, "") // SVG ids can't contain ':'
 
   const n = categories.length
   const hasData = n > 0 && series.some((s) => s.values.length > 0)
@@ -86,6 +87,20 @@ export function LineAreaChart({
             <>
               <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img"
                 aria-label={`Line chart of ${series.map((s) => s.name).join(", ")}`}>
+                {/* Per-series vertical gradient — rich near the line, fading to the
+                    surface at the baseline (the Monarch-style area wash). */}
+                <defs>
+                  {series.map((s, si) => {
+                    const color = s.color ?? slotColor(series.length === 1 ? 0 : si)
+                    return (
+                      <linearGradient key={si} id={`area-${uid}-${si}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={color} stopOpacity={0.34} />
+                        <stop offset="55%" stopColor={color} stopOpacity={0.1} />
+                        <stop offset="100%" stopColor={color} stopOpacity={0} />
+                      </linearGradient>
+                    )
+                  })}
+                </defs>
                 {/* horizontal gridlines + y ticks */}
                 {ticks.map((t) => {
                   const gy = yAt(t)
@@ -124,7 +139,7 @@ export function LineAreaChart({
                   const areaD = `${line} L${pts[pts.length - 1][0].toFixed(2)} ${padTop + plotH} L${pts[0][0].toFixed(2)} ${padTop + plotH} Z`
                   return (
                     <g key={s.name}>
-                      {showArea && <path d={areaD} fill={color} opacity={0.1} />}
+                      {showArea && <path d={areaD} fill={`url(#area-${uid}-${si})`} />}
                       <path d={line} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round"
                         strokeLinejoin="round" pathLength={1}
                         style={{ strokeDasharray: 1, strokeDashoffset: mounted ? 0 : 1, transition: "stroke-dashoffset 320ms ease-out" }} />
