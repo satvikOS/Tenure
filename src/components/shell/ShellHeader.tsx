@@ -35,7 +35,7 @@ export function ShellHeader({
   const { openPanel } = useAI()
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 flex h-shell items-center gap-3 px-4 sm:px-5"
+      className="fixed top-0 left-0 right-0 z-50 flex h-shell items-center gap-2.5 px-3 sm:px-4"
       style={{ background: "var(--shell-bg)", borderBottom: "1px solid var(--shell-border)" }}
     >
       {/* Brand — rosette + wordmark */}
@@ -43,8 +43,8 @@ export function ShellHeader({
         href="/dashboard"
         className="flex shrink-0 items-center gap-2.5 text-[--shell-text] no-underline"
       >
-        <TenureLogo size={26} color="var(--primary)" />
-        <span className="font-display text-lg font-bold tracking-tight">Tenure</span>
+        <TenureLogo size={22} color="var(--primary)" />
+        <span className="font-display text-base font-bold tracking-tight">Tenure</span>
       </Link>
 
       {orgName && (
@@ -69,7 +69,7 @@ export function ShellHeader({
           <button
             type="button"
             onClick={openPanel}
-            className="hidden h-10 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-colors md:inline-flex"
+            className="hidden h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium transition-colors md:inline-flex"
             style={{
               color: "var(--primary)",
               background: "var(--primary-light)",
@@ -77,7 +77,7 @@ export function ShellHeader({
             }}
             aria-label="Ask Tenure AI"
           >
-            <TenureAIMark size={17} color="var(--primary)" />
+            <TenureAIMark size={16} color="var(--primary)" />
             Tenure AI
           </button>
 
@@ -89,7 +89,7 @@ export function ShellHeader({
         {/* User menu */}
         <MenuTrigger>
           <Button
-            className="flex h-10 items-center gap-2 rounded-lg px-1.5 pr-2.5 transition-colors outline-none data-[hovered]:bg-[--shell-item-hover] data-[focus-visible]:ring-2 data-[focus-visible]:ring-[--primary]"
+            className="flex h-9 items-center gap-2 rounded-lg px-1.5 pr-2.5 transition-colors outline-none data-[hovered]:bg-[--shell-item-hover] data-[focus-visible]:ring-2 data-[focus-visible]:ring-[--primary]"
             style={{ color: "var(--shell-text-secondary)" }}
             aria-label="User menu"
           >

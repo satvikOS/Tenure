@@ -19,7 +19,7 @@ export function MainRegion({ children }: { children: React.ReactNode }) {
         paddingBottom: "var(--footer-height)",
       }}
     >
-      <div className="page-shell py-7 sm:py-8">{children}</div>
+      <div className="page-shell py-5 sm:py-6">{children}</div>
     </main>
   )
 }

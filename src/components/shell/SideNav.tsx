@@ -90,7 +90,7 @@ const TOOLTIP_CLASS =
   "pop-panel z-50 rounded-md border border-border bg-surface px-2.5 py-1.5 text-[13px] font-medium text-text-1 shadow-lg outline-none"
 
 const ITEM_BASE =
-  "nav-item group relative flex h-[38px] items-center gap-3 rounded-[9px] px-3 text-[15px] no-underline transition-colors"
+  "nav-item group relative flex h-[32px] items-center gap-2.5 rounded-[8px] px-2.5 text-[13.5px] no-underline transition-colors"
 
 function ItemLink({
   item,
@@ -112,12 +112,12 @@ function ItemLink({
     <>
       {/* Rounded grove-green left rail indicator (active only) */}
       <span
-        className={`pointer-events-none absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full ${
+        className={`pointer-events-none absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full ${
           active ? "bg-[--primary]" : "bg-transparent"
         }`}
         aria-hidden
       />
-      <Icon size={20} className={`shrink-0 ${active ? "text-[--primary]" : "text-text-3"}`} />
+      <Icon size={18} className={`shrink-0 ${active ? "text-[--primary]" : "text-text-3"}`} />
       <span className="nav-label truncate">{item.label}</span>
     </>
   )
@@ -153,7 +153,7 @@ function CollapseToggle({ collapsed, onToggle }: { collapsed: boolean; onToggle:
         aria-label={label}
         className={`mx-2.5 w-[calc(100%-1.25rem)] ${ITEM_BASE} text-text-2 outline-none data-[hovered]:bg-[--shell-item-hover] data-[hovered]:text-text-1 data-[focus-visible]:ring-2 data-[focus-visible]:ring-[--primary]`}
       >
-        <Icon size={20} className="shrink-0 text-text-3" />
+        <Icon size={18} className="shrink-0 text-text-3" />
         <span className="nav-label truncate">Collapse</span>
       </AriaButton>
       <Tooltip placement="right" offset={12} className={TOOLTIP_CLASS}>
@@ -199,11 +199,11 @@ export function SideNav({ showReports, showAdmin }: SideNavProps) {
       style={{ top: "var(--shell-height)", bottom: "var(--footer-height)" }}
       aria-label="Primary navigation"
     >
-      <div className="flex-1 overflow-y-auto overflow-x-hidden py-4">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden py-2.5">
         {sections.map((section, si) => (
-          <div key={si} className="mb-4">
+          <div key={si} className="mb-3.5">
             {section.label && (
-              <p className="micro-label nav-section-label mb-1.5 px-4">{section.label}</p>
+              <p className="micro-label nav-section-label mb-1 px-3.5">{section.label}</p>
             )}
             {section.items.map((item) => (
               <ItemLink

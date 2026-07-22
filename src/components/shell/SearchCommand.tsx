@@ -99,7 +99,7 @@ export function SearchCommand() {
           }}
         >
           <div
-            className="flex h-10 items-center gap-2 rounded-full px-4 text-sm transition-colors focus-within:ring-2 focus-within:ring-[--primary]"
+            className="flex h-9 items-center gap-2 rounded-full px-3.5 text-sm transition-colors focus-within:ring-2 focus-within:ring-[--primary]"
             style={{
               background: "transparent",
               border: "1px solid var(--shell-border)",
@@ -185,7 +185,7 @@ export function SearchCommand() {
       <Link
         href="/search"
         aria-label="Search Tenure"
-        className="grid h-10 w-10 place-items-center rounded-lg text-[--shell-text-secondary] no-underline transition-colors hover:bg-[--shell-item-hover] hover:text-[--shell-text] sm:hidden"
+        className="grid h-9 w-9 place-items-center rounded-lg text-[--shell-text-secondary] no-underline transition-colors hover:bg-[--shell-item-hover] hover:text-[--shell-text] sm:hidden"
       >
         <Search size={18} />
       </Link>
