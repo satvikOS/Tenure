@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canManageFinance, getUserContext } from "@/lib/rbac"
-import { parseMoneyToCents, type ParsedBudgetRow } from "@/lib/finance"
+import {
+  parseMoneyToCents,
+  ledgerSignedCents,
+  LEDGER_KINDS,
+  type LedgerKindName,
+  type ParsedBudgetRow,
+} from "@/lib/finance"
 
 const CURRENT_YEAR = "2026-2027"
 
@@ -164,6 +170,119 @@ export async function importBudget(
         },
       })
     }
+  })
+
+  revalidatePath(`/orgs/${slug}/finance`)
+}
+
+/** Confirm an id belongs to this org before it's attached as a ledger source. */
+async function orgScopedId(
+  finder: (id: string) => Promise<{ id: string } | null>,
+  raw: FormDataEntryValue | null
+): Promise<string | null> {
+  const id = String(raw ?? "").trim()
+  if (!id) return null
+  return (await finder(id))?.id ?? null
+}
+
+/**
+ * Post a ledger entry against a budget line, then recompute that line's actual
+ * from the ledger — so "spent" is always the sum of posted transactions, never
+ * a hand-typed number that can drift. Source links (approval / vendor / receipt)
+ * are validated to belong to this org so a foreign id can't be attached.
+ */
+export async function postLedgerEntry(slug: string, formData: FormData) {
+  const { org, userId } = await requireFinanceManager(slug, "Finance.PostLedger")
+
+  const budgetLineId = String(formData.get("budgetLineId") ?? "")
+  const line = await db.budgetLine.findFirst({
+    where: { id: budgetLineId, organizationId: org.id, academicYear: CURRENT_YEAR },
+    select: { id: true },
+  })
+  if (!line) throw new Error("Budget line not found")
+
+  const kindRaw = String(formData.get("kind") ?? "SPEND")
+  const kind: LedgerKindName = (LEDGER_KINDS as string[]).includes(kindRaw)
+    ? (kindRaw as LedgerKindName)
+    : "SPEND"
+
+  const magnitude = parseMoneyToCents(formData.get("amount"))
+  if (magnitude == null || magnitude === 0) throw new Error("Enter an amount")
+  const amountCents = ledgerSignedCents(kind, magnitude)
+
+  const description = String(formData.get("description") ?? "").trim()
+  if (!description) throw new Error("Enter a description")
+  const memo = String(formData.get("memo") ?? "").trim() || null
+
+  const occurredRaw = String(formData.get("occurredAt") ?? "").trim()
+  const occurredAt =
+    /^\d{4}-\d{2}-\d{2}$/.test(occurredRaw) && !isNaN(new Date(occurredRaw).getTime())
+      ? new Date(`${occurredRaw}T12:00:00.000Z`)
+      : new Date()
+
+  const approvalId = await orgScopedId(
+    (id) => db.approvalRequest.findFirst({ where: { id, organizationId: org.id }, select: { id: true } }),
+    formData.get("approvalId")
+  )
+  const vendorId = await orgScopedId(
+    (id) => db.vendor.findFirst({ where: { id, organizationId: org.id }, select: { id: true } }),
+    formData.get("vendorId")
+  )
+  const documentId = await orgScopedId(
+    (id) => db.document.findFirst({ where: { id, organizationId: org.id }, select: { id: true } }),
+    formData.get("documentId")
+  )
+
+  await db.$transaction(async (tx) => {
+    await tx.ledgerEntry.create({
+      data: {
+        organizationId: org.id,
+        budgetLineId: line.id,
+        academicYear: CURRENT_YEAR,
+        kind,
+        amountCents,
+        description,
+        memo,
+        occurredAt,
+        approvalId,
+        vendorId,
+        documentId,
+        postedById: userId,
+      },
+    })
+    const agg = await tx.ledgerEntry.aggregate({
+      where: { budgetLineId: line.id },
+      _sum: { amountCents: true },
+    })
+    await tx.budgetLine.update({
+      where: { id: line.id },
+      data: { actualCents: agg._sum.amountCents ?? 0 },
+    })
+  })
+
+  revalidatePath(`/orgs/${slug}/finance`)
+}
+
+/** Remove a ledger entry (correction) and recompute the line's actual. */
+export async function deleteLedgerEntry(slug: string, formData: FormData) {
+  const { org } = await requireFinanceManager(slug, "Finance.DeleteLedger")
+  const id = String(formData.get("id") ?? "")
+  const entry = await db.ledgerEntry.findFirst({
+    where: { id, organizationId: org.id },
+    select: { id: true, budgetLineId: true },
+  })
+  if (!entry) return
+
+  await db.$transaction(async (tx) => {
+    await tx.ledgerEntry.delete({ where: { id: entry.id } })
+    const agg = await tx.ledgerEntry.aggregate({
+      where: { budgetLineId: entry.budgetLineId },
+      _sum: { amountCents: true },
+    })
+    await tx.budgetLine.update({
+      where: { id: entry.budgetLineId },
+      data: { actualCents: agg._sum.amountCents ?? 0 },
+    })
   })
 
   revalidatePath(`/orgs/${slug}/finance`)

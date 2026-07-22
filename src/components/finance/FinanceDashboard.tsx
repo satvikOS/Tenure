@@ -11,6 +11,7 @@ import { DonutChart, slotColor, STATUS, REFERENCE } from "@/components/charts"
 import { formatCents, parseMoneyToCents } from "@/lib/finance"
 import { BudgetBarChart, type ChartRow } from "./BudgetBarChart"
 import { BudgetUpload } from "./BudgetUpload"
+import { LedgerDrawer, type LedgerEntryRow, type LedgerSources } from "./LedgerDrawer"
 import {
   deleteBudgetLine,
   saveForecast,
@@ -40,10 +41,14 @@ export function FinanceDashboard({
   slug,
   canManage,
   lines,
+  ledgerByLine,
+  sources,
 }: {
   slug: string
   canManage: boolean
   lines: DashboardLine[]
+  ledgerByLine: Record<string, LedgerEntryRow[]>
+  sources: LedgerSources
 }) {
   // Editable projected spend per line, in dollar strings, drives the live view.
   const [projected, setProjected] = useState<Record<string, string>>(() =>
@@ -53,6 +58,9 @@ export function FinanceDashboard({
   // Deleting a line is a hard, unrecoverable delete — gate it behind a confirm.
   const [deleteTarget, setDeleteTarget] = useState<DashboardLine | null>(null)
   const [deleting, startDelete] = useTransition()
+
+  // The budget line whose ledger drawer (drill-down to source) is open.
+  const [ledgerLine, setLedgerLine] = useState<DashboardLine | null>(null)
 
   const projectedCentsFor = (l: DashboardLine) =>
     parseMoneyToCents(projected[l.id]) ?? 0
@@ -197,8 +205,20 @@ export function FinanceDashboard({
                       <td className="px-3 py-2.5 text-right text-text-2">
                         {formatCents(l.budgetedCents)}
                       </td>
-                      <td className="px-3 py-2.5 text-right text-text-2">
-                        {formatCents(l.actualCents)}
+                      <td className="px-3 py-2.5 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setLedgerLine(l)}
+                          title="View the transactions behind this figure"
+                          className="tabular-nums text-text-1 underline decoration-dotted decoration-text-disabled underline-offset-2 hover:text-[--primary] hover:decoration-[--primary]"
+                        >
+                          {formatCents(l.actualCents)}
+                        </button>
+                        {(ledgerByLine[l.id]?.length ?? 0) > 0 && (
+                          <span className="ml-1.5 align-middle text-[11px] text-text-3">
+                            {ledgerByLine[l.id].length}
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-2.5 text-right">
                         {canManage ? (
@@ -319,6 +339,25 @@ export function FinanceDashboard({
 
           <BudgetUpload slug={slug} />
         </div>
+      )}
+
+      {ledgerLine && (
+        <LedgerDrawer
+          slug={slug}
+          line={{
+            id: ledgerLine.id,
+            category: ledgerLine.category,
+            actualCents: ledgerLine.actualCents,
+            budgetedCents: ledgerLine.budgetedCents,
+          }}
+          entries={ledgerByLine[ledgerLine.id] ?? []}
+          sources={sources}
+          canManage={canManage}
+          isOpen={ledgerLine !== null}
+          onOpenChange={(open) => {
+            if (!open) setLedgerLine(null)
+          }}
+        />
       )}
 
       <ConfirmDialog

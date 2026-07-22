@@ -303,6 +303,57 @@ async function main() {
     })
   }
 
+  // ── Demo general ledger — the transactions behind two lines' actuals, so the
+  //    drill-down shows real source detail and "actual = Σ ledger" holds. ──────
+  const cateringLine = await db.budgetLine.findFirst({
+    where: { organizationId: consulting.id, academicYear: "2026-2027", category: "Catering & Food" },
+  })
+  const venueLine = await db.budgetLine.findFirst({
+    where: { organizationId: consulting.id, academicYear: "2026-2027", category: "Venue & Space" },
+  })
+  if (cateringLine && venueLine) {
+    let vendor = await db.vendor.findFirst({
+      where: { organizationId: consulting.id, name: "Rochester Catering Co." },
+    })
+    if (!vendor) {
+      vendor = await db.vendor.create({
+        data: {
+          institutionId: consulting.institutionId,
+          organizationId: consulting.id,
+          name: "Rochester Catering Co.",
+          contactEmail: "sales@rochestercatering.example",
+        },
+      })
+    }
+    // Idempotent: clear this club's ledger, then repost the demo entries.
+    await db.ledgerEntry.deleteMany({ where: { organizationId: consulting.id } })
+    const demoLedger = [
+      { line: cateringLine.id, kind: "SPEND", amountCents: 120000, description: "Kickoff mixer catering", vendorId: vendor.id, daysAgo: 40 },
+      { line: cateringLine.id, kind: "SPEND", amountCents: 82500, description: "Case competition lunch", vendorId: vendor.id, daysAgo: 18 },
+      { line: cateringLine.id, kind: "REIMBURSEMENT", amountCents: -15000, description: "Refund — over-ordered trays", vendorId: vendor.id, daysAgo: 12 },
+      { line: venueLine.id, kind: "SPEND", amountCents: 90000, description: "Ballroom deposit", daysAgo: 30 },
+      { line: venueLine.id, kind: "SPEND", amountCents: 45000, description: "AV rental + setup", daysAgo: 9 },
+    ]
+    for (const e of demoLedger) {
+      await db.ledgerEntry.create({
+        data: {
+          organizationId: consulting.id,
+          budgetLineId: e.line,
+          academicYear: "2026-2027",
+          kind: e.kind,
+          amountCents: e.amountCents,
+          description: e.description,
+          vendorId: e.vendorId ?? null,
+          occurredAt: new Date(Date.now() - e.daysAgo * 86_400_000),
+        },
+      })
+    }
+    for (const lineId of [cateringLine.id, venueLine.id]) {
+      const agg = await db.ledgerEntry.aggregate({ where: { budgetLineId: lineId }, _sum: { amountCents: true } })
+      await db.budgetLine.update({ where: { id: lineId }, data: { actualCents: agg._sum.amountCents ?? 0 } })
+    }
+  }
+
   const counts = {
     clubs: ROSTER.length,
     seats: await db.role.count(),

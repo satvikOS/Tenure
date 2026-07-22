@@ -153,4 +153,26 @@ test.describe("finance dashboard", () => {
     await expect(page.getByText("Workshop Series").first()).toBeVisible()
     await expect(page.getByText("Networking Night").first()).toBeVisible()
   })
+
+  test("a line's actual drills down to its ledger, and posting recomputes it", async ({ page }) => {
+    await signIn(page, "Victor Chen")
+    await page.goto(FINANCE_URL)
+
+    // Click the Catering & Food actual to open the ledger drill-down.
+    await page.getByRole("button", { name: "$1,875.00" }).first().click()
+
+    const dialog = page.getByRole("dialog")
+    await expect(dialog.getByText("Catering & Food — ledger")).toBeVisible()
+    // Seeded transactions + their source (the vendor) are shown.
+    await expect(dialog.getByText("Kickoff mixer catering")).toBeVisible()
+    await expect(dialog.getByText("Rochester Catering Co.").first()).toBeVisible()
+
+    // Post a $100 spend; the actual recomputes from the ledger to $1,975.00.
+    await dialog.getByPlaceholder("What was this?").fill("E2E ledger spend")
+    await dialog.getByPlaceholder("0.00").fill("100")
+    await dialog.getByRole("button", { name: "Post entry" }).click()
+
+    await expect(dialog.getByText("E2E ledger spend")).toBeVisible({ timeout: 10000 })
+    await expect(dialog.getByText("$1,975.00")).toBeVisible()
+  })
 })

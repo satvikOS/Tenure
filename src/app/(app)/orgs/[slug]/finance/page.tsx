@@ -4,6 +4,8 @@ import { db } from "@/lib/db"
 import { canManageFinance, canViewFinance, getUserContext } from "@/lib/rbac"
 import { OrgTabs } from "@/components/OrgTabs"
 import { FinanceDashboard } from "@/components/finance/FinanceDashboard"
+import { type LedgerEntryRow } from "@/components/finance/LedgerDrawer"
+import { type LedgerKindName } from "@/lib/finance"
 
 export const dynamic = "force-dynamic"
 
@@ -26,10 +28,55 @@ export default async function FinancePage({
   if (!canViewFinance(ctx, org)) notFound()
   const canManage = canManageFinance(ctx, org)
 
-  const lines = await db.budgetLine.findMany({
-    where: { organizationId: org.id, academicYear: CURRENT_YEAR },
-    orderBy: [{ sortOrder: "asc" }, { category: "asc" }],
-  })
+  const [lines, ledger, approvals, vendors, documents] = await Promise.all([
+    db.budgetLine.findMany({
+      where: { organizationId: org.id, academicYear: CURRENT_YEAR },
+      orderBy: [{ sortOrder: "asc" }, { category: "asc" }],
+    }),
+    db.ledgerEntry.findMany({
+      where: { organizationId: org.id, academicYear: CURRENT_YEAR },
+      orderBy: { occurredAt: "desc" },
+      include: {
+        approval: { select: { id: true, title: true } },
+        vendor: { select: { id: true, name: true } },
+        document: { select: { id: true, title: true } },
+      },
+    }),
+    db.approvalRequest.findMany({
+      where: { organizationId: org.id, status: "APPROVED", type: { in: ["BUDGET", "VENDOR"] } },
+      select: { id: true, title: true },
+      orderBy: { updatedAt: "desc" },
+      take: 50,
+    }),
+    db.vendor.findMany({
+      where: { organizationId: org.id, isArchived: false },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+      take: 100,
+    }),
+    db.document.findMany({
+      where: { organizationId: org.id, isArchived: false },
+      select: { id: true, title: true },
+      orderBy: { updatedAt: "desc" },
+      take: 100,
+    }),
+  ])
+
+  // Group the ledger by line for the drill-down drawer.
+  const ledgerByLine: Record<string, LedgerEntryRow[]> = {}
+  for (const e of ledger) {
+    ;(ledgerByLine[e.budgetLineId] ??= []).push({
+      id: e.id,
+      kind: e.kind as LedgerKindName,
+      amountCents: e.amountCents,
+      description: e.description,
+      memo: e.memo,
+      occurredAt: e.occurredAt.toISOString(),
+      approval: e.approval,
+      vendor: e.vendor,
+      document: e.document,
+    })
+  }
 
   return (
     <div className="w-full">
@@ -53,6 +100,8 @@ export default async function FinancePage({
           source: l.source,
           note: l.note,
         }))}
+        ledgerByLine={ledgerByLine}
+        sources={{ approvals, vendors, documents }}
       />
     </div>
   )

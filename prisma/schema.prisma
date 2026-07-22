@@ -157,6 +157,7 @@ model Organization {
   feedPosts      FeedPost[]
   collabInterests CollabInterest[]
   budgetLines    BudgetLine[]
+  ledgerEntries  LedgerEntry[]
 
   @@index([institutionId, status])
 }
@@ -385,6 +386,7 @@ model ApprovalRequest {
   steps         ApprovalStep[]
   conversation  Conversation?  @relation("ApprovalConversation")
   event         Event?         @relation("ApprovalEvent")
+  ledgerEntries LedgerEntry[]
 
   @@index([organizationId, status])
   @@index([institutionId, status])
@@ -584,6 +586,8 @@ model Document {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  ledgerEntries  LedgerEntry[]
+
   @@index([organizationId, isArchived])
 }
 
@@ -692,6 +696,8 @@ model BudgetLine {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  ledgerEntries  LedgerEntry[]
+
   @@unique([organizationId, academicYear, category])
   @@index([organizationId, academicYear])
 }
@@ -712,7 +718,46 @@ model Vendor {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  ledgerEntries  LedgerEntry[]
+
   @@index([organizationId, isArchived])
+}
+
+enum LedgerKind {
+  SPEND         // an expense posted against the line (increases actual spend)
+  REIMBURSEMENT // money recovered (decreases actual spend)
+  ADJUSTMENT    // a signed correction
+}
+
+/// A posted ledger entry against a budget line — the transaction detail behind a
+/// line's "actual". Every entry can point at its SOURCE (the approved request,
+/// the vendor, the receipt document), so any actual figure drills down to the
+/// records that justify it. A line's actualCents is the cache of Σ amountCents.
+model LedgerEntry {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  budgetLineId   String
+  budgetLine     BudgetLine       @relation(fields: [budgetLineId], references: [id], onDelete: Cascade)
+  academicYear   String
+  kind           LedgerKind       @default(SPEND)
+  /// Signed effect on actual spend, in cents (SPEND +, REIMBURSEMENT −).
+  amountCents    Int
+  description    String
+  memo           String?
+  occurredAt     DateTime         @default(now())
+  // Summary-to-source links.
+  approvalId     String?
+  approval       ApprovalRequest? @relation(fields: [approvalId], references: [id])
+  vendorId       String?
+  vendor         Vendor?          @relation(fields: [vendorId], references: [id])
+  documentId     String?
+  document       Document?        @relation(fields: [documentId], references: [id])
+  postedById     String?
+  createdAt      DateTime         @default(now())
+
+  @@index([budgetLineId, occurredAt])
+  @@index([organizationId, academicYear])
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

@@ -114,6 +114,30 @@ export function summarize(lines: BudgetLineInput[]): FinanceSummary {
   }
 }
 
+// ── General ledger ────────────────────────────────────────────────────────────
+
+export type LedgerKindName = "SPEND" | "REIMBURSEMENT" | "ADJUSTMENT"
+
+export const LEDGER_KINDS: LedgerKindName[] = ["SPEND", "REIMBURSEMENT", "ADJUSTMENT"]
+
+export const LEDGER_KIND_LABEL: Record<LedgerKindName, string> = {
+  SPEND: "Spend",
+  REIMBURSEMENT: "Reimbursement",
+  ADJUSTMENT: "Adjustment",
+}
+
+/**
+ * Signed cents effect a ledger entry has on a line's actual spend, from a raw
+ * magnitude and its kind. SPEND increases actual (+), REIMBURSEMENT recovers it
+ * (−), and ADJUSTMENT is taken exactly as signed (a negative input lowers the
+ * actual). This is the single rule the server posts by and the drawer displays.
+ */
+export function ledgerSignedCents(kind: LedgerKindName, magnitudeCents: number): number {
+  if (kind === "REIMBURSEMENT") return -Math.abs(magnitudeCents)
+  if (kind === "SPEND") return Math.abs(magnitudeCents)
+  return magnitudeCents // ADJUSTMENT: signed as entered
+}
+
 // ── Spreadsheet import ────────────────────────────────────────────────────────
 
 export type ParsedBudgetRow = {
