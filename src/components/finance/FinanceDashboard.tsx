@@ -198,6 +198,14 @@ export function FinanceDashboard({
                     <tr key={l.id} className="border-b border-border last:border-0">
                       <td className="px-5 py-2.5">
                         <span className="text-text-1">{l.category}</span>
+                        {l.actualCents > l.budgetedCents && l.budgetedCents > 0 && (
+                          <span
+                            className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+                            style={{ background: "var(--error-light)", color: "var(--error)" }}
+                          >
+                            Over budget
+                          </span>
+                        )}
                         {l.source === "import" && (
                           <span className="ml-2 text-[10px] uppercase text-text-3">imported</span>
                         )}

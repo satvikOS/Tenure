@@ -56,4 +56,13 @@ test.describe("reimbursements (three-way match)", () => {
     // …and links back to its approval — the "approval" leg of the three-way match.
     await expect(dialog.getByRole("link", { name: /Reimbursement: E2E venue/ })).toBeVisible()
   })
+
+  test("the budget guardrail warns before filing over the line's budget", async ({ page }) => {
+    await signIn(page, "Maya Johnson")
+    await page.goto("/orgs/simon-consulting-club/finance")
+    await page.getByLabel("Budget line").selectOption({ label: "Catering & Food" })
+    // Catering has ~$625 remaining; $5,000 blows past it.
+    await page.getByLabel("Amount").fill("5000")
+    await expect(page.getByText(/exceeds the line.s remaining budget/i)).toBeVisible()
+  })
 })

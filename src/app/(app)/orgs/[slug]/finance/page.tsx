@@ -106,7 +106,14 @@ export default async function FinancePage({
       />
 
       <div className="mt-4">
-        <ReimbursementForm slug={slug} lines={lines.map((l) => ({ id: l.id, category: l.category }))} />
+        <ReimbursementForm
+          slug={slug}
+          lines={lines.map((l) => ({
+            id: l.id,
+            category: l.category,
+            remainingCents: l.budgetedCents - l.actualCents,
+          }))}
+        />
       </div>
     </div>
   )

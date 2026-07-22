@@ -1,22 +1,39 @@
 "use client"
 
+import { useMemo, useState } from "react"
 import { Card, CardHeader } from "@/components/ui/Card"
+import { formatCents, parseMoneyToCents } from "@/lib/finance"
 import { submitReimbursement } from "@/app/(app)/orgs/[slug]/finance/actions"
 
+type Line = { id: string; category: string; remainingCents: number }
+
 /**
- * Member-facing reimbursement request. Not a finance-manager action — anyone
- * with an active club seat can file one. It routes through the normal approval
- * chain and, on final approval, auto-posts a spend to the ledger against the
- * chosen line (see submitReimbursement + the actOnApproval hook).
+ * Member-facing reimbursement request with a live BUDGET GUARDRAIL: as you type
+ * an amount it compares against the chosen line's remaining budget and warns
+ * before you file if it would push the line over. Anyone with an active club
+ * seat can file; it routes through approval and, on approval, auto-posts to the
+ * ledger (see submitReimbursement + the actOnApproval hook).
  */
-export function ReimbursementForm({
-  slug,
-  lines,
-}: {
-  slug: string
-  lines: { id: string; category: string }[]
-}) {
-  if (lines.length === 0) return null
+export function ReimbursementForm({ slug, lines }: { slug: string; lines: Line[] }) {
+  const [lineId, setLineId] = useState(lines[0]?.id ?? "")
+  const [amount, setAmount] = useState("")
+
+  const selected = lines.find((l) => l.id === lineId) ?? lines[0]
+  const guardrail = useMemo(() => {
+    if (!selected) return null
+    const cents = parseMoneyToCents(amount)
+    if (cents == null || cents <= 0) return null
+    const remaining = selected.remainingCents
+    if (cents > remaining) {
+      return remaining <= 0
+        ? `This line is already at or over budget — the reimbursement would deepen the overspend.`
+        : `This exceeds the line's remaining budget of ${formatCents(remaining)} by ${formatCents(cents - remaining)}.`
+    }
+    return null
+  }, [amount, selected])
+
+  // All hooks are above this guard (Rules of Hooks); narrows `selected` too.
+  if (lines.length === 0 || !selected) return null
   const submit = submitReimbursement.bind(null, slug)
 
   return (
@@ -31,6 +48,8 @@ export function ReimbursementForm({
           <select
             name="budgetLineId"
             required
+            value={lineId}
+            onChange={(e) => setLineId(e.target.value)}
             className="h-9 rounded border border-border bg-surface px-2 text-sm text-text-1"
           >
             {lines.map((l) => (
@@ -47,9 +66,27 @@ export function ReimbursementForm({
             inputMode="decimal"
             required
             placeholder="0.00"
-            className="h-9 rounded border border-border bg-surface px-2 text-sm text-text-1"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className={`h-9 rounded border bg-surface px-2 text-sm text-text-1 ${
+              guardrail ? "border-[--warning]" : "border-border"
+            }`}
           />
         </label>
+
+        {guardrail ? (
+          <p
+            className="sm:col-span-2 rounded-md px-3 py-2 text-[13px]"
+            style={{ background: "var(--warning-light)", color: "var(--warning)" }}
+          >
+            ⚠ {guardrail} You can still file it — the approver decides.
+          </p>
+        ) : (
+          <p className="sm:col-span-2 text-[12px] text-text-3">
+            {selected.category} has {formatCents(selected.remainingCents)} remaining this year.
+          </p>
+        )}
+
         <label className="flex flex-col gap-1 text-xs text-text-2 sm:col-span-2">
           What is this for?
           <input
