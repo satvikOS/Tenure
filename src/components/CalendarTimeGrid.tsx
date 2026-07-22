@@ -1,7 +1,8 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { clubSwatch } from "@/lib/calendar-color"
 
 export interface TimeGridEvent {
   id: string
@@ -24,13 +25,7 @@ export interface TimeGridDay {
 const START_HOUR = 7
 const END_HOUR = 23
 const HOUR_PX = 52
-
-const MUTED_HUES = [210, 262, 288, 152, 24, 340, 190, 128]
-function hueFor(seed: string): number {
-  let h = 0
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
-  return MUTED_HUES[h % MUTED_HUES.length]
-}
+const GUTTER_PX = 56
 
 /** Minutes from START_HOUR, using the event's UTC wall-clock time. */
 function minutesFromStart(iso: string): number {
@@ -50,6 +45,23 @@ export function CalendarTimeGrid({ days, events }: { days: TimeGridDay[]; events
     []
   )
   const gridHeight = (END_HOUR - START_HOUR) * HOUR_PX
+
+  // Current-time indicator — positioned by UTC wall-clock so it lines up with
+  // how events are placed. Ticks every minute; shown only when today is in view
+  // and "now" falls inside the visible hour band.
+  const hasToday = days.some((d) => d.isToday)
+  const [nowMin, setNowMin] = useState<number | null>(null)
+  useEffect(() => {
+    const compute = () => {
+      const d = new Date()
+      setNowMin((d.getUTCHours() - START_HOUR) * 60 + d.getUTCMinutes())
+    }
+    compute()
+    const id = setInterval(compute, 60_000)
+    return () => clearInterval(id)
+  }, [])
+  const nowY = nowMin == null ? null : (nowMin / 60) * HOUR_PX
+  const showNow = hasToday && nowY != null && nowY >= 0 && nowY <= gridHeight
 
   // Lay out each day's events into non-overlapping columns.
   const layoutByDay = useMemo(() => {
@@ -129,7 +141,7 @@ export function CalendarTimeGrid({ days, events }: { days: TimeGridDay[]; events
                   <div key={h} className="border-b border-border" style={{ height: HOUR_PX }} />
                 ))}
                 {placed.map(({ e, top, height, col, cols }) => {
-                  const hue = hueFor(e.org)
+                  const sw = clubSwatch(e.org)
                   const widthPct = 100 / cols
                   return (
                     <Link
@@ -141,9 +153,9 @@ export function CalendarTimeGrid({ days, events }: { days: TimeGridDay[]; events
                         height,
                         left: `calc(${col * widthPct}% + 2px)`,
                         width: `calc(${widthPct}% - 4px)`,
-                        background: `hsl(${hue} 24% 94%)`,
-                        borderColor: `hsl(${hue} 30% 45%)`,
-                        color: `hsl(${hue} 32% 28%)`,
+                        background: sw.bg,
+                        borderColor: sw.border,
+                        color: sw.text,
                       }}
                     >
                       <span className="block truncate font-semibold">{e.title}</span>
@@ -161,6 +173,20 @@ export function CalendarTimeGrid({ days, events }: { days: TimeGridDay[]; events
               </div>
             )
           })}
+
+          {/* Current-time line — dot in the gutter, hairline across the days. */}
+          {showNow && (
+            <div
+              className="pointer-events-none absolute z-20"
+              style={{ top: nowY!, left: GUTTER_PX, right: 0 }}
+            >
+              <span
+                className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full"
+                style={{ background: "var(--primary)" }}
+              />
+              <div className="h-0.5 w-full" style={{ background: "var(--primary)" }} />
+            </div>
+          )}
         </div>
       </div>
     </div>

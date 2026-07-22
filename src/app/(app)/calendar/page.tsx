@@ -8,7 +8,9 @@ import { loadScopedEvents } from "@/lib/calendar-data"
 import { calendarToken } from "@/lib/calendar-sync"
 import { CalendarGrid, type GridEvent } from "@/components/CalendarGrid"
 import { CalendarTimeGrid } from "@/components/CalendarTimeGrid"
+import { CalendarMiniMonth } from "@/components/CalendarMiniMonth"
 import { CalendarSubscribe } from "@/components/CalendarSubscribe"
+import { clubSwatch } from "@/lib/calendar-color"
 import { Card } from "@/components/ui/Card"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { EventBadge } from "@/components/ui/Badge"
@@ -122,6 +124,12 @@ export default async function CalendarPage({
       status: e.status,
     }))
 
+    const baseISO = base.toISOString().slice(0, 10)
+    // Distinct clubs with events in view — the "My calendars" rail (colour follows the club).
+    const calendars = [...new Set(gridEvents.map((e) => e.org))]
+      .sort()
+      .map((org) => ({ org, sw: clubSwatch(org) }))
+
     const prev = new Date(gridStart.getTime() - spanDays * DAY).toISOString().slice(0, 10)
     const next = new Date(gridStart.getTime() + spanDays * DAY).toISOString().slice(0, 10)
     const rangeLabel =
@@ -132,30 +140,68 @@ export default async function CalendarPage({
     return (
       <div className="w-full">
         {header}
-        <div className="mb-4 flex items-center gap-2">
-          <Link
-            href={`/calendar?view=${currentView}&d=${prev}`}
-            aria-label={currentView === "week" ? "Previous week" : "Previous day"}
-            className="grid h-9 w-9 place-items-center rounded-md border border-border text-text-2 no-underline hover:bg-surface"
-          >
-            <ChevronLeft size={16} />
-          </Link>
-          <span className="min-w-48 text-center text-sm font-semibold text-text-1">{rangeLabel}</span>
-          <Link
-            href={`/calendar?view=${currentView}&d=${next}`}
-            aria-label={currentView === "week" ? "Next week" : "Next day"}
-            className="grid h-9 w-9 place-items-center rounded-md border border-border text-text-2 no-underline hover:bg-surface"
-          >
-            <ChevronRight size={16} />
-          </Link>
-          <Link
-            href={`/calendar?view=${currentView}`}
-            className="flex h-9 items-center rounded-md border border-border px-3 text-sm text-text-2 no-underline hover:bg-surface"
-          >
-            Today
-          </Link>
+        <div className="flex flex-col gap-5 lg:flex-row">
+          {/* Left rail — mini-month navigator + "My calendars" (Outlook style). */}
+          <aside className="w-full shrink-0 space-y-4 lg:w-60">
+            <CalendarMiniMonth
+              baseISO={baseISO}
+              view={currentView}
+              rangeStartISO={days[0].date}
+              rangeEndISO={days[days.length - 1].date}
+            />
+            <div className="rounded-lg border border-border bg-surface p-3">
+              <p className="micro-label mb-2">My calendars</p>
+              {calendars.length === 0 ? (
+                <p className="text-[13px] text-text-3">No events in this range.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {calendars.map(({ org, sw }) => (
+                    <li key={org} className="flex items-center gap-2 text-[13px] text-text-2">
+                      <span className="h-3 w-3 shrink-0 rounded-[3px]" style={{ background: sw.border }} />
+                      <span className="truncate">{org}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mt-3 space-y-1.5 border-t border-border pt-2.5 text-[12px] text-text-3">
+                <p className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-[--primary]" /> Published
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-sm bg-[--warning]" /> Pending approval
+                </p>
+              </div>
+            </div>
+          </aside>
+
+          {/* Right — range controls + the hourly time grid. */}
+          <div className="min-w-0 flex-1">
+            <div className="mb-4 flex items-center gap-2">
+              <Link
+                href={`/calendar?view=${currentView}&d=${prev}`}
+                aria-label={currentView === "week" ? "Previous week" : "Previous day"}
+                className="grid h-9 w-9 place-items-center rounded-md border border-border text-text-2 no-underline hover:bg-surface"
+              >
+                <ChevronLeft size={16} />
+              </Link>
+              <span className="min-w-48 text-center text-sm font-semibold text-text-1">{rangeLabel}</span>
+              <Link
+                href={`/calendar?view=${currentView}&d=${next}`}
+                aria-label={currentView === "week" ? "Next week" : "Next day"}
+                className="grid h-9 w-9 place-items-center rounded-md border border-border text-text-2 no-underline hover:bg-surface"
+              >
+                <ChevronRight size={16} />
+              </Link>
+              <Link
+                href={`/calendar?view=${currentView}`}
+                className="flex h-9 items-center rounded-md border border-border px-3 text-sm text-text-2 no-underline hover:bg-surface"
+              >
+                Today
+              </Link>
+            </div>
+            <CalendarTimeGrid days={days} events={gridEvents} />
+          </div>
         </div>
-        <CalendarTimeGrid days={days} events={gridEvents} />
       </div>
     )
   }
