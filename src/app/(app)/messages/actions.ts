@@ -207,6 +207,12 @@ export async function startDm(formData: FormData) {
   const other = await db.user.findUnique({ where: { id: otherUserId } })
   if (!other) throw new Error("User not found")
 
+  // Enforce the messaging hierarchy — you can only DM someone you're allowed to.
+  const allowed = new Set((await getAllowedRecipients(userId)).map((u) => u.id))
+  if (!allowed.has(otherUserId)) {
+    throw new Error("This person is outside your messaging hierarchy")
+  }
+
   // Resolve institution for the DM (either user's affiliation)
   const ctx = await getUserContext(userId)
   const anyOrg = ctx.orgRoles[0]

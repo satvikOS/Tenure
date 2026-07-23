@@ -11,6 +11,7 @@ import { EmailLink } from "@/components/EmailLink"
 import { ClubImageEditor } from "@/components/ClubImageEditor"
 import { ConfirmSubmit } from "@/components/ui/ConfirmDialog"
 import { assignMember, transitionAssignment } from "./actions"
+import { startDm, getAllowedRecipients } from "@/app/(app)/messages/actions"
 
 export const dynamic = "force-dynamic"
 
@@ -55,6 +56,10 @@ export default async function MembersPage({
   if (!canViewOrg(ctx, org)) notFound()
   const canManage = canManageRoster(ctx, org)
   const canEditImage = canManageOrg(ctx, org)
+
+  // Board members you're allowed to message get a name that opens an in-app DM.
+  const viewerId = session.user.id
+  const messageableIds = new Set((await getAllowedRecipients(viewerId)).map((u) => u.id))
 
   const assignWithSlug = assignMember.bind(null, slug)
   const transitionWithSlug = transitionAssignment.bind(null, slug)
@@ -194,9 +199,22 @@ export default async function MembersPage({
                 {role.assignments.map((a) => (
                   <li key={a.id} className="flex items-center justify-between py-2.5">
                     <div>
-                      <p className="text-sm font-medium text-text-1">
-                        {a.user.name ?? a.user.email}
-                      </p>
+                      {messageableIds.has(a.userId) && a.userId !== viewerId ? (
+                        <form action={startDm}>
+                          <input type="hidden" name="userId" value={a.userId} />
+                          <button
+                            type="submit"
+                            className="text-sm font-medium text-text-1 transition-colors hover:text-[--primary] hover:underline"
+                            title={`Message ${a.user.name ?? a.user.email} in Tenure`}
+                          >
+                            {a.user.name ?? a.user.email}
+                          </button>
+                        </form>
+                      ) : (
+                        <p className="text-sm font-medium text-text-1">
+                          {a.user.name ?? a.user.email}
+                        </p>
+                      )}
                       <p className="text-xs text-text-3">
                         {a.user.email && <EmailLink email={a.user.email} />} · since{" "}
                         {a.startDate.toLocaleDateString("en-US", {
