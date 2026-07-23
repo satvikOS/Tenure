@@ -136,6 +136,42 @@ export async function deleteDocumentAction(slug: string, formData: FormData) {
   revalidatePath(`/orgs/${slug}/documents`)
 }
 
+/**
+ * Restore a soft-deleted document — the uploader or club leadership may bring it
+ * back. Soft-delete is reversible by design; the record and object never left.
+ */
+export async function restoreDocumentAction(slug: string, formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.id) throw new Error("Not signed in")
+
+  const documentId = String(formData.get("documentId") ?? "")
+  const doc = await db.document.findUnique({
+    where: { id: documentId },
+    include: { organization: true },
+  })
+  if (!doc || doc.organization.slug !== slug) throw new Error("Document not found")
+
+  const ctx = await getUserContext(session.user.id)
+  const allowed =
+    doc.createdById === session.user.id || canManageRoster(ctx, doc.organization)
+
+  await db.auditEvent.create({
+    data: {
+      institutionId: doc.institutionId,
+      organizationId: doc.organizationId,
+      actorId: session.user.id,
+      action: "Document.Restored",
+      resourceType: "Document",
+      resourceId: doc.id,
+      outcome: allowed ? "ALLOW" : "DENY",
+    },
+  })
+  if (!allowed) throw new Error("Only the uploader or club leadership can restore this")
+
+  await db.document.update({ where: { id: doc.id }, data: { isArchived: false } })
+  revalidatePath(`/orgs/${slug}/documents`)
+}
+
 /** Permission-checked inline view (opens in the browser tab). */
 export async function viewDocumentAction(slug: string, formData: FormData) {
   const session = await auth()

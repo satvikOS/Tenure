@@ -407,6 +407,24 @@ async function main() {
     }
   }
 
+  // A demo archived document so soft-delete/restore is visible + testable
+  // locally (archive/restore only flip isArchived; the S3 object needn't exist).
+  // Reset to archived each seed so the restore test is repeatable.
+  await db.document.deleteMany({
+    where: { organizationId: consulting.id, title: "Old Sponsor Deck" },
+  })
+  await db.document.create({
+    data: {
+      institutionId: consulting.institutionId,
+      organizationId: consulting.id,
+      title: "Old Sponsor Deck",
+      objectKey: `${consulting.institutionId}/${consulting.id}/seed-old-sponsor-deck.pdf`,
+      mimeType: "application/pdf",
+      sizeBytes: 204800,
+      isArchived: true,
+    },
+  })
+
   const counts = {
     clubs: ROSTER.length,
     seats: await db.role.count(),

@@ -7,9 +7,11 @@ import { aiConfigured } from "@/lib/ai"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { OrgTabs } from "@/components/OrgTabs"
 import { DocumentRow } from "@/components/documents/DocumentRow"
+import { ArchiveRestore } from "@/components/ui/icons"
 import {
   deleteDocumentAction,
   downloadDocumentAction,
+  restoreDocumentAction,
   uploadDocumentAction,
 } from "./actions"
 
@@ -38,12 +40,21 @@ export default async function DocumentsPage({
   if (!canViewOrg(ctx, org)) notFound()
   const canUpload = canContribute(ctx, org) && storageConfigured()
 
-  const docs = await db.document.findMany({
-    where: { organizationId: org.id, isArchived: false },
-    orderBy: { createdAt: "desc" },
-  })
+  const [docs, archivedDocs] = await Promise.all([
+    db.document.findMany({
+      where: { organizationId: org.id, isArchived: false },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.document.findMany({
+      where: { organizationId: org.id, isArchived: true },
+      orderBy: { updatedAt: "desc" },
+      take: 50,
+    }),
+  ])
 
-  const uploaderIds = [...new Set(docs.map((d) => d.createdById).filter((x): x is string => !!x))]
+  const uploaderIds = [
+    ...new Set([...docs, ...archivedDocs].map((d) => d.createdById).filter((x): x is string => !!x)),
+  ]
   const uploaders = new Map(
     (
       await db.user.findMany({ where: { id: { in: uploaderIds } }, select: { id: true, name: true } })
@@ -53,8 +64,10 @@ export default async function DocumentsPage({
   const uploadWithSlug = uploadDocumentAction.bind(null, slug)
   const downloadWithSlug = downloadDocumentAction.bind(null, slug)
   const deleteWithSlug = deleteDocumentAction.bind(null, slug)
+  const restoreWithSlug = restoreDocumentAction.bind(null, slug)
   const canManage = canManageRoster(ctx, org)
   const userId = session.user.id
+  const restorableArchived = archivedDocs.filter((d) => canManage || d.createdById === userId)
 
   return (
     <div className="w-full">
@@ -132,6 +145,36 @@ export default async function DocumentsPage({
                   downloadAction={downloadWithSlug}
                   deleteAction={deleteWithSlug}
                 />
+              ))}
+            </ul>
+          </Card>
+        )}
+
+        {restorableArchived.length > 0 && (
+          <Card padding="none">
+            <div className="border-b border-border p-5">
+              <CardHeader
+                title="Archived documents"
+                subtitle="Soft-deleted — restore to bring one back to the club."
+              />
+            </div>
+            <ul className="divide-y divide-border">
+              {restorableArchived.map((d) => (
+                <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm text-text-2 line-through">{d.title}</p>
+                    <p className="mt-0.5 text-xs text-text-3">
+                      {d.createdById ? uploaders.get(d.createdById) ?? "Unknown" : "Unknown"} · archived{" "}
+                      {d.updatedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </p>
+                  </div>
+                  <form action={restoreWithSlug}>
+                    <input type="hidden" name="documentId" value={d.id} />
+                    <button className="inline-flex h-8 items-center gap-1.5 rounded border border-border px-3 text-[13px] font-medium text-text-2 transition-colors hover:bg-base hover:text-[--primary]">
+                      <ArchiveRestore size={14} /> Restore
+                    </button>
+                  </form>
+                </li>
               ))}
             </ul>
           </Card>
