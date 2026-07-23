@@ -6,6 +6,7 @@ import type { ApprovalType, Prisma } from "@prisma/client"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
+import { effectiveApprovalContext } from "@/lib/delegation"
 import { ledgerSignedCents } from "@/lib/finance"
 import {
   availableActions,
@@ -154,7 +155,22 @@ export async function actOnApproval(approvalId: string, formData: FormData) {
   if (!approval) throw new Error("Request not found")
 
   const ctx = await getUserContext(userId)
-  const allowed = availableActions(ctx, approval).includes(action)
+  let allowed = availableActions(ctx, approval).includes(action)
+  let onBehalfOf: { id: string; name: string } | null = null
+
+  // Delegation: if the actor can't act directly, they may hold an active backup
+  // grant from someone who can — borrow that authority and record on whose behalf.
+  if (!allowed) {
+    const { ctx: effCtx, delegators } = await effectiveApprovalContext(
+      userId,
+      ctx,
+      approval.institutionId
+    )
+    if (delegators.length > 0 && availableActions(effCtx, approval).includes(action)) {
+      allowed = true
+      onBehalfOf = delegators[0]
+    }
+  }
 
   if (!allowed) {
     await db.auditEvent.create({
@@ -191,7 +207,8 @@ export async function actOnApproval(approvalId: string, formData: FormData) {
   const oseRole = ctx.institutionRoles.find(
     (m) => m.institutionId === approval.institutionId
   )?.role
-  const roleContext = actorSeat?.role.name ?? oseRole ?? "Requester"
+  const baseRole = actorSeat?.role.name ?? oseRole ?? "Requester"
+  const roleContext = onBehalfOf ? `${baseRole}, on behalf of ${onBehalfOf.name}` : baseRole
 
   // Approval-linked publishing: an EVENT approval drives its event's lifecycle
   const linkedEvent = await db.event.findUnique({ where: { approvalId: approval.id } })
@@ -273,7 +290,11 @@ export async function actOnApproval(approvalId: string, formData: FormData) {
         actorId: userId,
         actorRoleContext: roleContext,
         reason,
-        policySnapshot: { action, requesterIsPresident },
+        policySnapshot: {
+          action,
+          requesterIsPresident,
+          ...(onBehalfOf ? { onBehalfOf: onBehalfOf.id } : {}),
+        },
       },
     }),
     db.auditEvent.create({
@@ -286,6 +307,7 @@ export async function actOnApproval(approvalId: string, formData: FormData) {
         resourceId: approval.id,
         outcome: "ALLOW",
         reason,
+        metadata: onBehalfOf ? { onBehalfOf: onBehalfOf.id } : {},
       },
     }),
   ])

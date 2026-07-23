@@ -69,6 +69,7 @@ model Institution {
   auditEvents   AuditEvent[]
   deliverables  Deliverable[]
   roleTransfers RoleTransfer[]
+  approvalDelegations ApprovalDelegation[]
 }
 
 enum InstitutionRole {
@@ -112,6 +113,8 @@ model User {
   roleTransfersFrom      RoleTransfer[] @relation("RoleTransferFrom")
   roleTransfersTo        RoleTransfer[] @relation("RoleTransferTo")
   roleTransfersInitiated RoleTransfer[] @relation("RoleTransferInitiator")
+  delegationsGiven       ApprovalDelegation[] @relation("DelegationFrom")
+  delegationsReceived    ApprovalDelegation[] @relation("DelegationTo")
   messagesSent          Message[]
   participants          Participant[]
   notifications         Notification[]
@@ -912,4 +915,25 @@ model RoleTransfer {
 
   @@index([institutionId, status])
   @@index([toUserId, status])
+}
+
+/// A backup approver. While active (revokedAt null), `toUser` may act on the
+/// approval gates `fromUser` could act on — covering officer gaps (breaks,
+/// exams) so requests never stall. Every delegated action records "on behalf of"
+/// on the append-only ApprovalStep, so the trail stays honest.
+model ApprovalDelegation {
+  id            String      @id @default(cuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  fromUserId    String
+  fromUser      User        @relation("DelegationFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId      String
+  toUser        User        @relation("DelegationTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  note          String?
+  createdAt     DateTime    @default(now())
+  revokedAt     DateTime?
+
+  @@index([toUserId, revokedAt])
+  @@index([fromUserId, revokedAt])
+  @@index([institutionId])
 }

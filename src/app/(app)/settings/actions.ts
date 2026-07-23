@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { getUserContext } from "@/lib/rbac"
 import { storageConfigured, uploadDocument } from "@/lib/s3"
 
 async function requireUserId() {
@@ -66,4 +67,98 @@ export async function removeProfileImage() {
   const userId = await requireUserId()
   await db.user.update({ where: { id: userId }, data: { image: null, imageKey: null } })
   bumpProfile()
+}
+
+// ── Approval delegation (name a backup who can act on your gate) ──────────────
+
+/** The institution + eligible-backup scope for the current user's gate authority. */
+async function delegationScope(userId: string) {
+  const ctx = await getUserContext(userId)
+  const isOse = ctx.institutionRoles.length > 0
+  const presidentOrgIds = ctx.orgRoles
+    .filter((r) => r.scope === "PRESIDENT" && r.status === "ACTIVE")
+    .map((r) => r.organizationId)
+  let institutionId: string | undefined = ctx.institutionRoles[0]?.institutionId
+  if (!institutionId && presidentOrgIds.length) {
+    const org = await db.organization.findFirst({
+      where: { id: presidentOrgIds[0] },
+      select: { institutionId: true },
+    })
+    institutionId = org?.institutionId
+  }
+  return { isOse, presidentOrgIds, institutionId, canDelegate: isOse || presidentOrgIds.length > 0 }
+}
+
+/** Eligibility filter for who may be a given user's backup approver. */
+function eligibleBackupWhere(scope: { isOse: boolean; presidentOrgIds: string[]; institutionId?: string }) {
+  const or: object[] = []
+  if (scope.isOse && scope.institutionId)
+    or.push({ institutionMembership: { some: { institutionId: scope.institutionId } } })
+  if (scope.presidentOrgIds.length)
+    or.push({
+      roleAssignments: { some: { status: "ACTIVE", role: { organizationId: { in: scope.presidentOrgIds } } } },
+    })
+  return or
+}
+
+export async function setDelegation(formData: FormData) {
+  const userId = await requireUserId()
+  const toUserId = String(formData.get("toUserId") ?? "")
+  if (!toUserId || toUserId === userId) throw new Error("Pick a different person as your backup")
+  const note = String(formData.get("note") ?? "").trim() || null
+
+  const scope = await delegationScope(userId)
+  if (!scope.canDelegate) throw new Error("Only a president or OSE member can name a backup approver")
+  if (!scope.institutionId) throw new Error("Could not resolve your institution")
+  const institutionId = scope.institutionId // narrowed to string before any await
+
+  const eligible = await db.user.findFirst({
+    where: { id: toUserId, OR: eligibleBackupWhere(scope) },
+    select: { id: true },
+  })
+  if (!eligible) throw new Error("That person isn't eligible to be your backup")
+
+  await db.$transaction([
+    // One active delegation at a time — retire any prior grant first.
+    db.approvalDelegation.updateMany({
+      where: { fromUserId: userId, revokedAt: null, institutionId },
+      data: { revokedAt: new Date() },
+    }),
+    db.approvalDelegation.create({ data: { institutionId, fromUserId: userId, toUserId, note } }),
+    db.auditEvent.create({
+      data: {
+        institutionId,
+        actorId: userId,
+        action: "Delegation.Set",
+        resourceType: "ApprovalDelegation",
+        outcome: "ALLOW",
+        metadata: { toUserId },
+      },
+    }),
+  ])
+  revalidatePath("/settings")
+}
+
+export async function revokeDelegation(formData: FormData) {
+  const userId = await requireUserId()
+  const id = String(formData.get("id") ?? "")
+  const del = await db.approvalDelegation.findFirst({
+    where: { id, fromUserId: userId, revokedAt: null },
+    select: { id: true, institutionId: true },
+  })
+  if (!del) return
+  await db.$transaction([
+    db.approvalDelegation.update({ where: { id: del.id }, data: { revokedAt: new Date() } }),
+    db.auditEvent.create({
+      data: {
+        institutionId: del.institutionId,
+        actorId: userId,
+        action: "Delegation.Revoked",
+        resourceType: "ApprovalDelegation",
+        resourceId: del.id,
+        outcome: "ALLOW",
+      },
+    }),
+  ])
+  revalidatePath("/settings")
 }

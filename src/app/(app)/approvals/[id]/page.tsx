@@ -5,6 +5,7 @@ import { canViewOrg, getUserContext } from "@/lib/rbac"
 import { availableActions, ACTION_LABELS } from "@/lib/approvals"
 import { formatCents } from "@/lib/finance"
 import { approvalSla, slaColor } from "@/lib/approvals-sla"
+import { effectiveApprovalContext } from "@/lib/delegation"
 import Link from "next/link"
 import { Card, CardHeader, Attribute } from "@/components/ui/Card"
 import { BackButton } from "@/components/BackButton"
@@ -40,7 +41,20 @@ export default async function ApprovalDetailPage({
     canViewOrg(ctx, { id: approval.organizationId, institutionId: approval.institutionId })
   if (!canView) notFound()
 
-  const actions = availableActions(ctx, approval)
+  // Delegation-aware: a backup approver sees (and can use) the gates they hold
+  // on someone's behalf, not just their own.
+  const { ctx: effCtx, delegators } = await effectiveApprovalContext(
+    session.user.id,
+    ctx,
+    approval.institutionId
+  )
+  const actions = availableActions(effCtx, approval)
+  const GATE_ACTIONS = ["approve", "reject", "request_changes"]
+  const directGate = availableActions(ctx, approval).some((a) => GATE_ACTIONS.includes(a))
+  const backupFor =
+    !directGate && delegators.length > 0 && actions.some((a) => GATE_ACTIONS.includes(a))
+      ? delegators[0]
+      : null
   const actWithId = actOnApproval.bind(null, approval.id)
 
   const actorIds = [
@@ -216,6 +230,15 @@ export default async function ApprovalDetailPage({
               title="Take action"
               subtitle="Decisions are recorded permanently in the request history."
             />
+            {backupFor && (
+              <p
+                className="mb-3 rounded-md px-3 py-2 text-[13px]"
+                style={{ background: "var(--primary-light)", color: "var(--primary)" }}
+              >
+                You&apos;re acting as a backup for {backupFor.name} — your decision is recorded on
+                their behalf.
+              </p>
+            )}
             <form action={actWithId} className="space-y-3">
               <textarea
                 name="reason"

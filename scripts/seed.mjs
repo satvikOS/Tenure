@@ -303,6 +303,10 @@ async function main() {
     })
   }
 
+  // Clear approval delegations from prior e2e runs so the delegation test always
+  // finds the "set a backup" form rather than an existing grant.
+  await db.approvalDelegation.deleteMany({})
+
   // Remove budget lines left over from prior e2e runs (e.g. "Test Line …" from
   // the add-line test, or imported rows) so a fresh seed is a clean slate;
   // otherwise they accumulate locally and skew the club's totals.
