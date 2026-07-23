@@ -9,6 +9,7 @@ const TABS = [
   { segment: "documents", label: "Documents" },
   { segment: "memory", label: "Memory" },
   { segment: "handoff", label: "Handoff" },
+  { segment: "impact", label: "Impact" },
 ]
 
 export function OrgTabs({ slug }: { slug: string }) {
