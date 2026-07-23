@@ -10,6 +10,7 @@ import { CalendarGrid, type GridEvent } from "@/components/CalendarGrid"
 import { CalendarTimeGrid } from "@/components/CalendarTimeGrid"
 import { CalendarMiniMonth } from "@/components/CalendarMiniMonth"
 import { CalendarSubscribe } from "@/components/CalendarSubscribe"
+import { CalendarFilters } from "@/components/CalendarFilters"
 import { clubSwatch } from "@/lib/calendar-color"
 import { Card } from "@/components/ui/Card"
 import { EmptyState } from "@/components/ui/EmptyState"
@@ -27,9 +28,9 @@ const DAY = 86_400_000
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ m?: string; view?: string; d?: string }>
+  searchParams: Promise<{ m?: string; view?: string; d?: string; club?: string; mine?: string }>
 }) {
-  const { m, view, d } = await searchParams
+  const { m, view, d, club, mine } = await searchParams
   const session = await auth()
   if (!session?.user?.id) redirect("/signin")
   const userId = session.user.id
@@ -39,11 +40,40 @@ export default async function CalendarPage({
   const canCreate = ctx.orgRoles.some((r) => r.status === "ACTIVE")
   const feedPath = `/api/calendar/ics/${calendarToken(userId)}`
 
+  // Per-viewer filters: narrow to one club and/or only events the user proposed.
+  const mineOnly = mine === "1"
+  const memberOrgIds = [
+    ...new Set(
+      ctx.orgRoles.filter((r) => r.status === "ACTIVE" || r.status === "SHADOW").map((r) => r.organizationId)
+    ),
+  ]
+  const clubOptions = (
+    await db.organization.findMany({
+      where: ctx.institutionRoles.length
+        ? { institutionId: { in: ctx.institutionRoles.map((x) => x.institutionId) }, status: "ACTIVE" }
+        : { id: { in: memberOrgIds } },
+      select: { id: true, name: true, shortName: true },
+      orderBy: { name: "asc" },
+    })
+  ).map((c) => ({ id: c.id, name: c.shortName ?? c.name }))
+  const clubFilter = club && clubOptions.some((c) => c.id === club) ? club : undefined
+  const eventOpts = { organizationId: clubFilter, mineOnly }
+
+  // Keep the active filters on every internal calendar link (view switch, nav).
+  const filterQs = (() => {
+    const p = new URLSearchParams()
+    if (clubFilter) p.set("club", clubFilter)
+    if (mineOnly) p.set("mine", "1")
+    return p.toString()
+  })()
+  const withFilters = (base: string) =>
+    filterQs ? `${base}${base.includes("?") ? "&" : "?"}${filterQs}` : base
+
   const VIEWS: { key: string; label: string; href: string }[] = [
-    { key: "month", label: "Month", href: "/calendar" },
-    { key: "week", label: "Week", href: "/calendar?view=week" },
-    { key: "day", label: "Day", href: "/calendar?view=day" },
-    { key: "agenda", label: "Agenda", href: "/calendar?view=agenda" },
+    { key: "month", label: "Month", href: withFilters("/calendar") },
+    { key: "week", label: "Week", href: withFilters("/calendar?view=week") },
+    { key: "day", label: "Day", href: withFilters("/calendar?view=day") },
+    { key: "agenda", label: "Agenda", href: withFilters("/calendar?view=agenda") },
   ]
 
   const header = (
@@ -68,6 +98,7 @@ export default async function CalendarPage({
             </Link>
           ))}
         </div>
+        {clubOptions.length > 0 && <CalendarFilters clubs={clubOptions} />}
         <CalendarSubscribe feedPath={feedPath} />
         {canCreate && (
           <Link
@@ -101,7 +132,7 @@ export default async function CalendarPage({
         ? new Date(base.getTime() - base.getUTCDay() * DAY) // back to Sunday
         : base
     const gridEnd = new Date(gridStart.getTime() + spanDays * DAY)
-    const events = await loadScopedEvents(userId, gridStart, gridEnd)
+    const events = await loadScopedEvents(userId, gridStart, gridEnd, eventOpts)
 
     const todayKey = new Date().toISOString().slice(0, 10)
     const days = Array.from({ length: spanDays }, (_, i) => {
@@ -178,7 +209,7 @@ export default async function CalendarPage({
           <div className="min-w-0 flex-1">
             <div className="mb-4 flex items-center gap-2">
               <Link
-                href={`/calendar?view=${currentView}&d=${prev}`}
+                href={withFilters(`/calendar?view=${currentView}&d=${prev}`)}
                 aria-label={currentView === "week" ? "Previous week" : "Previous day"}
                 className="grid h-9 w-9 place-items-center rounded-md border border-border text-text-2 no-underline hover:bg-surface"
               >
@@ -186,14 +217,14 @@ export default async function CalendarPage({
               </Link>
               <span className="min-w-48 text-center text-sm font-semibold text-text-1">{rangeLabel}</span>
               <Link
-                href={`/calendar?view=${currentView}&d=${next}`}
+                href={withFilters(`/calendar?view=${currentView}&d=${next}`)}
                 aria-label={currentView === "week" ? "Next week" : "Next day"}
                 className="grid h-9 w-9 place-items-center rounded-md border border-border text-text-2 no-underline hover:bg-surface"
               >
                 <ChevronRight size={16} />
               </Link>
               <Link
-                href={`/calendar?view=${currentView}`}
+                href={withFilters(`/calendar?view=${currentView}`)}
                 className="flex h-9 items-center rounded-md border border-border px-3 text-sm text-text-2 no-underline hover:bg-surface"
               >
                 Today
@@ -209,7 +240,7 @@ export default async function CalendarPage({
   // ── Agenda view — upcoming events as a grouped list ──────────────────────────
   if (currentView === "agenda") {
     const now = new Date()
-    const events = await loadScopedEvents(userId, now, new Date(now.getTime() + 90 * DAY))
+    const events = await loadScopedEvents(userId, now, new Date(now.getTime() + 90 * DAY), eventOpts)
     const byDay = new Map<string, typeof events>()
     for (const e of events) {
       const key = e.startAt.toISOString().slice(0, 10)
@@ -291,7 +322,7 @@ export default async function CalendarPage({
     timeZone: "UTC",
   })
 
-  const events = await loadScopedEvents(userId, monthStart, monthEnd)
+  const events = await loadScopedEvents(userId, monthStart, monthEnd, eventOpts)
 
   const deliverables = await db.deliverable.findMany({
     where: { dueAt: { gte: monthStart, lt: monthEnd } },
@@ -344,7 +375,7 @@ export default async function CalendarPage({
 
       <div className="mb-4 flex items-center gap-2">
         <Link
-          href={`/calendar?m=${prev}`}
+          href={withFilters(`/calendar?m=${prev}`)}
           aria-label="Previous month"
           className="grid h-9 w-9 place-items-center rounded-md border border-border text-text-2 no-underline hover:bg-surface"
         >
@@ -352,14 +383,14 @@ export default async function CalendarPage({
         </Link>
         <span className="min-w-36 text-center text-sm font-semibold text-text-1">{monthLabel}</span>
         <Link
-          href={`/calendar?m=${next}`}
+          href={withFilters(`/calendar?m=${next}`)}
           aria-label="Next month"
           className="grid h-9 w-9 place-items-center rounded-md border border-border text-text-2 no-underline hover:bg-surface"
         >
           <ChevronRight size={16} />
         </Link>
         <Link
-          href="/calendar"
+          href={withFilters("/calendar")}
           className="flex h-9 items-center rounded-md border border-border px-3 text-sm text-text-2 no-underline hover:bg-surface"
         >
           Today

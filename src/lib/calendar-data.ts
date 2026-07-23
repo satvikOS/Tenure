@@ -23,7 +23,8 @@ export interface ScopedEvent {
 export async function loadScopedEvents(
   userId: string,
   from: Date,
-  to: Date
+  to: Date,
+  opts?: { organizationId?: string; mineOnly?: boolean }
 ): Promise<ScopedEvent[]> {
   const ctx = await getUserContext(userId)
   const oseInstitutionIds = ctx.institutionRoles.map((x) => x.institutionId)
@@ -48,6 +49,10 @@ export async function loadScopedEvents(
         { organizationId: { in: memberOrgIds } },
         { institutionId: { in: memberInstitutions }, status: "PUBLISHED" },
       ],
+      // Optional viewer filters: one specific club, and/or only events this user
+      // proposed (the linked approval was submitted by them).
+      ...(opts?.organizationId ? { organizationId: opts.organizationId } : {}),
+      ...(opts?.mineOnly ? { approval: { submittedById: userId } } : {}),
     },
     orderBy: { startAt: "asc" },
     include: {
