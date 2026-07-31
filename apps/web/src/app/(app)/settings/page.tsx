@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
+import { operableOrgIds } from "@/lib/org-access"
 import { storageConfigured } from "@/lib/s3"
 import { Card, CardHeader, Attribute } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
@@ -29,10 +30,15 @@ export default async function SettingsPage() {
   })
 
   // Delegation: only gate owners (a president or OSE member) can name a backup.
+  // An archived club has no gate left to cover, and its president's ACTIVE
+  // assignment survives archiving — so the ids are run through the archive
+  // guard, exactly as setDelegation does on the write side.
   const isOse = ctx.institutionRoles.length > 0
-  const presidentOrgIds = ctx.orgRoles
-    .filter((r) => r.scope === "PRESIDENT" && r.status === "ACTIVE")
-    .map((r) => r.organizationId)
+  const presidentOrgIds = await operableOrgIds(
+    ctx.orgRoles
+      .filter((r) => r.scope === "PRESIDENT" && r.status === "ACTIVE")
+      .map((r) => r.organizationId)
+  )
   const canDelegate = isOse || presidentOrgIds.length > 0
   let eligibleBackups: { id: string; name: string }[] = []
   let currentDelegation:

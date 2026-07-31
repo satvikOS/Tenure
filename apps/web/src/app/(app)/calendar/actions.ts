@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { detectConflicts } from "@/lib/calendar"
+import { assertOperableOrg } from "@/lib/org-access"
 import { institutionTimeZone } from "@/lib/institution-time"
 import { formatInZone, parseDateTimeLocal } from "@/lib/time"
 import { nextStatus } from "@/lib/approvals"
@@ -37,6 +38,9 @@ export async function createEvent(formData: FormData) {
   })
   if (!membership) throw new Error("You need an active role in this club")
   const org = membership.role.organization
+  // The seat check above passes for an archived club — its assignments survive
+  // archiving. This is the write half of the same guard the picker reads.
+  assertOperableOrg(org)
 
   // A `datetime-local` field carries no zone. `new Date("2026-09-05T18:00")`
   // resolves it against the SERVER's zone — UTC in production — so an officer

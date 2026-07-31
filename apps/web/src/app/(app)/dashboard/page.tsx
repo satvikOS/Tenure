@@ -13,6 +13,8 @@ import {
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
+import { isOperableOrg, OPERABLE_ORG_FILTER } from "@/lib/org-access"
+import { CALENDARED_EVENT_STATUSES, PENDING_EVENT_STATUSES } from "@/lib/calendar"
 import { QuickLinks } from "@/components/QuickLinks"
 import { seatKeysForRole, type SeatKey } from "@/lib/resources"
 import { listResources, resourceInstitutionFor } from "@/lib/resources-data"
@@ -42,8 +44,13 @@ export default async function DashboardPage() {
     .map((r) => r.organizationId)
   const isOse = oseInstitutionIds.length > 0
 
+  // Archived clubs are excluded here, not filtered out per-tile: `orgIds` is the
+  // scope for every count below, so an archived club left in this list inflated
+  // the approvals, events, member, audit and trend numbers at once — the tile
+  // read "across 28 clubs" when 26 were still operating. See lib/org-access.ts.
   const orgs = await db.organization.findMany({
     where: {
+      ...OPERABLE_ORG_FILTER,
       OR: [
         { institutionId: { in: oseInstitutionIds } },
         { id: { in: memberOrgIds } },
@@ -54,10 +61,16 @@ export default async function DashboardPage() {
   })
   const orgIds = orgs.map((o) => o.id)
 
+  // Seats in an archived club are still listed — the record of who held what is
+  // the point — but `status` comes along so the card can drop the write links.
   const mySeats = await db.roleAssignment.findMany({
     where: { userId: ctx.userId, status: { in: ["ACTIVE", "SHADOW"] } },
     include: {
-      role: { include: { organization: { select: { id: true, name: true, slug: true } } } },
+      role: {
+        include: {
+          organization: { select: { id: true, name: true, slug: true, status: true } },
+        },
+      },
     },
     orderBy: { startDate: "desc" },
   })
@@ -71,6 +84,7 @@ export default async function DashboardPage() {
         .filter(
           (s) =>
             s.status === "ACTIVE" &&
+            isOperableOrg(s.role.organization) &&
             (s.role.scope === "PRESIDENT" || isFinanceRole(s.role.name))
         )
         .map((s) => [s.role.organization.id, s.role.organization])
@@ -102,9 +116,15 @@ export default async function DashboardPage() {
   const trendUntil = new Date(now.getTime() + TREND_WEEKS * 7 * 86_400_000)
   const activitySince = new Date(now.getTime() - 30 * 86_400_000)
 
+  // One definition of a scheduled event, shared with /reports: it has cleared
+  // the approval chain. Proposals still at a gate are counted separately rather
+  // than folded in — see CALENDARED_EVENT_STATUSES in lib/calendar.ts.
+  const upcomingWindow = { organizationId: { in: orgIds }, startAt: { gte: now } }
+
   const [
     pendingApprovals,
     upcomingEvents,
+    pendingEventProposals,
     unreadMessages,
     activeMembers,
     memberCounts,
@@ -120,7 +140,10 @@ export default async function DashboardPage() {
         },
       }),
       db.event.count({
-        where: { organizationId: { in: orgIds }, startAt: { gte: now } },
+        where: { ...upcomingWindow, status: { in: CALENDARED_EVENT_STATUSES } },
+      }),
+      db.event.count({
+        where: { ...upcomingWindow, status: { in: PENDING_EVENT_STATUSES } },
       }),
       db.delivery.count({
         where: { readAt: null, participant: { userId: ctx.userId } },
@@ -144,7 +167,12 @@ export default async function DashboardPage() {
         select: { createdAt: true },
       }),
       db.event.findMany({
-        where: { organizationId: { in: orgIds }, startAt: { gte: now, lt: trendUntil } },
+        // Same predicate as the tile above it, so the sparkline sums to the value.
+        where: {
+          organizationId: { in: orgIds },
+          startAt: { gte: now, lt: trendUntil },
+          status: { in: CALENDARED_EVENT_STATUSES },
+        },
         select: { startAt: true },
       }),
       db.auditEvent.findMany({
@@ -216,7 +244,12 @@ export default async function DashboardPage() {
     {
       label: "Upcoming Events",
       value: upcomingEvents,
-      hint: "On the shared calendar",
+      // The pending count is shown rather than absorbed: dropping unapproved
+      // proposals from the headline is only honest if they are still visible.
+      hint:
+        pendingEventProposals > 0
+          ? `On the shared calendar · ${pendingEventProposals} awaiting approval`
+          : "On the shared calendar",
       icon: Calendar,
       color: "var(--primary)",
       bg: "var(--primary-light)",
@@ -302,18 +335,23 @@ export default async function DashboardPage() {
   const seatsList = (items: typeof mySeats) => (
     <ul className="divide-y divide-border">
       {items.map((s) => {
-        const isPres = s.role.scope === "PRESIDENT" && s.status === "ACTIVE"
+        // A seat in an archived club stays on the list — the history is the
+        // point — but it offers reading only, matching the guard everywhere else.
+        const operable = isOperableOrg(s.role.organization)
+        const isPres = s.role.scope === "PRESIDENT" && s.status === "ACTIVE" && operable
         return (
           <li key={s.id} className="py-3">
             <div className="flex items-center justify-between gap-2">
               <p className="truncate text-sm font-medium text-text-1">
                 {s.role.name} · {s.role.organization.name}
               </p>
-              {s.status === "SHADOW" && (
+              {!operable ? (
+                <span className="shrink-0 text-[13px] text-text-3">archived</span>
+              ) : s.status === "SHADOW" ? (
                 <span className="shrink-0 text-[13px]" style={{ color: "var(--info)" }}>
                   incoming
                 </span>
-              )}
+              ) : null}
             </div>
             {s.role.positionCode && <p className="mt-0.5 text-meta text-text-3">{s.role.positionCode}</p>}
             <div className="mt-1.5 flex flex-wrap gap-3 text-[13px]">
@@ -327,7 +365,7 @@ export default async function DashboardPage() {
                 <Link href="/approvals" className="text-[--primary] no-underline hover:underline">
                   Review requests
                 </Link>
-              ) : s.status === "ACTIVE" ? (
+              ) : s.status === "ACTIVE" && operable ? (
                 <Link href="/approvals/new" className="text-[--primary] no-underline hover:underline">
                   New request
                 </Link>

@@ -6,6 +6,7 @@ import type { ApprovalType, Prisma } from "@prisma/client"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
+import { assertOperableOrg } from "@/lib/org-access"
 import { effectiveApprovalContext } from "@/lib/delegation"
 import { ledgerSignedCents } from "@/lib/finance"
 import {
@@ -90,6 +91,9 @@ export async function createApproval(formData: FormData) {
   if (!membership) throw new Error("You need an active role in this club")
 
   const org = membership.role.organization
+  // Write half of the archive guard: an archived club's seats stay ACTIVE, so
+  // the membership check above cannot tell that the club has been closed down.
+  assertOperableOrg(org)
   const requesterIsPresident =
     membership.role.scope === "PRESIDENT" ||
     (await isActivePresident(userId, organizationId))

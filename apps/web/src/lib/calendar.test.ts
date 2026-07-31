@@ -1,4 +1,11 @@
-import { detectConflicts, overlaps, type CalendarEventLike } from "./calendar"
+import type { EventStatus } from "@prisma/client"
+import {
+  detectConflicts,
+  isOnSharedCalendar,
+  isPendingProposal,
+  overlaps,
+  type CalendarEventLike,
+} from "./calendar"
 
 const d = (iso: string) => new Date(iso)
 
@@ -12,6 +19,44 @@ function evt(partial: Partial<CalendarEventLike> & { id: string }): CalendarEven
     ...partial,
   }
 }
+
+/**
+ * What "Upcoming Events" is allowed to count.
+ *
+ * The dashboard tile counted every future row for a club — DRAFT,
+ * PENDING_APPROVAL and CANCELLED included — under a hint reading "On the shared
+ * calendar", while /reports counted PUBLISHED only and reported a different
+ * number for the same clubs. These tests pin the single definition both use.
+ */
+describe("event status predicates", () => {
+  const ALL: EventStatus[] = ["DRAFT", "PENDING_APPROVAL", "APPROVED", "PUBLISHED", "CANCELLED"]
+
+  it("counts only events that cleared the approval chain as scheduled", () => {
+    expect(ALL.filter(isOnSharedCalendar)).toEqual(["APPROVED", "PUBLISHED"])
+  })
+
+  it("keeps a cancelled event off the calendar", () => {
+    // The row survives cancellation (an approval rejection sets CANCELLED), so
+    // a date filter alone still returns it.
+    expect(isOnSharedCalendar("CANCELLED")).toBe(false)
+    expect(isPendingProposal("CANCELLED")).toBe(false)
+  })
+
+  it("counts a proposal awaiting a decision as pending, not as scheduled", () => {
+    expect(ALL.filter(isPendingProposal)).toEqual(["PENDING_APPROVAL"])
+  })
+
+  it("treats a draft as neither scheduled nor pending — nobody has seen it", () => {
+    expect(isOnSharedCalendar("DRAFT")).toBe(false)
+    expect(isPendingProposal("DRAFT")).toBe(false)
+  })
+
+  it("never counts one status in both buckets", () => {
+    // Headline + "awaiting approval" are shown side by side on one tile, so an
+    // overlap would double-count an event in a single sentence.
+    expect(ALL.filter((s) => isOnSharedCalendar(s) && isPendingProposal(s))).toEqual([])
+  })
+})
 
 describe("overlaps", () => {
   it("detects genuine overlap and rejects back-to-back bookings", () => {

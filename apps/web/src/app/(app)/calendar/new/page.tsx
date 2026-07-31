@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { filterOperableOrgs } from "@/lib/org-access"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { BackButton } from "@/components/BackButton"
 import { EmptyState } from "@/components/ui/EmptyState"
@@ -40,17 +41,26 @@ export default async function NewEventPage({
     where: { userId: session.user.id, status: "ACTIVE" },
     include: { role: { include: { organization: true } } },
   })
-  const orgs = [...new Map(seats.map((s) => [s.role.organization.id, s.role.organization])).values()]
+  const seatOrgs = [...new Map(seats.map((s) => [s.role.organization.id, s.role.organization])).values()]
+  // An ACTIVE seat in an archived club is still an ACTIVE seat — archiving does
+  // not revoke assignments, on purpose. So the picker is narrowed by the club's
+  // status, not the seat's, and `createEvent` re-checks it on submit.
+  const orgs = filterOperableOrgs(seatOrgs)
 
   if (orgs.length === 0) {
+    const onlyArchived = seatOrgs.length > 0
     return (
       <div className="max-w-2xl">
         <BackButton />
         <Card className="mt-2">
           <EmptyState
             icon={CalendarDays}
-            title="You need an active club seat"
-            description="Only officers holding an active seat can propose events. If you have just been elected, your seat may still be in shadow status until your term begins."
+            title={onlyArchived ? "Your clubs are archived" : "You need an active club seat"}
+            description={
+              onlyArchived
+                ? "Archived clubs cannot schedule new events. Ask your OSE office to reactivate the club if it is running again."
+                : "Only officers holding an active seat can propose events. If you have just been elected, your seat may still be in shadow status until your term begins."
+            }
           />
         </Card>
       </div>

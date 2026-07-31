@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
+import { operableOrgIds } from "@/lib/org-access"
 import { storageConfigured, uploadDocument } from "@/lib/s3"
 
 async function requireUserId() {
@@ -75,9 +76,15 @@ export async function removeProfileImage() {
 async function delegationScope(userId: string) {
   const ctx = await getUserContext(userId)
   const isOse = ctx.institutionRoles.length > 0
-  const presidentOrgIds = ctx.orgRoles
-    .filter((r) => r.scope === "PRESIDENT" && r.status === "ACTIVE")
-    .map((r) => r.organizationId)
+  // Archiving a club leaves its president's ACTIVE assignment standing, so seat
+  // status alone still says "president" long after the club stopped operating.
+  // The archive guard runs on the write path as well as the read path — the
+  // settings page only hides the form, and a hidden form is not a control.
+  const presidentOrgIds = await operableOrgIds(
+    ctx.orgRoles
+      .filter((r) => r.scope === "PRESIDENT" && r.status === "ACTIVE")
+      .map((r) => r.organizationId)
+  )
   let institutionId: string | undefined = ctx.institutionRoles[0]?.institutionId
   if (!institutionId && presidentOrgIds.length) {
     const org = await db.organization.findFirst({

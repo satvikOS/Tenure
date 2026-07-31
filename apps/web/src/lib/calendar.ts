@@ -1,4 +1,36 @@
-import type { ConflictSeverity } from "@prisma/client"
+import type { ConflictSeverity, EventStatus } from "@prisma/client"
+
+/**
+ * ─── What counts as an event on the shared calendar ──────────────────────────
+ *
+ * The dashboard's "Upcoming Events" tile counted every future row for a club
+ * regardless of status, under a hint reading "On the shared calendar". So an
+ * unsubmitted DRAFT, a proposal still sitting at a gate, and an event that had
+ * been CANCELLED all inflated a number that claimed the institution had agreed
+ * to them — while /reports, counting PUBLISHED only, reported a different total
+ * for the same clubs.
+ *
+ * An event reaches the calendar when it clears the approval chain: APPROVED
+ * (decided) or PUBLISHED (decided and announced). Both are commitments the
+ * institution has made; everything before them is a proposal.
+ *
+ * Nothing is silently dropped: proposals awaiting a decision are counted by
+ * `isPendingProposal` and reported as their own number. DRAFT is excluded from
+ * both — a draft has not been shown to anyone, so it is neither scheduled nor
+ * waiting on an approver.
+ */
+export const CALENDARED_EVENT_STATUSES: EventStatus[] = ["APPROVED", "PUBLISHED"]
+export const PENDING_EVENT_STATUSES: EventStatus[] = ["PENDING_APPROVAL"]
+
+/** True when this event is a commitment on the institution's shared calendar. */
+export function isOnSharedCalendar(status: EventStatus): boolean {
+  return CALENDARED_EVENT_STATUSES.includes(status)
+}
+
+/** True when this event is a proposal still awaiting an approval decision. */
+export function isPendingProposal(status: EventStatus): boolean {
+  return PENDING_EVENT_STATUSES.includes(status)
+}
 
 /**
  * Conflict detection (blueprint §Calendar):

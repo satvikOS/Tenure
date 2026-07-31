@@ -181,7 +181,12 @@ export function ReportsAnalytics({
         </Card>
 
         <Card>
-          <CardHeader title="Roster fill by category" subtitle="Filled vs vacant board seats — current" />
+          {/* Every category is represented: the caller folds the small tail into
+              a labelled "Other" bar rather than dropping it (see charts/topn.ts). */}
+          <CardHeader
+            title="Roster fill by category"
+            subtitle="Filled vs vacant board seats — current, all categories"
+          />
           <BarChart
             categories={roster.map((r) => r.category)}
             series={[

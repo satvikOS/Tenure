@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader"
 import { StatGrid, StatTile } from "@/components/ui/Bento"
 import { ReportsAnalytics } from "@/components/charts/panels/ReportsAnalytics"
 import { LiveStats } from "@/components/charts/LiveStats"
+import { topNWithOther } from "@/components/charts/topn"
 
 export const dynamic = "force-dynamic"
 
@@ -108,10 +109,28 @@ export default async function ReportsPage() {
     else cur.vacant++
     rosterMap.set(role.name, cur)
   }
-  const roster = [...rosterMap.entries()]
-    .map(([category, v]) => ({ category, filled: v.filled, vacant: v.vacant }))
-    .sort((a, b) => b.filled + b.vacant - (a.filled + a.vacant))
-    .slice(0, 8)
+  // The chart shows the 8 largest categories, but the institution has dozens:
+  // a bare `.slice(0, 8)` drew 8 of 78 and let the bars imply that was all of
+  // them. The tail is folded into one labelled row instead, so the chart stays
+  // readable and its seats still add up to the roster.
+  const ROSTER_CATEGORY_LIMIT = 8
+  const roster = topNWithOther(
+    [...rosterMap.entries()].map(([category, v]) => ({
+      category,
+      filled: v.filled,
+      vacant: v.vacant,
+    })),
+    ROSTER_CATEGORY_LIMIT,
+    {
+      weight: (r) => r.filled + r.vacant,
+      fold: (tail, label) => ({
+        category: label,
+        filled: tail.reduce((n, r) => n + r.filled, 0),
+        vacant: tail.reduce((n, r) => n + r.vacant, 0),
+      }),
+      label: (n) => `Other (${n} categories)`,
+    }
+  )
 
   // Serialise the record streams the analytics panel re-aggregates client-side.
   const approvalsSeries = approvals.map((a) => ({

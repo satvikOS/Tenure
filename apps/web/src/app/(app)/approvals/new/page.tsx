@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { filterOperableOrgs } from "@/lib/org-access"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { BackButton } from "@/components/BackButton"
 import { createApproval } from "../actions"
@@ -26,14 +27,19 @@ export default async function NewApprovalPage() {
     where: { userId: session.user.id, status: "ACTIVE" },
     include: { role: { include: { organization: true } } },
   })
-  const orgs = [...new Map(seats.map((s) => [s.role.organization.id, s.role.organization])).values()]
+  const seatOrgs = [...new Map(seats.map((s) => [s.role.organization.id, s.role.organization])).values()]
+  // Archiving a club leaves its seats ACTIVE, so the seat query alone still
+  // offers archived clubs here. `createApproval` re-checks on submit.
+  const orgs = filterOperableOrgs(seatOrgs)
 
   if (orgs.length === 0) {
     return (
       <div className="max-w-2xl">
         <Card>
           <p className="text-sm text-text-2 py-4 text-center">
-            You need an active club role to submit requests.
+            {seatOrgs.length > 0
+              ? "Your clubs are archived, so they cannot raise new requests. Ask your OSE office to reactivate one."
+              : "You need an active club role to submit requests."}
           </p>
         </Card>
       </div>
