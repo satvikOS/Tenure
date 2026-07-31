@@ -1,0 +1,86 @@
+{
+  "observedAt": "2026-07-31T14:58:20Z",
+  "fromCommit": "7fa4984c9b76be8b798a6438b8a8c748c6e1ae32",
+  "accountKnown": true,
+  "certificate": {
+    "found": true,
+    "status": "ISSUED",
+    "domain": "platform.tenurework.com",
+    "sans": [
+      "platform.tenurework.com"
+    ],
+    "issuer": "Amazon",
+    "type": "AMAZON_ISSUED",
+    "keyAlgorithm": "RSA-2048",
+    "notBefore": "2026-07-30T00:00:00+00:00",
+    "notAfter": "2027-02-12T23:59:59+00:00",
+    "inUseBy": 1,
+    "failureReason": null,
+    "validation": [
+      {
+        "domain": "platform.tenurework.com",
+        "status": "SUCCESS",
+        "method": "DNS",
+        "recordName": "_b4e312b2ebed86c267576f731bb0ce43.platform.tenurework.com.",
+        "recordValue": "_fb892af2f55380c37abb3547d13ae0db.jkddzztszm.acm-validations.aws."
+      }
+    ]
+  },
+  "cloudfront": {
+    "uniqueMatch": true,
+    "id": "E2J3OML871RTXM",
+    "status": "Deployed",
+    "domainName": "d1n6mdis7bs02g.cloudfront.net",
+    "lastModified": "2026-07-30T20:16:22.656000+00:00",
+    "enabled": true,
+    "aliases": [
+      "platform.tenurework.com"
+    ],
+    "aliasQuantity": 1,
+    "viewerCertificate": {
+      "CloudFrontDefaultCertificate": false,
+      "ACMCertificateArn": "arn:aws:acm:us-east-1:************:certificate/b87127f1-6429-4143-805e-349a7555a60e",
+      "SSLSupportMethod": "sni-only",
+      "MinimumProtocolVersion": "TLSv1.2_2021",
+      "Certificate": "arn:aws:acm:us-east-1:************:certificate/b87127f1-6429-4143-805e-349a7555a60e",
+      "CertificateSource": "acm"
+    },
+    "originCount": 1,
+    "cacheBehaviorCount": 2,
+    "customErrorCount": 0,
+    "webACLId": "",
+    "loggingEnabled": false,
+    "priceClass": "PriceClass_100",
+    "httpVersion": "http2",
+    "isIPV6Enabled": true,
+    "arn": "arn:aws:cloudfront::************:distribution/E2J3OML871RTXM",
+    "etag": "EBVWY2IU417GA"
+  },
+  "aliasConflict": {
+    "otherDistributions": [
+      {
+        "id": "E2J3OML871RTXM",
+        "domain": "d1n6mdis7bs02g.cloudfront.net"
+      }
+    ],
+    "count": 1
+  },
+  "backupHashes": [
+    {
+      "file": "distribution-before.json",
+      "sha256": "0f7ee5e98b07af3b4144261ad57ac6c9502c7d1c1c2d327fc18bbb5a302d5325"
+    },
+    {
+      "file": "distribution-config-before.json",
+      "sha256": "b306add9c29d4de5bc8e713085719faf4e25dd35ba2bc4b41220af69d601b8d4"
+    },
+    {
+      "file": "distribution-config-original.json",
+      "sha256": "367a546bb2fb9eff11b3e170100e46dec2eb54087bceda58e75746149a4eb45c"
+    },
+    {
+      "file": "etag-before.txt",
+      "sha256": "9912e7ddae145b5f21566c50a72da104d86813281ffcd419d908a031bdd0ca2d"
+    }
+  ]
+}

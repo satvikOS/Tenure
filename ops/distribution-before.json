@@ -1,0 +1,299 @@
+{
+    "ETag": "EBVWY2IU417GA",
+    "Distribution": {
+        "Id": "E2J3OML871RTXM",
+        "ARN": "arn:aws:cloudfront::************:distribution/E2J3OML871RTXM",
+        "Status": "Deployed",
+        "LastModifiedTime": "2026-07-30T20:16:22.656000+00:00",
+        "InProgressInvalidationBatches": 0,
+        "DomainName": "d1n6mdis7bs02g.cloudfront.net",
+        "ActiveTrustedSigners": {
+            "Enabled": false,
+            "Quantity": 0
+        },
+        "ActiveTrustedKeyGroups": {
+            "Enabled": false,
+            "Quantity": 0
+        },
+        "DistributionConfig": {
+            "CallerReference": "terraform-************************06",
+            "Aliases": {
+                "Quantity": 1,
+                "Items": [
+                    "platform.tenurework.com"
+                ]
+            },
+            "DefaultRootObject": "",
+            "Origins": {
+                "Quantity": 1,
+                "Items": [
+                    {
+                        "Id": "alb",
+                        "DomainName": "tenure-pilot-alb-77704361.us-east-1.elb.amazonaws.com",
+                        "OriginPath": "",
+                        "CustomHeaders": {
+                            "Quantity": 1,
+                            "Items": [
+                                {
+                                    "HeaderName": "X-Forwarded-Proto",
+                                    "HeaderValue": "https"
+                                }
+                            ]
+                        },
+                        "CustomOriginConfig": {
+                            "HTTPPort": 80,
+                            "HTTPSPort": 443,
+                            "OriginProtocolPolicy": "http-only",
+                            "OriginSslProtocols": {
+                                "Quantity": 1,
+                                "Items": [
+                                    "TLSv1.2"
+                                ]
+                            },
+                            "OriginReadTimeout": 60,
+                            "OriginKeepaliveTimeout": 60
+                        },
+                        "ConnectionAttempts": 3,
+                        "ConnectionTimeout": 10,
+                        "OriginShield": {
+                            "Enabled": false
+                        },
+                        "OriginAccessControlId": ""
+                    }
+                ]
+            },
+            "OriginGroups": {
+                "Quantity": 0
+            },
+            "DefaultCacheBehavior": {
+                "TargetOriginId": "alb",
+                "TrustedSigners": {
+                    "Enabled": false,
+                    "Quantity": 0
+                },
+                "TrustedKeyGroups": {
+                    "Enabled": false,
+                    "Quantity": 0
+                },
+                "ViewerProtocolPolicy": "redirect-to-https",
+                "AllowedMethods": {
+                    "Quantity": 7,
+                    "Items": [
+                        "HEAD",
+                        "DELETE",
+                        "POST",
+                        "GET",
+                        "OPTIONS",
+                        "PUT",
+                        "PATCH"
+                    ],
+                    "CachedMethods": {
+                        "Quantity": 2,
+                        "Items": [
+                            "HEAD",
+                            "GET"
+                        ]
+                    }
+                },
+                "SmoothStreaming": false,
+                "Compress": true,
+                "LambdaFunctionAssociations": {
+                    "Quantity": 0
+                },
+                "FunctionAssociations": {
+                    "Quantity": 1,
+                    "Items": [
+                        {
+                            "FunctionARN": "arn:aws:cloudfront::************:function/tenure-pilot-edge-access",
+                            "EventType": "viewer-request"
+                        }
+                    ]
+                },
+                "FieldLevelEncryptionId": "",
+                "GrpcConfig": {
+                    "Enabled": false
+                },
+                "ForwardedValues": {
+                    "QueryString": true,
+                    "Cookies": {
+                        "Forward": "all"
+                    },
+                    "Headers": {
+                        "Quantity": 1,
+                        "Items": [
+                            "*"
+                        ]
+                    },
+                    "QueryStringCacheKeys": {
+                        "Quantity": 0
+                    }
+                },
+                "MinTTL": 0,
+                "DefaultTTL": 0,
+                "MaxTTL": 0
+            },
+            "CacheBehaviors": {
+                "Quantity": 2,
+                "Items": [
+                    {
+                        "PathPattern": "/_next/static/*",
+                        "TargetOriginId": "alb",
+                        "TrustedSigners": {
+                            "Enabled": false,
+                            "Quantity": 0
+                        },
+                        "TrustedKeyGroups": {
+                            "Enabled": false,
+                            "Quantity": 0
+                        },
+                        "ViewerProtocolPolicy": "redirect-to-https",
+                        "AllowedMethods": {
+                            "Quantity": 2,
+                            "Items": [
+                                "HEAD",
+                                "GET"
+                            ],
+                            "CachedMethods": {
+                                "Quantity": 2,
+                                "Items": [
+                                    "HEAD",
+                                    "GET"
+                                ]
+                            }
+                        },
+                        "SmoothStreaming": false,
+                        "Compress": true,
+                        "LambdaFunctionAssociations": {
+                            "Quantity": 0
+                        },
+                        "FunctionAssociations": {
+                            "Quantity": 1,
+                            "Items": [
+                                {
+                                    "FunctionARN": "arn:aws:cloudfront::************:function/tenure-pilot-edge-access",
+                                    "EventType": "viewer-request"
+                                }
+                            ]
+                        },
+                        "FieldLevelEncryptionId": "",
+                        "GrpcConfig": {
+                            "Enabled": false
+                        },
+                        "ForwardedValues": {
+                            "QueryString": false,
+                            "Cookies": {
+                                "Forward": "none"
+                            },
+                            "Headers": {
+                                "Quantity": 0
+                            },
+                            "QueryStringCacheKeys": {
+                                "Quantity": 0
+                            }
+                        },
+                        "MinTTL": 0,
+                        "DefaultTTL": 86400,
+                        "MaxTTL": 31536000
+                    },
+                    {
+                        "PathPattern": "/favicon*",
+                        "TargetOriginId": "alb",
+                        "TrustedSigners": {
+                            "Enabled": false,
+                            "Quantity": 0
+                        },
+                        "TrustedKeyGroups": {
+                            "Enabled": false,
+                            "Quantity": 0
+                        },
+                        "ViewerProtocolPolicy": "redirect-to-https",
+                        "AllowedMethods": {
+                            "Quantity": 2,
+                            "Items": [
+                                "HEAD",
+                                "GET"
+                            ],
+                            "CachedMethods": {
+                                "Quantity": 2,
+                                "Items": [
+                                    "HEAD",
+                                    "GET"
+                                ]
+                            }
+                        },
+                        "SmoothStreaming": false,
+                        "Compress": true,
+                        "LambdaFunctionAssociations": {
+                            "Quantity": 0
+                        },
+                        "FunctionAssociations": {
+                            "Quantity": 1,
+                            "Items": [
+                                {
+                                    "FunctionARN": "arn:aws:cloudfront::************:function/tenure-pilot-edge-access",
+                                    "EventType": "viewer-request"
+                                }
+                            ]
+                        },
+                        "FieldLevelEncryptionId": "",
+                        "GrpcConfig": {
+                            "Enabled": false
+                        },
+                        "ForwardedValues": {
+                            "QueryString": false,
+                            "Cookies": {
+                                "Forward": "none"
+                            },
+                            "Headers": {
+                                "Quantity": 0
+                            },
+                            "QueryStringCacheKeys": {
+                                "Quantity": 0
+                            }
+                        },
+                        "MinTTL": 0,
+                        "DefaultTTL": 3600,
+                        "MaxTTL": 86400
+                    }
+                ]
+            },
+            "CustomErrorResponses": {
+                "Quantity": 0
+            },
+            "Comment": "Tenure pilot — Next.js via ECS Fargate",
+            "Logging": {
+                "Enabled": false,
+                "IncludeCookies": false,
+                "Bucket": "",
+                "Prefix": ""
+            },
+            "PriceClass": "PriceClass_100",
+            "Enabled": true,
+            "ViewerCertificate": {
+                "CloudFrontDefaultCertificate": false,
+                "ACMCertificateArn": "arn:aws:acm:us-east-1:************:certificate/b87127f1-6429-4143-805e-349a7555a60e",
+                "SSLSupportMethod": "sni-only",
+                "MinimumProtocolVersion": "TLSv1.2_2021",
+                "Certificate": "arn:aws:acm:us-east-1:************:certificate/b87127f1-6429-4143-805e-349a7555a60e",
+                "CertificateSource": "acm"
+            },
+            "Restrictions": {
+                "GeoRestriction": {
+                    "RestrictionType": "none",
+                    "Quantity": 0
+                }
+            },
+            "WebACLId": "",
+            "HttpVersion": "http2",
+            "IsIPV6Enabled": true,
+            "ContinuousDeploymentPolicyId": "",
+            "Staging": false
+        },
+        "AliasICPRecordals": [
+            {
+                "CNAME": "platform.tenurework.com",
+                "ICPRecordalStatus": "APPROVED"
+            }
+        ]
+    }
+}
