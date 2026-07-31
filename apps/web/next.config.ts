@@ -1,5 +1,17 @@
 import path from "node:path"
 import type { NextConfig } from "next"
+// Relative, not "@/lib/csp": Next transpiles this file on its own with a bare
+// SWC pass (no bundler, no tsconfig path resolution for the string it compiles)
+// and loads the result through a require hook that understands .ts. A relative
+// specifier resolves under that hook; the "@/" alias is not guaranteed to.
+import { CSP_MODE, contentSecurityPolicyHeader } from "./src/lib/csp"
+
+// The Next CLI sets NODE_ENV in a preAction hook before this file is loaded —
+// "development" for `next dev`, "production" for `next build` — and those are
+// the only two commands where headers() runs at all (`next start` replays the
+// header list baked into .next/routes-manifest.json at build). So this is a
+// reliable read of "am I about to serve the dev bundler's output".
+const isDev = process.env.NODE_ENV !== "production"
 
 const securityHeaders = [
   // Two years HSTS incl. subdomains — CloudFront already forces HTTPS
@@ -8,6 +20,11 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  // Report-only for now, so a directive this app turns out to need cannot take
+  // the product down. src/lib/csp.ts holds the policy, the reasoning per
+  // directive, and CSP_MODE — the single constant to flip once the checklist
+  // documented on it has been walked on a deployed build.
+  contentSecurityPolicyHeader({ mode: CSP_MODE, dev: isDev }),
 ]
 
 const nextConfig: NextConfig = {
