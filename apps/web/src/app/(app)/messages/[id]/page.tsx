@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
 import { canPostToConversation, canReadConversation } from "@/lib/messaging"
 import { storageConfigured } from "@/lib/s3"
+import { UPLOAD_ACCEPT_ATTRIBUTE } from "@/lib/uploads"
 import { ArrowRight, Paperclip } from "@/components/ui/icons"
 import { Card } from "@/components/ui/Card"
 import { Avatar } from "@/components/ui/Avatar"
@@ -225,7 +226,14 @@ export default async function ConversationPage({
                 title="Attach files"
               >
                 <Paperclip size={17} />
-                <input type="file" name="attachments" multiple className="sr-only" aria-label="Attach files" />
+                <input
+                  type="file"
+                  name="attachments"
+                  multiple
+                  accept={UPLOAD_ACCEPT_ATTRIBUTE}
+                  className="sr-only"
+                  aria-label="Attach files"
+                />
               </label>
             )}
             <input

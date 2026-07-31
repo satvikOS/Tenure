@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
 import { storageConfigured, uploadDocument } from "@/lib/s3"
+import { ACCEPT_IMAGE, MAX_IMAGE_BYTES, inspectUpload } from "@/lib/uploads"
 
 async function requireUserId() {
   const session = await auth()
@@ -49,13 +50,21 @@ export async function uploadProfileImage(formData: FormData) {
   if (!storageConfigured())
     throw new Error("File uploads are not configured — paste an image URL instead")
   const file = formData.get("file")
-  if (!(file instanceof File) || file.size === 0) throw new Error("Choose an image file")
-  if (!file.type.startsWith("image/")) throw new Error("That file is not an image")
-  if (file.size > 5 * 1024 * 1024) throw new Error("Images must be under 5 MB")
+  if (!(file instanceof File)) throw new Error("Choose an image file")
 
-  const ext = (file.name.split(".").pop() || "img").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5)
-  const key = `profile-images/${userId}/${Date.now()}.${ext}`
-  await uploadDocument(key, Buffer.from(await file.arrayBuffer()), file.type)
+  // Same byte-level check as every other surface: an avatar is the easiest
+  // thing to talk someone into uploading, so the claim gets no vote here either.
+  const buffer = Buffer.from(await file.arrayBuffer())
+  const verdict = inspectUpload({
+    fileName: file.name,
+    bytes: buffer,
+    maxBytes: MAX_IMAGE_BYTES,
+    accept: ACCEPT_IMAGE,
+  })
+  if (!verdict.ok) throw new Error(verdict.reason)
+
+  const key = `profile-images/${userId}/${Date.now()}.${verdict.extension}`
+  await uploadDocument(key, buffer, verdict.contentType)
   await db.user.update({
     where: { id: userId },
     data: { imageKey: key, image: `/api/profile-image/${userId}?v=${Date.now()}` },

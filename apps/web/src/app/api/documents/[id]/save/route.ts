@@ -8,6 +8,7 @@ import {
   getUserContext,
 } from "@/lib/rbac"
 import { storageConfigured, uploadDocument } from "@/lib/s3"
+import { safeServedContentType } from "@/lib/uploads"
 
 /**
  * Save an in-place edit back to the SAME object key.
@@ -105,8 +106,10 @@ export async function POST(
 
   try {
     // Overwrite in place — keep the original content type so the viewer keeps
-    // rendering it the same way.
-    await uploadDocument(doc.objectKey, bytes, doc.mimeType)
+    // rendering it the same way, but re-decide it: rows written before uploads
+    // were validated carry a client-chosen mimeType, and re-storing it would
+    // put the claim back on the object.
+    await uploadDocument(doc.objectKey, bytes, safeServedContentType(doc.mimeType))
   } catch {
     return NextResponse.json({ error: "Save failed — try again" }, { status: 500 })
   }

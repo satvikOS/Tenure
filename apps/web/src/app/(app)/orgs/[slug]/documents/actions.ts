@@ -11,8 +11,7 @@ import {
   storageConfigured,
   uploadDocument,
 } from "@/lib/s3"
-
-const MAX_BYTES = 15 * 1024 * 1024 // 15 MB pilot cap
+import { inspectUpload } from "@/lib/uploads"
 
 export async function uploadDocumentAction(slug: string, formData: FormData) {
   const session = await auth()
@@ -27,8 +26,14 @@ export async function uploadDocumentAction(slug: string, formData: FormData) {
   if (!storageConfigured()) throw new Error("Document storage is not configured")
 
   const file = formData.get("file")
-  if (!(file instanceof File) || file.size === 0) throw new Error("Pick a file")
-  if (file.size > MAX_BYTES) throw new Error("File is larger than the 15 MB pilot limit")
+  if (!(file instanceof File)) throw new Error("Pick a file")
+
+  // Size, extension and magic bytes together — `file.type` is a client claim and
+  // is deliberately not consulted. The stored mimeType comes from the sniff, so
+  // whatever is served later is what the bytes actually are.
+  const bytes = Buffer.from(await file.arrayBuffer())
+  const verdict = inspectUpload({ fileName: file.name, bytes })
+  if (!verdict.ok) throw new Error(verdict.reason)
 
   const title = (String(formData.get("title") ?? "").trim() || file.name).slice(0, 200)
   const description = String(formData.get("description") ?? "").trim()
@@ -36,8 +41,7 @@ export async function uploadDocumentAction(slug: string, formData: FormData) {
   const safeName = file.name.replace(/[^\w.\-]+/g, "_")
   const objectKey = `${org.institutionId}/${org.id}/${Date.now()}-${safeName}`
 
-  const bytes = Buffer.from(await file.arrayBuffer())
-  await uploadDocument(objectKey, bytes, file.type || "application/octet-stream")
+  await uploadDocument(objectKey, bytes, verdict.contentType)
 
   await db.$transaction([
     db.document.create({
@@ -47,7 +51,7 @@ export async function uploadDocumentAction(slug: string, formData: FormData) {
         title,
         description: description || null,
         objectKey,
-        mimeType: file.type || "application/octet-stream",
+        mimeType: verdict.contentType,
         sizeBytes: file.size,
         createdById: userId,
       },
@@ -95,7 +99,7 @@ export async function downloadDocumentAction(slug: string, formData: FormData) {
     },
   })
 
-  const url = await documentDownloadUrl(doc.objectKey, doc.title)
+  const url = await documentDownloadUrl(doc.objectKey, doc.title, doc.mimeType)
   redirect(url)
 }
 
@@ -199,5 +203,5 @@ export async function viewDocumentAction(slug: string, formData: FormData) {
     },
   })
 
-  redirect(await documentViewUrl(doc.objectKey))
+  redirect(await documentViewUrl(doc.objectKey, doc.mimeType))
 }

@@ -8,25 +8,57 @@ import { getUserContext, isOse } from "@/lib/rbac"
 import { canPostToConversation, messagingTier } from "@/lib/messaging"
 import { notifyUsers } from "@/lib/notify"
 import { storageConfigured, uploadDocument } from "@/lib/s3"
+import { type AcceptedUpload, inspectUploads } from "@/lib/uploads"
 
-/** Store any files attached to a message. No-op without object storage. */
-async function saveAttachments(messageId: string, formData: FormData) {
+/**
+ * Read the attached files and rule on them BEFORE the message is written.
+ *
+ * Rejection has to happen up front: a message row already committed cannot be
+ * un-sent, so a bad attachment discovered afterwards would leave a message that
+ * silently lost its files (which is what the old `continue` did). Throwing here
+ * surfaces the reason to the sender with the message still unsent.
+ */
+async function readAttachments(
+  formData: FormData
+): Promise<(AcceptedUpload & { bytes: Uint8Array })[]> {
   const files = formData
     .getAll("attachments")
     .filter((f): f is File => f instanceof File && f.size > 0)
-  if (files.length === 0 || !storageConfigured()) return
-  for (const file of files.slice(0, 10)) {
-    if (file.size > 25 * 1024 * 1024) continue // 25 MB per file
-    const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-80)
-    const key = `message-attachments/${messageId}/${Date.now()}-${safe}`
-    await uploadDocument(key, Buffer.from(await file.arrayBuffer()), file.type || "application/octet-stream")
+  if (files.length === 0 || !storageConfigured()) return []
+
+  const read = await Promise.all(
+    files.map(async (file) => ({
+      fileName: file.name,
+      bytes: new Uint8Array(await file.arrayBuffer()),
+    }))
+  )
+
+  const verdict = inspectUploads(read)
+  if (!verdict.ok) throw new Error(verdict.reason)
+
+  return verdict.accepted.map((a) => ({ ...a, bytes: read[a.index].bytes }))
+}
+
+/** Store the already-validated attachments against a saved message. */
+async function saveAttachments(
+  messageId: string,
+  attachments: (AcceptedUpload & { bytes: Uint8Array })[]
+) {
+  for (const att of attachments) {
+    const safe = att.fileName.replace(/[^\w.\-]+/g, "_").slice(-80)
+    // The index keeps two identically-named files in one message from landing
+    // on the same key (Date.now() alone does not separate them).
+    const key = `message-attachments/${messageId}/${Date.now()}-${att.index}-${safe}`
+    // The Content-Type is the sniffed one, never `file.type` — it is what S3
+    // stores and what the download route later serves.
+    await uploadDocument(key, Buffer.from(att.bytes), att.contentType)
     await db.attachment.create({
       data: {
         messageId,
-        fileName: file.name.slice(0, 200),
-        mimeType: file.type || "application/octet-stream",
+        fileName: att.fileName.slice(0, 200),
+        mimeType: att.contentType,
         objectKey: key,
-        sizeBytes: file.size,
+        sizeBytes: att.bytes.length,
       },
     })
   }
@@ -396,6 +428,10 @@ export async function sendMessage(conversationId: string, formData: FormData) {
   })
   if (!allowed) throw new Error("You cannot post in this conversation")
 
+  // Validated before the message row exists, so a rejected file leaves nothing
+  // half-sent behind.
+  const attachments = await readAttachments(formData)
+
   await ensureParticipant(conversationId, userId)
   const participants = await db.participant.findMany({ where: { conversationId } })
 
@@ -415,7 +451,7 @@ export async function sendMessage(conversationId: string, formData: FormData) {
     return m
   })
 
-  await saveAttachments(message.id, formData)
+  await saveAttachments(message.id, attachments)
 
   revalidatePath(`/messages/${conversationId}`)
   revalidatePath("/messages")

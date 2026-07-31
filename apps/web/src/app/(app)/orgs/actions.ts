@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canManageOrg, getUserContext, isOseDirector } from "@/lib/rbac"
 import { storageConfigured, uploadDocument } from "@/lib/s3"
+import { ACCEPT_IMAGE, MAX_IMAGE_BYTES, inspectUpload } from "@/lib/uploads"
 
 /** OSE Director: archive or reactivate a club. */
 export async function setClubStatus(formData: FormData) {
@@ -104,14 +105,22 @@ export async function uploadOrgImage(formData: FormData) {
     throw new Error("File uploads are not configured — paste an image URL instead")
 
   const file = formData.get("file")
-  if (!(file instanceof File) || file.size === 0) throw new Error("Choose an image file")
-  if (!file.type.startsWith("image/")) throw new Error("That file is not an image")
-  if (file.size > 5 * 1024 * 1024) throw new Error("Images must be under 5 MB")
+  if (!(file instanceof File)) throw new Error("Choose an image file")
 
-  const ext = (file.name.split(".").pop() || "img").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5)
-  const key = `org-images/${org.id}/${Date.now()}.${ext}`
+  // `file.type` said "image/png" for anything the uploader wanted it to. The
+  // bytes decide instead, and the key's extension comes from the verdict so the
+  // /api/org-image proxy can derive a safe Content-Type from the key alone.
   const buffer = Buffer.from(await file.arrayBuffer())
-  await uploadDocument(key, buffer, file.type)
+  const verdict = inspectUpload({
+    fileName: file.name,
+    bytes: buffer,
+    maxBytes: MAX_IMAGE_BYTES,
+    accept: ACCEPT_IMAGE,
+  })
+  if (!verdict.ok) throw new Error(verdict.reason)
+
+  const key = `org-images/${org.id}/${Date.now()}.${verdict.extension}`
+  await uploadDocument(key, buffer, verdict.contentType)
 
   await db.organization.update({
     where: { id: org.id },

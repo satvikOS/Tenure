@@ -7,6 +7,7 @@ import {
   uploadProfileImage,
   removeProfileImage,
 } from "@/app/(app)/settings/actions"
+import { ACCEPT_IMAGE, acceptAttribute } from "@/lib/uploads"
 
 /**
  * Lets any user set their own profile picture — by pasting an image URL (works
@@ -55,7 +56,7 @@ export function ProfileImageEditor({
               <input
                 type="file"
                 name="file"
-                accept="image/*"
+                accept={acceptAttribute(ACCEPT_IMAGE)}
                 required
                 className="h-10 flex-1 rounded-md border border-border px-3 py-1.5 text-[13px] text-text-2 file:mr-3 file:rounded file:border-0 file:bg-base file:px-3 file:py-1.5 file:text-[13px] file:font-medium file:text-text-1"
               />

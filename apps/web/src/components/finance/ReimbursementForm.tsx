@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { formatCents, parseMoneyToCents } from "@/lib/finance"
+import { UPLOAD_ACCEPT_ATTRIBUTE } from "@/lib/uploads"
 import { submitReimbursement } from "@/app/(app)/orgs/[slug]/finance/actions"
 
 type Line = { id: string; category: string; remainingCents: number }
@@ -102,6 +103,7 @@ export function ReimbursementForm({ slug, lines }: { slug: string; lines: Line[]
           <input
             name="receipt"
             type="file"
+            accept={UPLOAD_ACCEPT_ATTRIBUTE}
             className="text-sm text-text-2 file:mr-3 file:rounded file:border-0 file:bg-base file:px-3 file:py-1.5 file:text-sm file:text-text-1"
           />
         </label>

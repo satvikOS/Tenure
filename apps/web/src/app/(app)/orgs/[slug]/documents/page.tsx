@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canContribute, canManageRoster, canViewOrg, getUserContext } from "@/lib/rbac"
 import { storageConfigured } from "@/lib/s3"
+import { ACCEPTED_UPLOADS_SUMMARY, UPLOAD_ACCEPT_ATTRIBUTE } from "@/lib/uploads"
 import { aiConfigured } from "@/lib/ai"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { OrgTabs } from "@/components/OrgTabs"
@@ -82,7 +83,10 @@ export default async function DocumentsPage({
       <div className="space-y-4">
         {canUpload && (
           <Card>
-            <CardHeader title="Upload a document" subtitle="Up to 15 MB during the pilot." />
+            <CardHeader
+              title="Upload a document"
+              subtitle={`Up to 15 MB during the pilot — ${ACCEPTED_UPLOADS_SUMMARY}.`}
+            />
             <form action={uploadWithSlug} className="flex flex-wrap items-end gap-3">
               <label className="flex flex-col gap-1 text-xs text-text-2">
                 File
@@ -90,6 +94,7 @@ export default async function DocumentsPage({
                   type="file"
                   name="file"
                   required
+                  accept={UPLOAD_ACCEPT_ATTRIBUTE}
                   className="text-sm text-text-1 file:mr-3 file:h-9 file:rounded file:border file:border-border file:bg-surface file:px-3 file:text-sm file:text-text-1"
                 />
               </label>

@@ -7,6 +7,7 @@ import { db } from "@/lib/db"
 import { canManageFinance, getUserContext } from "@/lib/rbac"
 import { nextStatus } from "@/lib/approvals"
 import { uploadDocument, storageConfigured } from "@/lib/s3"
+import { inspectUpload } from "@/lib/uploads"
 import { notifyUsers, orgPresidentIds, oseMemberIds } from "@/lib/notify"
 import {
   parseMoneyToCents,
@@ -338,17 +339,21 @@ export async function submitReimbursement(slug: string, formData: FormData) {
   if (storageConfigured() && !hasFile) throw new Error("Attach a receipt")
   if (hasFile && storageConfigured()) {
     const f = file as File
-    if (f.size > 15 * 1024 * 1024) throw new Error("Receipt is larger than the 15 MB limit")
+    // A receipt is a scan or a PDF — same allowlist, same byte check, and the
+    // stored mimeType is the sniffed one rather than the browser's claim.
+    const bytes = Buffer.from(await f.arrayBuffer())
+    const verdict = inspectUpload({ fileName: f.name, bytes })
+    if (!verdict.ok) throw new Error(verdict.reason)
     const safeName = f.name.replace(/[^\w.\-]+/g, "_")
     const objectKey = `${org.institutionId}/${org.id}/${Date.now()}-${safeName}`
-    await uploadDocument(objectKey, Buffer.from(await f.arrayBuffer()), f.type || "application/octet-stream")
+    await uploadDocument(objectKey, bytes, verdict.contentType)
     const doc = await db.document.create({
       data: {
         institutionId: org.institutionId,
         organizationId: org.id,
         title: `Receipt — ${description}`.slice(0, 200),
         objectKey,
-        mimeType: f.type || "application/octet-stream",
+        mimeType: verdict.contentType,
         sizeBytes: f.size,
         createdById: userId,
       },

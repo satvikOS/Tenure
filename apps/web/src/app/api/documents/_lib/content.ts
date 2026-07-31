@@ -58,11 +58,14 @@ export async function buildDocContent(opts: {
   if (!documentsBucket) return { kind: "unconfigured" }
 
   try {
+    // The stored mime is passed on so the signed URL serves it as that type and
+    // nothing else — a row that predates upload validation carries a client's
+    // claim, and `inline` plus an unvouched-for type is the rendering path.
     if (is(mime, "application/pdf")) {
-      return { kind: "pdf", url: await documentViewUrl(objectKey) }
+      return { kind: "pdf", url: await documentViewUrl(objectKey, mime) }
     }
     if (is(mime, "image/")) {
-      return { kind: "image", url: await documentViewUrl(objectKey) }
+      return { kind: "image", url: await documentViewUrl(objectKey, mime) }
     }
     if ((sizeBytes ?? 0) > MAX_PARSE_BYTES) {
       return {

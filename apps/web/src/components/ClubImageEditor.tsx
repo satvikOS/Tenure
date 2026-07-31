@@ -5,6 +5,7 @@ import { ImagePlus, Trash2, Link2, Upload } from "@/components/ui/icons"
 import { Overlay } from "@/components/ui/Overlay"
 import { Avatar } from "@/components/ui/Avatar"
 import { setOrgImageUrl, uploadOrgImage, removeOrgImage } from "@/app/(app)/orgs/actions"
+import { ACCEPT_IMAGE, acceptAttribute } from "@/lib/uploads"
 
 /**
  * Lets an administrator (any club) or a club leader (their own) set a club's
@@ -75,7 +76,7 @@ export function ClubImageEditor({
               <input
                 type="file"
                 name="file"
-                accept="image/*"
+                accept={acceptAttribute(ACCEPT_IMAGE)}
                 required
                 className="h-10 flex-1 rounded-md border border-border px-3 py-1.5 text-[13px] text-text-2 file:mr-3 file:rounded file:border-0 file:bg-base file:px-3 file:py-1.5 file:text-[13px] file:font-medium file:text-text-1"
               />
@@ -83,7 +84,7 @@ export function ClubImageEditor({
                 Upload
               </button>
             </div>
-            <p className="text-meta text-text-3">PNG, JPG, or GIF up to 5 MB.</p>
+            <p className="text-meta text-text-3">{ACCEPT_IMAGE.summary} up to 5 MB.</p>
           </form>
         )}
 

@@ -30,9 +30,16 @@ const nextConfig: NextConfig = {
 
   experimental: {
     // Server Actions default to a 1 MB request-body cap, which silently
-    // contradicts the advertised 15 MB document / 25 MB attachment uploads.
-    // Raise it to comfortably cover the 15 MB pilot limit (plus base64 slack
-    // from the in-place editor's autosave payloads).
+    // contradicts the advertised upload limits. This is the TRANSPORT ceiling
+    // and the backstop for every upload surface: a request larger than this is
+    // refused by the framework before any action code runs, so the user gets a
+    // generic failure rather than one of our messages. It therefore has to sit
+    // just ABOVE what src/lib/uploads.ts will accept (MAX_UPLOAD_BYTES, 15 MB
+    // per file and per request), leaving ~1 MB for multipart framing and the
+    // in-place editor's base64 autosave slack. Attachments used to advertise
+    // 25 MB, which this cap made unreachable — the attachment limit moved down
+    // to 15 MB rather than this moving up, so the number a user is told is the
+    // number that works.
     serverActions: { bodySizeLimit: "16mb" },
   },
 
