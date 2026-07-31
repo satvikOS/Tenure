@@ -3,6 +3,8 @@ import Link from "next/link"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
+import { capSeatNames, summariseSeats, summariseSeatsByName } from "@/lib/seats"
+import { institutionSeatsWhere, loadSeatFacts } from "@/lib/seats-data"
 import { Building2, Users, CheckCircle, CalendarCheck, DollarSign } from "@/components/ui/icons"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
@@ -24,23 +26,18 @@ export default async function ReportsPage() {
 
   const [
     orgs,
-    activeSeats,
-    shadowSeats,
+    seatFacts,
     approvals,
     decidedSteps,
     eventRows,
     hardConflicts,
     memory,
-    roles,
     deniedActions,
   ] = await Promise.all([
     db.organization.count({ where: { institutionId, status: "ACTIVE" } }),
-    db.roleAssignment.count({
-      where: { status: "ACTIVE", role: { organization: { institutionId } } },
-    }),
-    db.roleAssignment.count({
-      where: { status: "SHADOW", role: { organization: { institutionId } } },
-    }),
+    // One seat query feeds BOTH the headline tile and the roster chart, so they
+    // cannot drift apart again (see src/lib/seats.ts for the rules).
+    loadSeatFacts(institutionSeatsWhere(institutionId)),
     db.approvalRequest.findMany({
       where: { institutionId },
       select: { status: true, createdAt: true },
@@ -62,17 +59,6 @@ export default async function ReportsPage() {
     db.memoryRecord.findMany({
       where: { institutionId, isArchived: false },
       select: { type: true, createdAt: true },
-    }),
-    db.role.findMany({
-      where: { organization: { institutionId }, name: { not: "Member" } },
-      select: {
-        name: true,
-        assignments: {
-          where: { status: { in: ["ACTIVE", "SHADOW"] } },
-          select: { id: true },
-        },
-        holdings: { where: { isCurrent: true }, select: { id: true } },
-      },
     }),
     db.auditEvent.findMany({
       where: { institutionId, outcome: "DENY" },
@@ -99,19 +85,16 @@ export default async function ReportsPage() {
         ? `${Math.max(1, Math.round(medianMs / 6e4))} min`
         : `${(medianMs / 36e5).toFixed(1)} h`
 
-  // Roster fill by board-position category — filled vs vacant across all clubs.
-  const rosterMap = new Map<string, { filled: number; vacant: number }>()
-  for (const role of roles) {
-    const isFilled = role.assignments.length > 0 || role.holdings.length > 0
-    const cur = rosterMap.get(role.name) ?? { filled: 0, vacant: 0 }
-    if (isFilled) cur.filled++
-    else cur.vacant++
-    rosterMap.set(role.name, cur)
-  }
-  const roster = [...rosterMap.entries()]
-    .map(([category, v]) => ({ category, filled: v.filled, vacant: v.vacant }))
-    .sort((a, b) => b.filled + b.vacant - (a.filled + a.vacant))
-    .slice(0, 8)
+  // The headline and the roster chart are two views of the SAME tally: the chart
+  // is `summariseSeatsByName` of the seats the tile summarises, capped with a
+  // rolled-up tail rather than truncated, so its columns still sum to the tile.
+  const seats = summariseSeats(seatFacts)
+  const roster = capSeatNames(summariseSeatsByName(seatFacts), 8).map((r) => ({
+    category: r.name,
+    filled: r.filled,
+    incoming: r.incoming,
+    vacant: r.vacant,
+  }))
 
   // Serialise the record streams the analytics panel re-aggregates client-side.
   const approvalsSeries = approvals.map((a) => ({
@@ -158,8 +141,8 @@ export default async function ReportsPage() {
           <StatTile label="Active clubs" value={orgs} icon={Building2} />
           <StatTile
             label="Filled seats"
-            value={activeSeats}
-            hint={`${shadowSeats} incoming (shadow)`}
+            value={`${seats.filled}/${seats.total}`}
+            hint={`${seats.vacant} vacant · ${seats.incoming} incoming (shadow)`}
             icon={Users}
           />
           <StatTile
@@ -181,10 +164,10 @@ export default async function ReportsPage() {
         <LiveStats
           endpoint="/api/reports/pulse"
           intervalMs={15000}
-          initial={{ pending, publishedEvents, activeSeats, hardConflicts }}
+          initial={{ pending, publishedEvents, filledSeats: seats.filled, hardConflicts }}
           items={[
             { key: "pending", label: "Open approvals" },
-            { key: "activeSeats", label: "Seats filled" },
+            { key: "filledSeats", label: "Seats filled" },
             { key: "publishedEvents", label: "On the calendar" },
             { key: "hardConflicts", label: "Hard conflicts", tone: "warn" },
           ]}

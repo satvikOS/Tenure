@@ -13,6 +13,8 @@ import {
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext } from "@/lib/rbac"
+import { countCurrentHolders, groupSeatFactsByOrg } from "@/lib/seats"
+import { loadSeatFacts } from "@/lib/seats-data"
 import { QuickLinks } from "@/components/QuickLinks"
 import { seatKeysForRole, type SeatKey } from "@/lib/resources"
 import { listResources, resourceInstitutionFor } from "@/lib/resources-data"
@@ -50,7 +52,7 @@ export default async function DashboardPage() {
       ],
     },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, slug: true },
+    select: { id: true, name: true, slug: true, status: true },
   })
   const orgIds = orgs.map((o) => o.id)
 
@@ -106,8 +108,7 @@ export default async function DashboardPage() {
     pendingApprovals,
     upcomingEvents,
     unreadMessages,
-    activeMembers,
-    memberCounts,
+    seatFacts,
     recentAudit,
     approvalTrend,
     eventTrend,
@@ -125,14 +126,9 @@ export default async function DashboardPage() {
       db.delivery.count({
         where: { readAt: null, participant: { userId: ctx.userId } },
       }),
-      db.roleAssignment.count({
-        where: { status: "ACTIVE", role: { organizationId: { in: orgIds } } },
-      }),
-      db.roleAssignment.groupBy({
-        by: ["roleId"],
-        where: { status: "ACTIVE", role: { organizationId: { in: orgIds } } },
-        _count: true,
-      }),
+      // One load serves both the "Active Members" KPI and the per-club counts,
+      // so a club's card and the tile above it can never disagree.
+      loadSeatFacts({ organizationId: { in: orgIds } }),
       db.auditEvent.findMany({
         where: { organizationId: { in: orgIds } },
         orderBy: { occurredAt: "desc" },
@@ -162,16 +158,18 @@ export default async function DashboardPage() {
   const eventTrendDelta = trendDelta(eventSpark)
   const activityEvents = activityAudit.map((a) => a.occurredAt.toISOString())
 
-  // Map role→org so club cards show real member counts
-  const rolesByOrg = await db.role.findMany({
-    where: { organizationId: { in: orgIds } },
-    select: { id: true, organizationId: true },
-  })
-  const orgMemberCount = new Map<string, number>()
-  for (const rc of memberCounts) {
-    const orgId = rolesByOrg.find((r) => r.id === rc.roleId)?.organizationId
-    if (orgId) orgMemberCount.set(orgId, (orgMemberCount.get(orgId) ?? 0) + rc._count)
-  }
+  // Distinct people currently holding a seat, per club — one human with both a
+  // roster holding and a login account is one member, not two.
+  const seatsByOrg = groupSeatFactsByOrg(seatFacts)
+  const orgMemberCount = new Map(
+    [...seatsByOrg].map(([orgId, seats]) => [orgId, countCurrentHolders(seats)])
+  )
+  // Rule 4 — the headline is an operating figure, so archived clubs are out of
+  // it even though their own card above still reports them.
+  const liveOrgIds = new Set(orgs.filter((o) => o.status !== "ARCHIVED").map((o) => o.id))
+  const activeMembers = countCurrentHolders(
+    seatFacts.filter((s) => liveOrgIds.has(s.organizationId))
+  )
 
   const actorNames = new Map<string, string>()
   const actorIds = [...new Set(recentAudit.map((a) => a.actorId).filter((x): x is string => !!x))]
@@ -240,7 +238,7 @@ export default async function DashboardPage() {
     {
       label: "Active Members",
       value: activeMembers,
-      hint: `Across ${orgs.length} club${orgs.length === 1 ? "" : "s"}`,
+      hint: `Across ${liveOrgIds.size} club${liveOrgIds.size === 1 ? "" : "s"}`,
       icon: Users,
       color: "var(--text-2)",
       bg: "var(--bg-base)",

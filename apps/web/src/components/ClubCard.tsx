@@ -16,9 +16,15 @@ const CATEGORY_LABEL: Record<OrgCategory, string> = {
   SOCIAL: "Social",
 }
 
+/**
+ * Board-seat counts as `summariseSeats` reports them. `filledSeats`, `incoming`
+ * and `vacancies` are an exclusive partition of `boardSeats` — incoming is shown
+ * on its own, never added to filled.
+ */
 export interface ClubCardStats {
   filledSeats: number
   boardSeats: number
+  incoming: number
   vacancies: number
   president?: string | null
 }
@@ -88,6 +94,9 @@ export function ClubCard({
             <Users size={14} /> {stats.filledSeats}/{stats.boardSeats} seats filled
           </span>
           {stats.vacancies > 0 && <span className="text-[--warning]">{stats.vacancies} vacant</span>}
+          {stats.incoming > 0 && (
+            <span className="text-[--info]">{stats.incoming} incoming</span>
+          )}
         </div>
         {stats.president && (
           <p className="mt-1 truncate text-[13px] text-text-3">President · {stats.president}</p>

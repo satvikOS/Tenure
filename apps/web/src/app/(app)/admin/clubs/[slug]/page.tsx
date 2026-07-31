@@ -4,6 +4,7 @@ import { UserPlus, ArrowLeftRight, X, Plus, Trash2 } from "@/components/ui/icons
 import { db } from "@/lib/db"
 import { requireAdminContext } from "@/lib/admin/guard"
 import { hasCapability } from "@/lib/admin/capabilities"
+import { holdingIsCurrent, seatState, toSeatFacts } from "@/lib/seats"
 import { storageConfigured } from "@/lib/s3"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { Select } from "@/components/ui/Select"
@@ -139,7 +140,10 @@ export default async function AdminClubDetailPage({
       <div className="space-y-4">
         <h2 className="font-display text-lead font-semibold text-text-1">Board seats & roles</h2>
         {org.roles.map((role) => {
-          const holders = role.holdings.filter((h) => h.isCurrent)
+          const holders = role.holdings.filter((h) => holdingIsCurrent(h))
+          const state = seatState(toSeatFacts(role))
+          // Deletable is a HISTORY question, not a fill question — a seat that
+          // anyone has ever occupied keeps its record.
           const deletable = role._count.assignments + role._count.holdings + role._count.memoryRecords === 0
           return (
             <Card key={role.id}>
@@ -219,8 +223,12 @@ export default async function AdminClubDetailPage({
                 </ul>
               )}
 
-              {holders.length === 0 && role.assignments.length === 0 && (
-                <p className="mb-3 text-sm text-text-3">Vacant — no current holder.</p>
+              {state !== "FILLED" && (
+                <p className="mb-3 text-sm text-text-3">
+                  {state === "INCOMING"
+                    ? "Vacant — no current holder; a successor is shadowing."
+                    : "Vacant — no current holder."}
+                </p>
               )}
 
               {/* Assign / transfer via the directory picker */}

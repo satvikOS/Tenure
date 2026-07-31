@@ -4,6 +4,8 @@ import { Archive } from "@/components/ui/icons"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { getUserContext, isOse, isOseDirector } from "@/lib/rbac"
+import { currentHolder, summariseSeats, toSeatFacts } from "@/lib/seats"
+import { seatFactsInclude } from "@/lib/seats-data"
 import { ShieldCheck } from "@/components/ui/icons"
 import { Card } from "@/components/ui/Card"
 import { PageHeader } from "@/components/ui/PageHeader"
@@ -26,35 +28,28 @@ async function loadOrgs(where: object) {
     where,
     orderBy: { name: "asc" },
     include: {
-      roles: {
-        include: {
-          assignments: {
-            where: { status: "ACTIVE" },
-            include: { user: { select: { name: true } } },
-          },
-          holdings: {
-            where: { isCurrent: true },
-            include: { person: { select: { name: true } } },
-          },
-        },
-      },
+      roles: { select: { name: true, scope: true, ...seatFactsInclude } },
     },
   })
 }
 
+/**
+ * Card numbers come straight from the canonical summariser, so a club shows the
+ * same fill here as it does in Admin and on its own handoff page.
+ *
+ * These are a single club's own seats, so archived clubs still report theirs —
+ * rule 4 excludes them from institution-wide aggregates, not from their own card.
+ */
 function statsFor(org: OrgWithRoles): ClubCardStats {
-  const presidentSeat = org.roles.find((r) => r.scope === "PRESIDENT")
-  const president =
-    presidentSeat?.holdings[0]?.person.name ?? presidentSeat?.assignments[0]?.user?.name
-  const boardSeats = org.roles.filter((r) => r.name !== "Member")
-  const filledSeats = boardSeats.filter(
-    (r) => r.holdings.length > 0 || r.assignments.length > 0
-  ).length
+  const facts = org.roles.map(toSeatFacts)
+  const summary = summariseSeats(facts)
+  const presidentIndex = org.roles.findIndex((r) => r.scope === "PRESIDENT")
   return {
-    filledSeats,
-    boardSeats: boardSeats.length,
-    vacancies: boardSeats.length - filledSeats,
-    president,
+    filledSeats: summary.filled,
+    boardSeats: summary.total,
+    incoming: summary.incoming,
+    vacancies: summary.vacant,
+    president: presidentIndex >= 0 ? currentHolder(facts[presidentIndex])?.name : undefined,
   }
 }
 

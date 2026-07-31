@@ -8,7 +8,7 @@ import { HBarChart } from "../HBarChart"
 import { DonutChart } from "../DonutChart"
 import { SankeyChart } from "../SankeyChart"
 import { RangeFilter, type RangeOption } from "../RangeFilter"
-import { MUTED_SERIES, slotColor } from "../palette"
+import { MUTED_SERIES, STATUS, slotColor } from "../palette"
 import { formatNumber } from "../format"
 import { bucketByMonth, startOfTerm } from "../timeseries"
 
@@ -46,7 +46,13 @@ export type ReportsAnalyticsProps = {
   decisions: { occurredAt: string; durationMs: number }[]
   eventDates: string[]
   memory: { type: string; createdAt: string }[]
-  roster: { category: string; filled: number; vacant: number }[]
+  /**
+   * One row per board-position category, already summarised by the canonical
+   * seat rules. The three counts are an exclusive partition of the category's
+   * seats — incoming is its own column and is never folded into filled — so the
+   * chart adds up to the "Filled seats" tile above it.
+   */
+  roster: { category: string; filled: number; incoming: number; vacant: number }[]
 }
 
 function cutoffFor(range: Range, now: Date): Date | null {
@@ -114,18 +120,21 @@ export function ReportsAnalytics({
     return { funnel, buckets, medianLabel, months, memoryData, memoryTotal }
   }, [range, approvals, decisions, eventDates, memory])
 
-  // Seat-allocation flow: each board-position category splits into filled and
-  // vacant seats — an honest two-layer Sankey straight from current roster data.
+  // Seat-allocation flow: each board-position category splits into filled,
+  // incoming and vacant — an honest three-layer Sankey straight from the
+  // canonical roster tally.
   const sankey = useMemo(() => {
     const nodes = [
       ...roster.map((r) => ({ id: `cat:${r.category}`, label: r.category })),
       { id: "filled", label: "Filled", color: slotColor(0) },
+      { id: "incoming", label: "Incoming", color: STATUS.info },
       { id: "vacant", label: "Vacant", color: MUTED_SERIES },
     ]
-    const links = roster.flatMap((r) => [
-      ...(r.filled > 0 ? [{ source: `cat:${r.category}`, target: "filled", value: r.filled }] : []),
-      ...(r.vacant > 0 ? [{ source: `cat:${r.category}`, target: "vacant", value: r.vacant }] : []),
-    ])
+    const links = roster.flatMap((r) =>
+      (["filled", "incoming", "vacant"] as const)
+        .filter((target) => r[target] > 0)
+        .map((target) => ({ source: `cat:${r.category}`, target, value: r[target] }))
+    )
     return { nodes, links }
   }, [roster])
 
@@ -181,11 +190,19 @@ export function ReportsAnalytics({
         </Card>
 
         <Card>
-          <CardHeader title="Roster fill by category" subtitle="Filled vs vacant board seats — current" />
+          <CardHeader
+            title="Roster fill by category"
+            subtitle="Every board seat today — filled, incoming or vacant"
+          />
           <BarChart
             categories={roster.map((r) => r.category)}
+            // Stacked: each column is that category's seat count, split three
+            // ways. A grouped chart would let the eye read filled+incoming as
+            // the staffed total, which is exactly the conflation being fixed.
+            stacked
             series={[
               { name: "Filled", values: roster.map((r) => r.filled), color: slotColor(0) },
+              { name: "Incoming", values: roster.map((r) => r.incoming), color: STATUS.info },
               { name: "Vacant", values: roster.map((r) => r.vacant), color: MUTED_SERIES },
             ]}
             formatValue={formatNumber}

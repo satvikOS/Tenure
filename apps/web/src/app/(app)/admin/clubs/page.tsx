@@ -4,6 +4,8 @@ import { Archive, ArchiveRestore, ArrowRight, Plus } from "@/components/ui/icons
 import { db } from "@/lib/db"
 import { requireAdminContext } from "@/lib/admin/guard"
 import { hasCapability } from "@/lib/admin/capabilities"
+import { summariseSeats, toSeatFacts } from "@/lib/seats"
+import { seatFactsInclude } from "@/lib/seats-data"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { Badge } from "@/components/ui/Badge"
 import { Avatar } from "@/components/ui/Avatar"
@@ -40,26 +42,15 @@ export default async function AdminClubsPage() {
     where: { institutionId },
     orderBy: [{ status: "asc" }, { name: "asc" }],
     include: {
-      roles: {
-        select: {
-          name: true,
-          _count: { select: { assignments: true, holdings: true } },
-        },
-      },
+      roles: { select: { name: true, ...seatFactsInclude } },
     },
   })
 
   const active = clubs.filter((c) => c.status !== "ARCHIVED")
   const archived = clubs.filter((c) => c.status === "ARCHIVED")
 
-  function seats(club: (typeof clubs)[number]) {
-    const board = club.roles.filter((r) => r.name !== "Member")
-    const filled = board.filter((r) => r._count.assignments > 0 || r._count.holdings > 0).length
-    return { filled, total: board.length }
-  }
-
   const Row = ({ club }: { club: (typeof clubs)[number] }) => {
-    const s = seats(club)
+    const s = summariseSeats(club.roles.map(toSeatFacts))
     return (
       <li className="flex items-center gap-4 px-5 py-3.5">
         <Avatar name={club.name} imageUrl={club.logoUrl} size="md" />

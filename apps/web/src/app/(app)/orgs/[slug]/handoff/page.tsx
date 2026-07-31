@@ -4,6 +4,14 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canViewOrg, getUserContext } from "@/lib/rbac"
 import {
+  currentHolder,
+  incomingHolder,
+  isBoardSeat,
+  previousHolder,
+  summariseSeats,
+  toSeatFacts,
+} from "@/lib/seats"
+import {
   Users,
   CheckCircle,
   CalendarDays,
@@ -84,10 +92,12 @@ export default async function HandoffPage({
     }),
   ])
 
-  const seats = org.roles.filter((r) => r.name !== "Member")
-  const filledSeats = seats.filter(
-    (r) => r.holdings.some((h) => h.isCurrent) || r.assignments.some((a) => a.status === "ACTIVE")
-  ).length
+  // This page deliberately loads PAST holdings too (the predecessor is the whole
+  // point of a handoff packet), so it maps its wider payload through the same
+  // adapter rather than using the narrow count query. The rules re-check
+  // currentness, so the verdict is identical to every other surface.
+  const seats = org.roles.filter(isBoardSeat).map((role) => ({ role, facts: toSeatFacts(role) }))
+  const summary = summariseSeats(seats.map((s) => s.facts))
   const budgeted = budgetLines.reduce((s, l) => s + l.budgetedCents, 0)
   const actual = budgetLines.reduce((s, l) => s + l.actualCents, 0)
   const budgetPct = budgeted > 0 ? Math.round((actual / budgeted) * 100) : 0
@@ -104,7 +114,16 @@ export default async function HandoffPage({
 
       <div className="mb-5">
         <StatGrid>
-          <StatTile label="Board seats filled" value={`${filledSeats}/${seats.length}`} icon={Users} />
+          <StatTile
+            label="Board seats filled"
+            value={`${summary.filled}/${summary.total}`}
+            hint={
+              summary.incoming > 0
+                ? `${summary.vacant} vacant · ${summary.incoming} incoming`
+                : `${summary.vacant} vacant`
+            }
+            icon={Users}
+          />
           <StatTile
             label="Open approvals"
             value={pendingApprovals.length}
@@ -133,11 +152,10 @@ export default async function HandoffPage({
             <Handshake size={18} className="text-[--primary]" />
             <h2 className="text-[15px] font-semibold text-text-1">Seats &amp; handoff contacts</h2>
           </div>
-          {seats.map((role) => {
-            const current = role.holdings.find((h) => h.isCurrent)
-            const activeAssignee = role.assignments.find((a) => a.status === "ACTIVE")
-            const shadow = role.assignments.find((a) => a.status === "SHADOW")
-            const predecessor = role.holdings.find((h) => !h.isCurrent)
+          {seats.map(({ role, facts }) => {
+            const holder = currentHolder(facts)
+            const shadow = incomingHolder(facts)
+            const predecessor = previousHolder(facts)
             const knowledge = role._count.memoryRecords
             return (
               <Card key={role.id} padding="sm">
@@ -159,18 +177,18 @@ export default async function HandoffPage({
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <HandoffContact
                     role="Holds it now"
-                    name={current?.person.name ?? activeAssignee?.user.name ?? activeAssignee?.user.email ?? null}
-                    email={current?.person.email ?? activeAssignee?.user.email ?? null}
-                    term={current?.term}
+                    name={holder?.name ?? null}
+                    email={holder?.email ?? null}
+                    term={holder?.term ?? undefined}
                     orgName={org.shortName ?? org.name}
                     seat={role.name}
                     tone="current"
                   />
                   <HandoffContact
                     role="Held it before — ask them"
-                    name={predecessor?.person.name ?? null}
-                    email={predecessor?.person.email ?? null}
-                    term={predecessor?.term}
+                    name={predecessor?.name ?? null}
+                    email={predecessor?.email ?? null}
+                    term={predecessor?.term ?? undefined}
                     orgName={org.shortName ?? org.name}
                     seat={role.name}
                     tone="past"
@@ -179,7 +197,7 @@ export default async function HandoffPage({
                 {shadow && (
                   <p className="mt-2 flex items-center gap-1.5 text-[12px] text-text-3">
                     <Badge variant="info">Incoming</Badge>
-                    {shadow.user.name ?? shadow.user.email} is shadowing this seat
+                    {shadow.name} is shadowing this seat
                   </p>
                 )}
               </Card>

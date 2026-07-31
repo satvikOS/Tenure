@@ -12,6 +12,8 @@ import {
 import { db } from "@/lib/db"
 import { requireAdminContext } from "@/lib/admin/guard"
 import { CAPABILITIES, capabilitiesForRole } from "@/lib/admin/capabilities"
+import { summariseSeats } from "@/lib/seats"
+import { institutionSeatsWhere, loadSeatFacts } from "@/lib/seats-data"
 import { StatGrid, StatTile, BentoGrid, BentoTile } from "@/components/ui/Bento"
 import { Badge } from "@/components/ui/Badge"
 import { DonutChart, slotColor, STATUS, REFERENCE } from "@/components/charts"
@@ -30,10 +32,7 @@ export default async function AdminOverviewPage() {
   const [
     activeClubs,
     archivedClubs,
-    filledSeats,
-    vacantSeats,
-    filledRoles,
-    shadowRoles,
+    seatFacts,
     pendingApprovals,
     approvalTrend,
     people,
@@ -41,37 +40,10 @@ export default async function AdminOverviewPage() {
   ] = await Promise.all([
       db.organization.count({ where: { institutionId, status: "ACTIVE" } }),
       db.organization.count({ where: { institutionId, status: "ARCHIVED" } }),
-      db.roleAssignment.count({
-        where: { status: "ACTIVE", role: { organization: { institutionId } } },
-      }),
-      db.role.count({
-        where: {
-          organization: { institutionId },
-          name: { not: "Member" },
-          assignments: { none: { status: { in: ["ACTIVE", "SHADOW"] } } },
-          holdings: { none: { isCurrent: true } },
-        },
-      }),
-      // Seats with an active holder (assignment or current holding).
-      db.role.count({
-        where: {
-          organization: { institutionId },
-          name: { not: "Member" },
-          OR: [
-            { assignments: { some: { status: "ACTIVE" } } },
-            { holdings: { some: { isCurrent: true } } },
-          ],
-        },
-      }),
-      // Seats with an incoming (shadow) successor and no active holder yet.
-      db.role.count({
-        where: {
-          organization: { institutionId },
-          name: { not: "Member" },
-          assignments: { some: { status: "SHADOW" }, none: { status: "ACTIVE" } },
-          holdings: { none: { isCurrent: true } },
-        },
-      }),
+      // The tile and the donut used to be four separate counting rules, which is
+      // how the same institution reported two different fill figures on one
+      // screen. Both now read one canonical summary.
+      loadSeatFacts(institutionSeatsWhere(institutionId)),
       db.approvalRequest.count({
         where: { institutionId, status: { in: ["PENDING_PRESIDENT", "PENDING_OSE"] } },
       }),
@@ -91,13 +63,12 @@ export default async function AdminOverviewPage() {
   const caps = capabilitiesForRole(role)
 
   // Seat-fill breakdown for the donut, and a pending-approvals volume trend.
-  const seatTotal = filledRoles + shadowRoles + vacantSeats
+  const seats = summariseSeats(seatFacts)
   const seatData = [
-    { label: "Filled", value: filledRoles, color: slotColor(0) },
-    { label: "Incoming", value: shadowRoles, color: STATUS.info },
-    { label: "Vacant", value: vacantSeats, color: REFERENCE },
+    { label: "Filled", value: seats.filled, color: slotColor(0) },
+    { label: "Incoming", value: seats.incoming, color: STATUS.info },
+    { label: "Vacant", value: seats.vacant, color: REFERENCE },
   ]
-  const fillPct = seatTotal > 0 ? Math.round((filledRoles / seatTotal) * 100) : 0
   const approvalSpark = bucketByWeek(approvalTrend.map((a) => a.createdAt), TREND_WEEKS, now)
 
   const actorIds = [...new Set(recentAudit.map((a) => a.actorId).filter((x): x is string => !!x))]
@@ -116,8 +87,8 @@ export default async function AdminOverviewPage() {
         <StatTile label="Active clubs" value={activeClubs} icon={Building2} href="/admin/clubs" />
         <StatTile
           label="Filled seats"
-          value={filledSeats}
-          hint={`${vacantSeats} vacant`}
+          value={`${seats.filled}/${seats.total}`}
+          hint={`${seats.vacant} vacant · ${seats.incoming} incoming`}
           icon={Users}
         />
         <StatTile
@@ -141,7 +112,7 @@ export default async function AdminOverviewPage() {
           <h2 className="mb-4 font-display text-base font-semibold text-text-1">Seat fill</h2>
           <DonutChart
             data={seatData}
-            centerValue={`${fillPct}%`}
+            centerValue={`${seats.fillPct}%`}
             centerLabel="filled"
           />
         </BentoTile>

@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canViewOrg, getUserContext } from "@/lib/rbac"
+import { countCurrentHolders, summariseSeats } from "@/lib/seats"
+import { loadSeatFacts } from "@/lib/seats-data"
 import {
   CalendarCheck,
   CheckCircle,
@@ -39,7 +41,7 @@ export default async function ImpactPage({
   const ctx = await getUserContext(session.user.id)
   if (!canViewOrg(ctx, org)) notFound()
 
-  const [eventsPublished, approvalGroups, budgetLines, memoryCards, activeMembers, collaborations] =
+  const [eventsPublished, approvalGroups, budgetLines, memoryCards, seatFacts, collaborations] =
     await Promise.all([
       db.event.count({ where: { organizationId: org.id, status: "PUBLISHED" } }),
       db.approvalRequest.groupBy({
@@ -52,11 +54,16 @@ export default async function ImpactPage({
         select: { budgetedCents: true, actualCents: true },
       }),
       db.memoryRecord.count({ where: { organizationId: org.id, isArchived: false } }),
-      db.roleAssignment.count({
-        where: { status: "ACTIVE", role: { organizationId: org.id } },
-      }),
+      // A club's own page reports its own seats, so no archive filter here.
+      loadSeatFacts({ organizationId: org.id }),
       db.collabInterest.count({ where: { organizationId: org.id, status: "APPROVED" } }),
     ])
+
+  // "Active members" is a PEOPLE metric, so it counts humans, not rows: the
+  // person who has both a roster holding and a login account is one member, and
+  // general members count even though the Member bucket is not a board seat.
+  const activeMembers = countCurrentHolders(seatFacts)
+  const seats = summariseSeats(seatFacts)
 
   const countBy = Object.fromEntries(approvalGroups.map((g) => [g.status, g._count._all]))
   const approved = countBy["APPROVED"] ?? 0
@@ -156,6 +163,10 @@ export default async function ImpactPage({
               <dd className="mt-0.5 flex items-center gap-1.5 text-lead font-semibold text-text-1">
                 <Users size={16} className="text-text-3" /> {activeMembers}
               </dd>
+              {/* People and seats are different questions, so both are stated. */}
+              <p className="mt-0.5 text-meta text-text-3">
+                {seats.filled}/{seats.total} board seats filled
+              </p>
             </div>
             <div>
               <dt className="micro-label">Collaborations</dt>

@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { canManageOrg, canManageRoster, canViewOrg, getUserContext } from "@/lib/rbac"
+import { holdingIsCurrent, seatState, toSeatFacts } from "@/lib/seats"
 import { storageConfigured } from "@/lib/s3"
 import { Card, CardHeader } from "@/components/ui/Card"
 import { AssignmentBadge, Badge } from "@/components/ui/Badge"
@@ -122,9 +123,13 @@ export default async function MembersPage({
 
       <div className="space-y-4">
         {current.map((role) => {
-          const holders = role.holdings.filter((h) => h.isCurrent)
-          const past = role.holdings.filter((h) => !h.isCurrent)
-          const isVacant = holders.length === 0 && role.assignments.length === 0
+          // `isCurrent` alone is not enough: a row left flagged current from a
+          // prior term is history, and belongs under "Previously held by".
+          const holders = role.holdings.filter((h) => holdingIsCurrent(h))
+          const past = role.holdings.filter((h) => !holdingIsCurrent(h))
+          // A shadow successor is not a holder, so this seat reads INCOMING —
+          // it used to read as quietly filled.
+          const state = seatState(toSeatFacts(role))
 
           return (
           <Card key={role.id}>
@@ -137,7 +142,8 @@ export default async function MembersPage({
               }
               action={
                 <div className="flex items-center gap-2">
-                  {isVacant && <Badge variant="warning">{VACANT_LABEL}</Badge>}
+                  {state === "VACANT" && <Badge variant="warning">{VACANT_LABEL}</Badge>}
+                  {state === "INCOMING" && <Badge variant="info">Successor incoming</Badge>}
                   <Badge variant="info">{role.scope.toLowerCase()}</Badge>
                 </div>
               }
@@ -167,9 +173,9 @@ export default async function MembersPage({
               </ul>
             )}
 
-            {isVacant && (
+            {state !== "FILLED" && (
               <p className="mb-3 text-sm text-text-3">
-                {VACANT_LABEL}
+                {state === "INCOMING" ? `${VACANT_LABEL} — successor shadowing` : VACANT_LABEL}
                 {role.vacancyNote ? ` — ${role.vacancyNote}` : ""}
               </p>
             )}
