@@ -153,3 +153,22 @@ variable "attach_custom_domain" {
   # the first moved without the second, so they must not be split.
   default = true
 }
+
+variable "platform_reconcile_secret" {
+  description = <<-EOT
+    Bearer token the Tenure engine presents when delivering a signed deployment
+    manifest to this cell.
+
+    The identical value must be configured on the engine. It authenticates the
+    caller; the artifact's own digest authenticates the content, and neither
+    substitutes for the other — a stolen token still cannot make this cell apply
+    an altered manifest, because the digest is recomputed here before any row is
+    written.
+
+    Empty means this cell accepts no deployments: the endpoint returns 503 and
+    names the variable, rather than 401-ing as though the caller were at fault.
+  EOT
+  type        = string
+  default     = ""
+  sensitive   = true
+}

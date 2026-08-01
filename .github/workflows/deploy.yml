@@ -176,6 +176,10 @@ jobs:
           # generates one, which works but is only readable from the AWS console.
           # Set the repository secret to a phrase you can hand to a pilot user.
           TF_VAR_dev_login_passphrase: ${{ secrets.DEV_LOGIN_PASSPHRASE }}
+          # Bearer token the Tenure engine presents when delivering a signed
+          # deployment manifest. Empty means this cell accepts none, and the
+          # endpoint says so rather than 401-ing as though the caller were wrong.
+          TF_VAR_platform_reconcile_secret: ${{ secrets.PLATFORM_RECONCILE_SECRET }}
         run: |
           terraform apply \
             -var="image_tag=$IMAGE_TAG" \
