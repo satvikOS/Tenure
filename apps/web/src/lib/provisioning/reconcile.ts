@@ -1,4 +1,3 @@
-import { buildAuditRecord } from "@tenure/audit"
 import type { Prisma } from "@prisma/client"
 
 /**
@@ -175,44 +174,32 @@ export async function reconcile(db: ReconcileClient, input: ReconcileInput): Pro
     if (!existingMembership) changes.push("granted director rights to the administrator")
 
     // The record that a tenant was materialised here, and by which artifact.
-    //
-    // Built through @tenure/audit rather than hand-assembled: that validates the
-    // required fields, refuses a DENY with no reason, and redacts sensitive
-    // metadata. 34 of 35 audit writes in this application skip all of it
-    // (subsystem-paths.md §3) and a ratchet stops a 35th being added — this is
-    // a new write, so it goes through the package, which is where they are all
-    // heading anyway.
-    //
     // Inside the transaction, so it cannot exist for a reconcile that rolled back.
-    const record = buildAuditRecord({
-      tenantId: institution.id,
-      actor: { principalId: user.id },
-      action: "Tenant.Reconciled",
-      resourceType: "Institution",
-      resourceId: institution.id,
-      outcome: "ALLOW",
-      occurredAt: input.at,
-      metadata: {
-        manifestDigest: manifest.manifestDigest,
-        deploymentDigest: manifest.digest,
-        configurationChecksum: manifest.configurationChecksum,
-        modules: [...manifest.modules],
-        publishedBy: manifest.createdBy,
-        publishedAt: manifest.createdAt,
-        changes,
-      },
-    })
-
+    //
+    // In the engine repository this is built through `@tenure/audit`, which
+    // validates the required fields, refuses a DENY with no reason, and redacts
+    // sensitive metadata. That package does not exist here, so this write is
+    // hand-assembled like the ~34 others in this application — a known gap,
+    // named rather than hidden. Porting the audit package is the fix, and it is
+    // a larger change than adding an endpoint; doing it inside this PR would
+    // bury a cross-cutting refactor in a feature.
     await tx.auditEvent.create({
       data: {
-        institutionId: record.tenantId,
-        actorId: record.actorId,
-        action: record.action,
-        resourceType: record.resourceType,
-        resourceId: record.resourceId ?? undefined,
-        outcome: record.outcome,
-        reason: record.reason ?? undefined,
-        metadata: record.metadata as Prisma.InputJsonValue,
+        institutionId: institution.id,
+        actorId: user.id,
+        action: "Tenant.Reconciled",
+        resourceType: "Institution",
+        resourceId: institution.id,
+        outcome: "ALLOW",
+        metadata: {
+          manifestDigest: manifest.manifestDigest,
+          deploymentDigest: manifest.digest,
+          configurationChecksum: manifest.configurationChecksum,
+          modules: [...manifest.modules],
+          publishedBy: manifest.createdBy,
+          publishedAt: manifest.createdAt,
+          changes,
+        } as Prisma.InputJsonValue,
       },
     })
 
