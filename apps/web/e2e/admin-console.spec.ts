@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test"
 import { signIn } from "./support/auth"
 import { RUN_ID } from "./run-id"
+import { directoryPeople, searchTerm, type RosterPerson } from "./roster-fixture"
+
+/** Names come from data now, so anything used in a RegExp must be escaped. */
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[]\]/g, "\$&")
+const removeRe = (p: RosterPerson) => new RegExp(`Remove ${escapeRe(p.name)}`)
 
 /** The dedicated admin console: gating, and assign / transfer / remove roles
  *  through the University directory picker. */
@@ -33,25 +38,28 @@ test.describe("admin console", () => {
     await page.getByRole("button", { name: "Charter club" }).click()
     await page.waitForURL(/\/admin\/clubs\/[a-z0-9-]+$/)
 
-    // Assign Arjun (a real directory person) to the first seat.
-    await page.getByPlaceholder(SEARCH).first().fill("amoghe")
-    await page.getByRole("button", { name: /amoghe@simon/ }).first().click()
+    // Two directory people taken from the seeded roster. Naming real students
+    // here coupled the suite to one institution and kept their addresses in a
+    // public repository; what is under test is assign-then-transfer, not who.
+    const [first, second] = await directoryPeople(2)
+    await page.getByPlaceholder(SEARCH).first().fill(searchTerm(first))
+    await page.getByRole("button", { name: new RegExp(escapeRe(first.email), "i") }).first().click()
     await page.getByRole("button", { name: "Assign", exact: true }).first().click()
-    await expect(page.getByRole("button", { name: /Remove Arjun Prashant Moghe/ })).toBeVisible()
+    await expect(page.getByRole("button", { name: removeRe(first) })).toBeVisible()
 
     // Transfer the seat to a different person.
     await page.getByRole("button", { name: "Clear selection" }).first().click()
-    await page.getByPlaceholder(SEARCH).first().fill("esquivel")
-    await page.getByRole("button", { name: /esquivel/i }).first().click()
+    await page.getByPlaceholder(SEARCH).first().fill(searchTerm(second))
+    await page.getByRole("button", { name: new RegExp(escapeRe(second.email), "i") }).first().click()
     await page.getByRole("button", { name: /Transfer to this person/ }).first().click()
     await page.getByRole("dialog").getByRole("button", { name: "Transfer seat" }).click()
-    await expect(page.getByRole("button", { name: /Remove Jaime Esquivel/ })).toBeVisible()
-    await expect(page.getByRole("button", { name: /Remove Arjun Prashant Moghe/ })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: removeRe(second) })).toBeVisible()
+    await expect(page.getByRole("button", { name: removeRe(first) })).toHaveCount(0)
 
     // Remove the current holder.
-    await page.getByRole("button", { name: /Remove Jaime Esquivel/ }).first().click()
+    await page.getByRole("button", { name: removeRe(second) }).first().click()
     await page.getByRole("dialog").getByRole("button", { name: "Remove from seat" }).click()
-    await expect(page.getByRole("button", { name: /Remove Jaime Esquivel/ })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: removeRe(second) })).toHaveCount(0)
   })
 
   test("admin can force-decide any approval, overriding the gates", async ({ page }) => {

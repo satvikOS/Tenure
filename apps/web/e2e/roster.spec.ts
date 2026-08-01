@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test"
 import { signIn } from "./support/auth"
+import { seatWithPredecessor } from "./roster-fixture"
 
 /** 2026-2027 OSE roster: real board members, advisors, vacancies, predecessors. */
 
@@ -69,8 +70,11 @@ test.describe("club roster", () => {
     await page.goto("/orgs/simon-consulting-club/members")
 
     await expect(page.getByText("Previously held by").first()).toBeVisible()
-    // Last year's VP Finance & Operations
-    await expect(page.getByText("Jaime Esquivel")).toBeVisible()
+    // Whoever the roster records as last year's holder, not a name written down
+    // here: the assertion is that the predecessor reaches the page, and hard-coding
+    // one made the suite depend on a real student being published in this repo.
+    const { predecessor } = await seatWithPredecessor("simon-consulting-club")
+    await expect(page.getByText(predecessor.name).first()).toBeVisible()
   })
 
   test("Director can filter clubs by category", async ({ page }) => {
