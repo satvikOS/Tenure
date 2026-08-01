@@ -172,3 +172,22 @@ variable "platform_reconcile_secret" {
   default     = ""
   sensitive   = true
 }
+
+variable "schema_version" {
+  description = <<-EOT
+    The tenant schema version this cell is at.
+
+    Must match the version the Tenure engine stamps into a deployment manifest,
+    or `/api/platform/reconcile` refuses the artifact rather than applying it
+    across a schema boundary. Bump both together when a migration lands that a
+    provisioned tenant must be at.
+
+    The engine's value lives in `infrastructure/studio/variables.tf` in
+    satvikOS/Tenure-Parent. Two constants that must agree is not a good design;
+    it is the honest interim until the engine reads the cell's migration state
+    directly, and stating it here is better than discovering the mismatch as a
+    422 during a provisioning run — which is exactly how this was found.
+  EOT
+  type        = string
+  default     = "2026.07.31"
+}
