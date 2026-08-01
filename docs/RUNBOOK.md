@@ -101,6 +101,36 @@ production it refuses:
 
 `.env.example` documents every variable for local setup.
 
+## The roster is no longer in the repository
+
+`apps/web/scripts/roster-data.mjs` and the OSE spreadsheets it was extracted from
+are gitignored. They hold 172 named students and advisors with their university
+addresses, and while this repository is public `raw.githubusercontent.com` served
+them to anyone — the data was as private as a repository setting.
+
+`scripts/roster-source.mjs` resolves, in order: `ROSTER_FILE`, then
+`scripts/roster-data.mjs` if present, then the committed synthetic fixture
+`scripts/roster-data.sample.mjs`. So:
+
+- **Local development and CI** fall through to the fixture: same 26 clubs, 209
+  seats, codes, vacancies and predecessor links, every address `@example.invalid`.
+  Nothing needs configuring.
+- **Seeding a real institution** needs the real file:
+  ```sh
+  ROSTER_FILE=/path/to/roster-data.mjs node scripts/seed.mjs
+  ```
+  Without it, seeding refuses in production rather than putting invented people
+  on real board seats. That refusal is the intended behaviour, not a fault.
+
+Keep the real roster somewhere the repository is not — an operator machine or a
+private bucket. Regenerate the fixture after a roster change with
+`node scripts/anonymize-roster.mjs > scripts/roster-data.sample.mjs`.
+
+**History still contains the removed files.** Untracking stops `main` serving
+them; it does not rewrite past commits, and anyone who cloned already has them.
+Making the repository private is the only thing that closes that, and it needs
+the data owner's involvement.
+
 ## The interim sign-in gate
 
 Until Okta is live, passwordless sign-in sits behind a shared passphrase. It

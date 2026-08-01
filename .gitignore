@@ -53,6 +53,20 @@ next-env.d.ts
 # ad-hoc local debugging scripts (smoke.local.mjs, probe.local.mjs, ...)
 *.local.mjs
 
+# real roster data — 172 named students and advisors with their university
+# addresses. This repository is public, so anything committed here is served by
+# raw.githubusercontent.com to anyone; that data was exactly as private as a
+# repository setting, which is not a control anybody chose.
+#
+# apps/web/scripts/roster-source.mjs resolves ROSTER_FILE, then this file, then
+# the committed synthetic fixture — so removing it from source needs no code
+# change. Keep your local copy; supply it to a real seed with ROSTER_FILE.
+apps/web/scripts/roster-data.mjs
+
+# the OSE spreadsheets those names were extracted from
+Tier1/*.xlsx
+Clubs and Board Position.xlsx
+
 # terraform — provider plugins (700MB+) and local state, from running
 # `terraform validate` outside CI. The lock file is ignored on purpose too:
 # CI pins terraform 1.9 and resolves providers itself, so a lock written by a
