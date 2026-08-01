@@ -192,6 +192,14 @@ resource "aws_ecs_task_definition" "app" {
 
         # Surfaced by /api/health so CI can verify which build is serving
         { name = "IMAGE_TAG", value = var.image_tag },
+        # The schema this cell is at, compared against every deployment
+        # manifest before it is applied. An engine ahead of this cell would
+        # reference columns that do not exist; one behind would omit
+        # configuration the cell now requires. Unset reads as "unpinned", which
+        # matches no engine and refuses every artifact — safe, and silent about
+        # why until someone reads the refusal.
+        { name = "SCHEMA_VERSION", value = var.schema_version },
+
         # Optional: enables AI answer synthesis on /search when non-empty
         { name = "ANTHROPIC_API_KEY", value = var.anthropic_api_key },
       ]
