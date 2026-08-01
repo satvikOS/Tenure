@@ -34,6 +34,24 @@ const nextConfig: NextConfig = {
 
   poweredByHeader: false,
 
+  // sanitize-html (the document-HTML sanitizer, see api/documents/_lib/sanitize.ts)
+  // is CommonJS but its parser chain — htmlparser2 and the dom* / entities
+  // packages under it — ships ESM-only. Two things then depend on someone
+  // transpiling it: `require(esm)` only exists from Node 20.19, and the runtime
+  // image is `node:20-alpine` (a floating tag); and next/jest derives its
+  // transformIgnorePatterns from this list, so without it the sanitizer's unit
+  // tests cannot even load the module they test. Listing the chain here settles
+  // both. Keep in sync with sanitize-html's ESM dependencies.
+  transpilePackages: [
+    "sanitize-html",
+    "htmlparser2",
+    "domhandler",
+    "domutils",
+    "dom-serializer",
+    "domelementtype",
+    "entities",
+  ],
+
   experimental: {
     // Server Actions default to a 1 MB request-body cap, which silently
     // contradicts the advertised 15 MB document / 25 MB attachment uploads.

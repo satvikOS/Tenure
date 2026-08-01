@@ -15,6 +15,7 @@ import mammoth from "mammoth"
 import * as XLSX from "xlsx"
 import JSZip from "jszip"
 import { documentsBucket, documentViewUrl, getDocumentBytes } from "@/lib/s3"
+import { sanitizeDocumentHtml } from "./sanitize"
 import type { DocContent, PptxSlide, SheetData } from "@/components/documents/types"
 
 /** Existing native-parse ceiling — anything larger is offered as a download. */
@@ -76,7 +77,12 @@ export async function buildDocContent(opts: {
 
     if (is(mime, DOCX)) {
       const { value } = await mammoth.convertToHtml({ buffer: bytes })
-      return { kind: "html", html: value }
+      // `html` is the ONE kind the viewer injects with dangerouslySetInnerHTML,
+      // and the bytes behind it were uploaded by any active club member. Sanitize
+      // here, at the single producer, so no future caller of buildDocContent can
+      // reach the raw conversion. The other parsed kinds — sheets / text / pptx —
+      // are rendered as React text nodes, which escape by construction.
+      return { kind: "html", html: sanitizeDocumentHtml(value) }
     }
 
     if (isSheetMime(mime)) {
