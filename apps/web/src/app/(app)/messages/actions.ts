@@ -10,6 +10,7 @@ import { canPostToConversation } from "@/lib/messaging"
 import { getAllowedRecipients } from "@/lib/messaging-data"
 import { notifyUsers } from "@/lib/notify"
 import { storageConfigured, uploadDocument } from "@/lib/s3"
+import { canViewApproval } from "@/lib/approvals"
 
 /** Store any files attached to a message. No-op without object storage. */
 async function saveAttachments(messageId: string, formData: FormData) {
@@ -214,6 +215,35 @@ export async function openApprovalThread(formData: FormData) {
 
     const approval = await db.approvalRequest.findUnique({ where: { id: approvalId } })
     if (!approval) throw new Error("Request not found")
+
+    // Authorize before anything is created or joined.
+    //
+    // A Server Action compiles to a POST endpoint addressed by a stable action
+    // id, so reaching this code never required rendering the approval page that
+    // links to it — the form's placement on a gated page bounds who sees the
+    // button, not who can call the action. Without this check any signed-in
+    // user who supplied an approval id was enrolled as a participant in that
+    // request's discussion thread, and enrollment is a write: it persists, and
+    // it grants continuing read access to everything said afterwards.
+    //
+    // The denial is the same message and shape as a missing request, so calling
+    // this with an id cannot be used to learn which ids exist.
+    const ctx = await getUserContext(userId)
+    if (!canViewApproval(ctx, approval)) {
+      await db.auditEvent.create({
+        data: {
+          institutionId: approval.institutionId,
+          organizationId: approval.organizationId,
+          actorId: userId,
+          action: "Approval.OpenThread",
+          resourceType: "ApprovalRequest",
+          resourceId: approval.id,
+          outcome: "DENY",
+          reason: "Not permitted to view this request",
+        },
+      })
+      throw new Error("Request not found")
+    }
 
     let thread = await db.conversation.findUnique({ where: { approvalId } })
     thread ??= await db.conversation.create({

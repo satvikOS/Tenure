@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { canViewOrg, getUserContext } from "@/lib/rbac"
+import { getUserContext } from "@/lib/rbac"
 import { withTenantScope } from "@/lib/tenant-scope"
 import { availableActions, ACTION_LABELS } from "@/lib/approvals"
 import { formatCents } from "@/lib/finance"
@@ -14,6 +14,7 @@ import { ApprovalBadge, SeverityBadge } from "@/components/ui/Badge"
 import { ConfirmInlineSubmit } from "@/components/ui/ConfirmInlineSubmit"
 import { actOnApproval } from "../actions"
 import { openApprovalThread } from "../../messages/actions"
+import { canViewApproval } from "@/lib/approvals"
 
 export const dynamic = "force-dynamic"
 
@@ -38,10 +39,7 @@ export default async function ApprovalDetailPage({
     if (!approval) notFound()
 
     const ctx = await getUserContext(session.user.id)
-    const canView =
-      ctx.userId === approval.submittedById ||
-      canViewOrg(ctx, { id: approval.organizationId, institutionId: approval.institutionId })
-    if (!canView) notFound()
+    if (!canViewApproval(ctx, approval)) notFound()
 
     // Delegation-aware: a backup approver sees (and can use) the gates they hold
     // on someone's behalf, not just their own.

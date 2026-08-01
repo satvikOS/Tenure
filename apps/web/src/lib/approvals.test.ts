@@ -1,6 +1,7 @@
 import type { ApprovalStatus } from "@prisma/client"
 import {
   availableActions,
+  canViewApproval,
   isConcurrentDecision,
   nextStatus,
   type ApprovalView,
@@ -109,5 +110,52 @@ describe("isConcurrentDecision", () => {
     expect(isConcurrentDecision(undefined)).toBe(false)
     expect(isConcurrentDecision("P2025")).toBe(false)
     expect(isConcurrentDecision({ code: 2025 })).toBe(false)
+  })
+})
+
+describe("canViewApproval", () => {
+  // The rule openApprovalThread was missing entirely: a signed-in user who
+  // supplied any approval id was enrolled in that request's discussion thread.
+  it("lets the requester see their own request", () => {
+    expect(canViewApproval(ctx("vp_user"), approval("PENDING_PRESIDENT"))).toBe(true)
+  })
+
+  it("lets a member of the owning club see it", () => {
+    const member = ctx("someone", {
+      orgRoles: [
+        { organizationId: ORG, roleId: "r_m", roleName: "Member", scope: "FUNCTIONAL", status: "ACTIVE" },
+      ],
+    })
+    expect(canViewApproval(member, approval("PENDING_OSE"))).toBe(true)
+  })
+
+  it("refuses an unaffiliated signed-in user", () => {
+    expect(canViewApproval(ctx("stranger"), approval("PENDING_OSE"))).toBe(false)
+  })
+
+  it("lets OSE see it, which is what the oversight role is for", () => {
+    const ose = ctx("dir", { institutionRoles: [{ institutionId: INST, role: "OSE_DIRECTOR" }] })
+    expect(canViewApproval(ose, approval("PENDING_OSE"))).toBe(true)
+  })
+
+  // An ended seat stops conferring visibility; the requester exception does not
+  // depend on a seat, so a departed submitter still sees their own request.
+  it("refuses a former member whose seat is ALUMNI", () => {
+    const alum = ctx("alum", {
+      orgRoles: [
+        { organizationId: ORG, roleId: "r_a", roleName: "President", scope: "PRESIDENT", status: "ALUMNI" },
+      ],
+    })
+    expect(canViewApproval(alum, approval("PENDING_OSE"))).toBe(false)
+    expect(canViewApproval(alum, approval("PENDING_OSE", "alum"))).toBe(true)
+  })
+
+  it("refuses a member of a DIFFERENT club in the same institution", () => {
+    const other = ctx("other_club", {
+      orgRoles: [
+        { organizationId: "org_2", roleId: "r_p2", roleName: "President", scope: "PRESIDENT", status: "ACTIVE" },
+      ],
+    })
+    expect(canViewApproval(other, approval("PENDING_OSE"))).toBe(false)
   })
 })

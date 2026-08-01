@@ -1,5 +1,5 @@
 import type { ApprovalStatus } from "@prisma/client"
-import { canManageRoster, isOse, type UserContext } from "@/lib/rbac"
+import { canManageRoster, canViewOrg, isOse, type UserContext } from "@/lib/rbac"
 
 /**
  * Approval state machine (blueprint §Approvals):
@@ -27,6 +27,28 @@ export interface ApprovalView {
   submittedById: string
   organizationId: string
   institutionId: string
+}
+
+/**
+ * May this actor see this request at all?
+ *
+ * Separate from `availableActions`, which answers what someone who can already
+ * see a request may do to it. Visibility is its own question and every entry
+ * point has to ask it — the approval page asked inline, and
+ * `openApprovalThread` did not ask at all, so a signed-in user who supplied any
+ * approval id was enrolled in that request's discussion thread. One exported
+ * rule, so a new entry point inherits the answer instead of reimplementing it.
+ *
+ * The requester is included explicitly: someone who submits a request from a
+ * club they have since left keeps sight of their own request without regaining
+ * anything else about the club.
+ */
+export function canViewApproval(ctx: UserContext, approval: ApprovalView): boolean {
+  if (ctx.userId === approval.submittedById) return true
+  return canViewOrg(ctx, {
+    id: approval.organizationId,
+    institutionId: approval.institutionId,
+  })
 }
 
 /** Role the actor plays for THIS request. */
