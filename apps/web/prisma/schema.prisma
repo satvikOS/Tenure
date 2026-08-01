@@ -608,7 +608,11 @@ enum MemoryRecordType {
   VENDOR      // Vendor deal, contract, or relationship
   LESSON      // Hard-won insight for the successor
   THREAD      // Ongoing initiative or open question
-  CREDENTIAL  // Login / access info — stored encrypted
+  // RETIRED — no longer creatable (src/lib/schemas/knowledge-card.ts). The value
+  // stays so existing rows read; content is an unencrypted Json column and always
+  // was. The comment here previously said "stored encrypted", which described a
+  // control that was never written.
+  CREDENTIAL  // Login / access info — NOT encrypted; retired in favour of a vault
   DEADLINE    // Compliance or recurring deadline
 }
 

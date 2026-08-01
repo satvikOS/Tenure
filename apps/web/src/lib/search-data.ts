@@ -31,7 +31,12 @@ export async function loadSearchCorpus(userId: string): Promise<SearchDoc[]> {
 
   const [memory, documents, approvals, events] = await Promise.all([
     db.memoryRecord.findMany({
-      where: { organizationId: { in: orgIds }, isArchived: false },
+      // CREDENTIAL is retired and its body is withheld in the UI because it was
+      // stored unencrypted (src/lib/schemas/knowledge-card.ts). Indexing it here
+      // would hand the same content back through search results, which is the
+      // same disclosure by a different route — and searchable is worse, because
+      // it does not require knowing the card exists.
+      where: { organizationId: { in: orgIds }, isArchived: false, type: { not: "CREDENTIAL" } },
       select: { id: true, title: true, content: true, roleId: true, organizationId: true },
     }),
     db.document.findMany({

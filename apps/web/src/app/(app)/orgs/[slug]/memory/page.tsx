@@ -20,6 +20,7 @@ import { OrgTabs } from "@/components/OrgTabs"
 import { DraftAssist } from "@/components/DraftAssist"
 import { aiConfigured } from "@/lib/ai"
 import { createMemoryCard } from "./actions"
+import { CreatableCardTypeEnum, isRetiredCardType } from "@/lib/schemas/knowledge-card"
 
 export const dynamic = "force-dynamic"
 
@@ -30,7 +31,9 @@ const TYPE_META = {
   VENDOR:     { label: "Vendor",   icon: Store,      hint: "Deal, contract, or relationship" },
   LESSON:     { label: "Lesson",   icon: Lightbulb,  hint: "Hard-won insight for your successor" },
   THREAD:     { label: "Thread",   icon: ListTodo,   hint: "Ongoing initiative or open question" },
-  CREDENTIAL: { label: "Credential", icon: KeyRound, hint: "Login or access info" },
+  // Retired: still rendered so existing cards keep a label, never offered for
+  // creation, and its body is withheld below.
+  CREDENTIAL: { label: "Credential (retired)", icon: KeyRound, hint: "Move this into a vault" },
   DEADLINE:   { label: "Deadline", icon: Timer,      hint: "Compliance or recurring deadline" },
 } as const
 
@@ -97,9 +100,9 @@ export default async function MemoryPage({
                       required
                       className="h-9 rounded border border-border px-2 text-sm text-text-1 bg-surface"
                     >
-                      {Object.entries(TYPE_META).map(([value, meta]) => (
+                      {CreatableCardTypeEnum.options.map((value) => (
                         <option key={value} value={value}>
-                          {meta.label}
+                          {TYPE_META[value].label}
                         </option>
                       ))}
                     </select>
@@ -166,9 +169,24 @@ export default async function MemoryPage({
                         {card.role ? `${card.role.name} seat` : meta.label}
                       </Badge>
                     </div>
-                    <p className="text-sm text-text-1 mt-2 whitespace-pre-wrap line-clamp-6">
-                      {body}
-                    </p>
+                    {isRetiredCardType(card.type) ? (
+                      // Withheld rather than shown. Whatever is in here was typed
+                      // into a shared, unencrypted, searchable field by someone
+                      // who was told the card was for "login or access info", so
+                      // the safe assumption is that it is a live secret. Printing
+                      // it to everyone who can read the club's memory is the harm;
+                      // the card is kept so the secret can be found and rotated.
+                      <p className="text-sm text-text-2 mt-2">
+                        This card was created when Tenure offered a “Credential” type. Its
+                        contents are withheld because they were stored unencrypted. Rotate
+                        whatever it unlocks, move the secret into a password manager, and
+                        record the operating context here as a Playbook.
+                      </p>
+                    ) : (
+                      <p className="text-sm text-text-1 mt-2 whitespace-pre-wrap line-clamp-6">
+                        {body}
+                      </p>
+                    )}
                     <p className="text-xs text-text-3 mt-3">
                       {card.authorId ? authors.get(card.authorId) : "Unknown"} ·{" "}
                       {card.updatedAt.toLocaleDateString("en-US", {

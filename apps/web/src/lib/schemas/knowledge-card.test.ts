@@ -1,4 +1,9 @@
-import { knowledgeCardSchema, KnowledgeCardTypeEnum } from "./knowledge-card"
+import {
+  CreatableCardTypeEnum,
+  isRetiredCardType,
+  knowledgeCardSchema,
+  KnowledgeCardTypeEnum,
+} from "./knowledge-card"
 
 describe("knowledgeCardSchema", () => {
   it("validates a valid contact card", () => {
@@ -41,7 +46,9 @@ describe("knowledgeCardSchema", () => {
   })
 
   it("accepts all valid card types", () => {
-    const types = KnowledgeCardTypeEnum.options
+    // The creatable set, not every value the column can hold: CREDENTIAL is
+    // retired and refused on purpose (see below).
+    const types = CreatableCardTypeEnum.options
     for (const type of types) {
       const result = knowledgeCardSchema.safeParse({ title: "Test", type, content: {} })
       expect(result.success).toBe(true)
@@ -70,5 +77,41 @@ describe("knowledgeCardSchema", () => {
       roleId: "not-a-cuid",
     })
     expect(withBadRole.success).toBe(false)
+  })
+})
+
+describe("the retired CREDENTIAL type", () => {
+  // MemoryRecord.content is an unencrypted Json column and any ACTIVE seat may
+  // write one, so a type inviting people to store "login or access info" was a
+  // shared plaintext password store. Creation is refused; the value survives so
+  // rows already written still read.
+  it("cannot be created", () => {
+    const result = knowledgeCardSchema.safeParse({
+      title: "Instagram login",
+      type: "CREDENTIAL",
+      content: { body: "user / hunter2" },
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("is absent from the creatable set but present in the stored set", () => {
+    expect(CreatableCardTypeEnum.options).not.toContain("CREDENTIAL")
+    expect(KnowledgeCardTypeEnum.options).toContain("CREDENTIAL")
+  })
+
+  it("every other type is still creatable", () => {
+    for (const type of KnowledgeCardTypeEnum.options) {
+      if (type === "CREDENTIAL") continue
+      const result = knowledgeCardSchema.safeParse({ title: "Test", type, content: {} })
+      expect(result.success).toBe(true)
+    }
+  })
+
+  it("is recognised as retired, and live types are not", () => {
+    expect(isRetiredCardType("CREDENTIAL")).toBe(true)
+    expect(isRetiredCardType("PLAYBOOK")).toBe(false)
+    // An unknown string is not "retired" — it is not ours at all, and treating it
+    // as retired would withhold the body of anything unrecognised.
+    expect(isRetiredCardType("NONSENSE")).toBe(false)
   })
 })
