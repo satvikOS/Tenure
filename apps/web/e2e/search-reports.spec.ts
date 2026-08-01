@@ -30,11 +30,19 @@ test.describe("search", () => {
   })
 
   test("search respects role scoping — seat cards stay hidden", async ({ page }) => {
-    // Priya writes a President-seat-only card with a unique token
+    // Priya writes a President-seat-only card with a unique token.
+    //
+    // PLAYBOOK, not CREDENTIAL. 0d6ac13 retired the Credential type from
+    // CreatableCardTypeEnum — correctly, since the column is unencrypted Json
+    // that any ACTIVE seat can write and search indexes as plain text — but the
+    // option disappeared from this dropdown while the test still selected it,
+    // so `selectOption` waited 45s for a value that no longer exists and main
+    // went red. What this test is actually about is seat scoping, which is a
+    // property of `visibleToSeat` and not of the card's type.
     const secret = `SEATSECRET${stamp}`
     await signIn(page, "Priya Raman")
     await page.goto("/orgs/simon-consulting-club/memory")
-    await page.getByLabel("Type").selectOption("CREDENTIAL")
+    await page.getByLabel("Type").selectOption("PLAYBOOK")
     await page.getByLabel("Title").fill(`Bank portal ${stamp}`)
     await page.getByLabel("Visible to").selectOption({ label: "President seat only" })
     await page
